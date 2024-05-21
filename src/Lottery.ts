@@ -15,6 +15,9 @@ import {
   UInt64,
   Gadgets,
   Mina,
+  ZkProgram,
+  MerkleMap,
+  SelfProof,
 } from 'o1js';
 
 const NUMBERS_IN_TICKET = 6;
@@ -63,12 +66,104 @@ class Ticket extends Struct({
       Bool(true)
     );
   }
+
   hash(): Field {
     return Poseidon.hash(
       this.numbers.map((number) => number.value).concat(this.round.value)
     );
   }
+
+  getScore(winningCombination: Field[]): Field {
+    let result = Field.from(0);
+
+    for (let i = 0; i < NUMBERS_IN_TICKET; i++) {
+      result = result.add(
+        Provable.if(
+          winningCombination[i].equals(this.numbers[i].value),
+          Field.from(1),
+          Field.from(0)
+        )
+      );
+    }
+
+    const conditions = [...Array(NUMBERS_IN_TICKET)].map((val, index) =>
+      result.equals(index)
+    );
+
+    const values = [0, 10, 100, 1000, 10000, 100000].map((val) =>
+      Field.from(val)
+    );
+
+    return Provable.switch(conditions, Field, values);
+  }
 }
+
+export class DistributionProofPublicInput extends Struct({
+  winingCombination: Provable.Array(Field, NUMBERS_IN_TICKET),
+  ticket: Ticket,
+  oldValue: Field,
+  valueWitness: MerkleMapWitness,
+  valueDiff: Field,
+}) {}
+
+export class DistributionProofPublicOutput extends Struct({
+  root: Field,
+  total: Field,
+}) {}
+
+const emptyMap = new MerkleMap();
+const emptyMapRoot = emptyMap.getRoot();
+
+const DistibutionProgram = ZkProgram({
+  name: 'distribution-program',
+  publicInput: DistributionProofPublicInput,
+  publicOutput: DistributionProofPublicOutput,
+  methods: {
+    init: {
+      privateInputs: [],
+      async method(): Promise<DistributionProofPublicOutput> {
+        return new DistributionProofPublicOutput({
+          root: emptyMapRoot,
+          total: Field.from(0),
+        });
+      },
+    },
+    addTicket: {
+      privateInputs: [SelfProof],
+      async method(
+        input: DistributionProofPublicInput,
+        prevProof: SelfProof<
+          DistributionProofPublicInput,
+          DistributionProofPublicOutput
+        >
+      ) {
+        input.valueDiff.assertGreaterThan(
+          Field.from(0),
+          'valueDiff should be > 0'
+        );
+        prevProof.verify();
+
+        const [initialRoot, key] = input.valueWitness.computeRootAndKey(
+          input.oldValue
+        );
+        key.assertEquals(input.ticket.hash(), 'Wrong key for that ticket');
+        initialRoot.assertEquals(prevProof.publicOutput.root);
+
+        const newValue = input.oldValue.add(input.valueDiff);
+
+        const [newRoot] = input.valueWitness.computeRootAndKey(newValue);
+        const ticketScore = input.ticket
+          .getScore(input.winingCombination)
+          .mul(input.valueDiff);
+
+        return new DistributionProofPublicOutput({
+          root: newRoot,
+          total: prevProof.publicOutput.total.add(ticketScore),
+        });
+      },
+    },
+  },
+});
 
 // #TODO constrain round to current
 
