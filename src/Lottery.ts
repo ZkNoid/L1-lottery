@@ -25,6 +25,7 @@ const NUMBERS_IN_TICKET = 6;
 const TICKET_PRICE = UInt64.from(10); // #TODO change to field in smartcontract
 const BLOCK_PER_ROUND = 480; // Aproximate blocks per day
 
+// #TODO add user address to ticket
 class Ticket extends Struct({
   numbers: Provable.Array(UInt8, NUMBERS_IN_TICKET),
   round: UInt32,
@@ -165,6 +166,8 @@ const DistibutionProgram = ZkProgram({
   },
 });
 
+export class DistributionProof extends ZkProgram.Proof(DistibutionProgram) {}
+
 // #TODO constrain round to current
 
 export class Lottery extends SmartContract {
@@ -223,18 +226,66 @@ export class Lottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(initialResultRoot, 'Wrong resultWitness or value');
 
-    round.assertGreaterThan(
+    round.assertLessThan(
       this.getCurrentRound().value,
       'Round is still not over'
     );
 
-    Ticket.generateFromSeed(
+    let winningTicket = Ticket.generateFromSeed(
       this.network.stakingEpochData.seed.getAndRequireEquals(), // #TODO check how often it is updated
       UInt32.fromFields([round]) // #TODO check can we do like it
     );
+
+    const [newResultRoot] = resultWiness.computeRootAndKey(
+      winningTicket.hash()
+    );
+
+    this.roundResultRoot.set(newResultRoot);
   }
 
-  @method async getReward(ticketHash: Field) {
+  @method async getReward(
+    ticket: Ticket,
+    value: Field,
+    roundWitness: MerkleMapWitness,
+    ticketWitness: MerkleMapWitness,
+    dp: DistributionProof,
+    winningTicket: Ticket, // We do not need ticket here, we can zipp numbers in field. But for simplicity we will use ticket for now
+    resutWitness: MerkleMapWitness
+  ) {
+    dp.verify();
+
+    const [ticketRoot, ticketKey] = ticketWitness.computeRootAndKey(value);
+    ticketKey.assertEquals(ticket.hash(), 'Wrong witness for ticket');
+    dp.publicOutput.root.assertEquals(ticketRoot, 'Wrong distribution proof');
+
+    const [roundRoot, round] = roundWitness.computeRootAndKey(ticketRoot);
+    this.ticketRoot
+      .getAndRequireEquals()
+      .assertEquals(
+        roundRoot,
+        'Generated tickets root and contact ticket is not equal'
+      );
+
+    round.assertLessThan(
+      this.getCurrentRound().value,
+      'Round is still not over'
+    );
+
+    const [resultRoot, resultRound] = resutWitness.computeRootAndKey(
+      winningTicket.hash()
+    );
+    resultRound.assertEquals(
+      round,
+      'Winning ticket and your ticket is from different rounds'
+    );
+    this.roundResultRoot
+      .getAndRequireEquals()
+      .assertEquals(resultRoot, 'Wrong result witness');
+
+    const score = ticket.getScore(
+      winningTicket.numbers.map((number) => number.value)
+    );
+
     // #TODO
   }
 
