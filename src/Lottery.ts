@@ -26,6 +26,7 @@ const TICKET_PRICE = UInt64.from(10); // #TODO change to field in smartcontract
 const BLOCK_PER_ROUND = 480; // Aproximate blocks per day
 
 // #TODO add user address to ticket
+// technically we can remove round from ticket
 class Ticket extends Struct({
   numbers: Provable.Array(UInt8, NUMBERS_IN_TICKET),
   round: UInt32,
@@ -171,8 +172,13 @@ export class DistributionProof extends ZkProgram.Proof(DistibutionProgram) {}
 // #TODO constrain round to current
 
 export class Lottery extends SmartContract {
+  // Stores merkle map with all tickets, that user have bought. Each leaf of this tree is a root of tree for corresponding round
   @state(Field) ticketRoot = State<Field>();
-  @state(Field) ticketAmountRoot = State<Field>();
+
+  // Stores merkle map with total bank for each round.
+  @state(Field) bankRoot = State<Field>();
+
+  // Stores merkle map with wining combination for each rounds
   @state(Field) roundResultRoot = State<Field>();
 
   init() {
@@ -186,39 +192,64 @@ export class Lottery extends SmartContract {
     amount: UInt64,
     curValue: Field,
     rountWitness: MerkleMapWitness,
-    ticketWitness: MerkleMapWitness
+    ticketWitness: MerkleMapWitness,
+    prevBankValue: Field,
+    bankWitness: MerkleMapWitness
   ) {
+    // Ticket validity check
     ticket.round.assertEquals(this.getCurrentRound());
     ticket.check().assertTrue();
 
-    const [ticketRootBefore, key] = ticketWitness.computeRootAndKey(curValue);
+    // Calculate round ticket root
+    const [roundTicketRootBefore, key] =
+      ticketWitness.computeRootAndKey(curValue);
     key.assertEquals(ticket.hash(), 'Wrong key for ticket witness');
 
-    const [roundRootBefore, roundKey] =
-      rountWitness.computeRootAndKey(ticketRootBefore);
+    // Calculate round root
+    const [ticketRootBefore, roundKey] = rountWitness.computeRootAndKey(
+      roundTicketRootBefore
+    );
 
+    // Check that computed ticket root is equal to contract ticketRoot.
     this.ticketRoot
       .getAndRequireEquals()
-      .assertEquals(roundRootBefore, 'Round witness check fail');
+      .assertEquals(ticketRootBefore, 'Round witness check fail');
+    // Check that key is a ticket round
     roundKey.assertEquals(ticket.round.value);
 
-    const [newTicketRoot] = ticketWitness.computeRootAndKey(
+    // Recalculate round ticket root with new value
+    const [newRoundTicketRoot] = ticketWitness.computeRootAndKey(
       curValue.add(amount.value)
     );
 
-    const [newRoundRoot] = rountWitness.computeRootAndKey(newTicketRoot);
+    // Recalculate ticket root
+    const [newTicketRoot] = rountWitness.computeRootAndKey(newRoundTicketRoot);
 
-    this.ticketRoot.set(newRoundRoot);
+    this.ticketRoot.set(newTicketRoot);
 
-    // Get price from user
+    // Get ticket price from user
     let senderUpdate = AccountUpdate.createSigned(
       this.sender.getAndRequireSignature()
     );
     senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(amount) });
+
+    // Update bank info
+    const [prevBankRoot, bankKey] =
+      bankWitness.computeRootAndKey(prevBankValue);
+    this.bankRoot
+      .getAndRequireEquals()
+      .assertEquals(prevBankRoot, 'Wrong bank witness');
+    bankKey.assertEquals(roundKey, 'Wrong bank round');
+
+    const [newBankRoot] = bankWitness.computeRootAndKey(
+      prevBankValue.add(TICKET_PRICE.mul(amount).value)
+    );
+
+    this.bankRoot.set(newBankRoot);
   }
 
   @method async produceResult(resultWiness: MerkleMapWitness) {
-    // #TODO
+    // Check that result for this round is not computed yet, and that witness it is valid
     const [initialResultRoot, round] = resultWiness.computeRootAndKey(
       Field.from(0)
     );
@@ -231,11 +262,13 @@ export class Lottery extends SmartContract {
       'Round is still not over'
     );
 
+    // Generate new ticket using value from blockchain
     let winningTicket = Ticket.generateFromSeed(
       this.network.stakingEpochData.seed.getAndRequireEquals(), // #TODO check how often it is updated
       UInt32.fromFields([round]) // #TODO check can we do like it
     );
 
+    // Update result tree
     const [newResultRoot] = resultWiness.computeRootAndKey(
       winningTicket.hash()
     );
@@ -252,25 +285,34 @@ export class Lottery extends SmartContract {
     winningTicket: Ticket, // We do not need ticket here, we can zipp numbers in field. But for simplicity we will use ticket for now
     resutWitness: MerkleMapWitness
   ) {
+    // Verify distibution proof
     dp.verify();
 
-    const [ticketRoot, ticketKey] = ticketWitness.computeRootAndKey(value);
+    // Calculate and check ticket root. Check that root in proof is equal to that root
+    const [roundTicketRoot, ticketKey] = ticketWitness.computeRootAndKey(value);
     ticketKey.assertEquals(ticket.hash(), 'Wrong witness for ticket');
-    dp.publicOutput.root.assertEquals(ticketRoot, 'Wrong distribution proof');
+    dp.publicOutput.root.assertEquals(
+      roundTicketRoot,
+      'Wrong distribution proof'
+    );
 
-    const [roundRoot, round] = roundWitness.computeRootAndKey(ticketRoot);
+    // Check that ticket root is equal to ticket root on contract
+    const [prevTicketRoot, round] =
+      roundWitness.computeRootAndKey(roundTicketRoot);
     this.ticketRoot
       .getAndRequireEquals()
       .assertEquals(
-        roundRoot,
+        prevTicketRoot,
         'Generated tickets root and contact ticket is not equal'
       );
 
+    // Check that round is finished
     round.assertLessThan(
       this.getCurrentRound().value,
       'Round is still not over'
     );
 
+    // Check result root info
     const [resultRoot, resultRound] = resutWitness.computeRootAndKey(
       winningTicket.hash()
     );
@@ -282,11 +324,17 @@ export class Lottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(resultRoot, 'Wrong result witness');
 
+    // Compute score using winnging ticket
     const score = ticket.getScore(
       winningTicket.numbers.map((number) => number.value)
     );
 
-    // #TODO
+    // Pay user
+    const bank = Field(0); // Change to bank info
+
+    // bank * score / dp.publicOutput.total
+
+    // Removed ticket from tree
   }
 
   public getCurrentRound(): UInt32 {
