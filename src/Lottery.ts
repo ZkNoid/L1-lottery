@@ -4,20 +4,15 @@ import {
   state,
   State,
   method,
-  Struct,
-  Provable,
-  UInt8,
   UInt32,
-  Poseidon,
-  Bool,
   MerkleMapWitness,
   AccountUpdate,
   UInt64,
   Gadgets,
-  Mina,
-  ZkProgram,
-  MerkleMap,
-  SelfProof,
+  UInt8,
+  Int64,
+  PublicKey,
+  CircuitString,
 } from 'o1js';
 import { PackedUInt32Factory } from 'o1js-pack';
 import { Ticket } from './Ticket';
@@ -43,6 +38,7 @@ const generateNumbersSeed = (seed: Field): UInt32[] => {
 };
 
 // #TODO constrain round to current
+// #TODO add events
 
 export class Lottery extends SmartContract {
   // Stores merkle map with all tickets, that user have bought. Each leaf of this tree is a root of tree for corresponding round
@@ -62,21 +58,22 @@ export class Lottery extends SmartContract {
 
   @method async buyTicket(
     ticket: Ticket,
-    amount: UInt64,
-    curValue: Field,
     rountWitness: MerkleMapWitness,
     ticketWitness: MerkleMapWitness,
     prevBankValue: Field,
     bankWitness: MerkleMapWitness
   ) {
+    ticket.owner.equals(this.sender.getAndRequireSignature()); // Do we need this check?
+
     // Ticket validity check
-    ticket.round.assertEquals(this.getCurrentRound());
     ticket.check().assertTrue();
 
     // Calculate round ticket root
-    const [roundTicketRootBefore, key] =
-      ticketWitness.computeRootAndKey(curValue);
-    key.assertEquals(ticket.hash(), 'Wrong key for ticket witness');
+    const [roundTicketRootBefore, key] = ticketWitness.computeRootAndKey(
+      Field(0) // Because ticket should be empty before buying
+    );
+    // Key can be any right now. We can change it to
+    // key.assertEquals(ticket.hash(), 'Wrong key for ticket witness');
 
     // Calculate round root
     const [ticketRootBefore, roundKey] = rountWitness.computeRootAndKey(
@@ -88,12 +85,10 @@ export class Lottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(ticketRootBefore, 'Round witness check fail');
     // Check that key is a ticket round
-    roundKey.assertEquals(ticket.round.value);
+    roundKey.assertEquals(this.getCurrentRound().value);
 
     // Recalculate round ticket root with new value
-    const [newRoundTicketRoot] = ticketWitness.computeRootAndKey(
-      curValue.add(amount.value)
-    );
+    const [newRoundTicketRoot] = ticketWitness.computeRootAndKey(ticket.hash());
 
     // Recalculate ticket root
     const [newTicketRoot] = rountWitness.computeRootAndKey(newRoundTicketRoot);
@@ -104,7 +99,7 @@ export class Lottery extends SmartContract {
     let senderUpdate = AccountUpdate.createSigned(
       this.sender.getAndRequireSignature()
     );
-    senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(amount) });
+    senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
 
     // Update bank info
     const [prevBankRoot, bankKey] =
@@ -115,7 +110,7 @@ export class Lottery extends SmartContract {
     bankKey.assertEquals(roundKey, 'Wrong bank round');
 
     const [newBankRoot] = bankWitness.computeRootAndKey(
-      prevBankValue.add(TICKET_PRICE.mul(amount).value)
+      prevBankValue.add(TICKET_PRICE.mul(ticket.amount).value)
     );
 
     this.bankRoot.set(newBankRoot);
@@ -157,6 +152,7 @@ export class Lottery extends SmartContract {
     winningNumbers: Field,
     resutWitness: MerkleMapWitness
   ) {
+    ticket.owner.assertEquals(this.sender.getAndRequireSignature());
     // Verify distibution proof
     dp.verify();
 
