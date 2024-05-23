@@ -13,6 +13,7 @@ import {
   Int64,
   PublicKey,
   CircuitString,
+  Poseidon,
 } from 'o1js';
 import { PackedUInt32Factory } from 'o1js-pack';
 import { Ticket } from './Ticket';
@@ -43,6 +44,8 @@ const generateNumbersSeed = (seed: Field): UInt32[] => {
 export class Lottery extends SmartContract {
   // Stores merkle map with all tickets, that user have bought. Each leaf of this tree is a root of tree for corresponding round
   @state(Field) ticketRoot = State<Field>();
+
+  @state(Field) ticketNullifier = State<Field>();
 
   // Stores merkle map with total bank for each round.
   @state(Field) bankRoot = State<Field>();
@@ -150,7 +153,8 @@ export class Lottery extends SmartContract {
     ticketWitness: MerkleMapWitness,
     dp: DistributionProof,
     winningNumbers: Field,
-    resutWitness: MerkleMapWitness
+    resutWitness: MerkleMapWitness,
+    nullieiferWitness: MerkleMapWitness
   ) {
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
     // Verify distibution proof
@@ -201,7 +205,24 @@ export class Lottery extends SmartContract {
 
     // bank * score / dp.publicOutput.total
 
-    // Removed ticket from tree
+    // Add ticket to nullifier
+
+    const [prevNullifierRoot, nullifierKey] =
+      nullieiferWitness.computeRootAndKey(Field(0));
+
+    this.ticketNullifier
+      .getAndRequireEquals()
+      .assertEquals(prevNullifierRoot, 'Wrong nullifier witness');
+    nullifierKey.assertEquals(
+      Poseidon.hash([ticket.hash(), round]),
+      'Wrong nullifier witness key'
+    ); // Change to single hash
+
+    const [newNullifierValue] = nullieiferWitness.computeRootAndKey(
+      Field.from(1)
+    );
+
+    this.ticketNullifier.set(newNullifierValue);
   }
 
   public getCurrentRound(): UInt32 {
