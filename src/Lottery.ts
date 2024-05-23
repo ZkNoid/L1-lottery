@@ -19,11 +19,14 @@ import {
   MerkleMap,
   SelfProof,
 } from 'o1js';
+import { PackedUInt32Factory } from 'o1js-pack';
 
 const NUMBERS_IN_TICKET = 6;
 
 const TICKET_PRICE = UInt64.from(10); // #TODO change to field in smartcontract
 const BLOCK_PER_ROUND = 480; // Aproximate blocks per day
+
+export class NumberPacked extends PackedUInt32Factory() {}
 
 // #TODO add user address to ticket
 // technically we can remove round from ticket
