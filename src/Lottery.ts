@@ -159,6 +159,8 @@ export class Lottery extends SmartContract {
     dp: DistributionProof,
     winningNumbers: Field,
     resutWitness: MerkleMapWitness,
+    bankValue: Field,
+    bankWitness: MerkleMapWitness,
     nullieiferWitness: MerkleMapWitness
   ) {
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
@@ -206,9 +208,18 @@ export class Lottery extends SmartContract {
     );
 
     // Pay user
-    const bank = Field(0); // Change to bank info
+    const [bankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
+    this.bankRoot
+      .getAndRequireEquals()
+      .assertEquals(bankRoot, 'Wrong bank root witness');
+    bankKey.assertEquals(round, 'Wrong bank round');
 
-    // bank * score / dp.publicOutput.total
+    this.send({
+      to: ticket.owner,
+      amount: UInt64.fromFields([bankValue])
+        .mul(UInt64.fromFields([score]))
+        .div(UInt64.fromFields([dp.publicOutput.total])),
+    });
 
     // Add ticket to nullifier
 

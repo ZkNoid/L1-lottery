@@ -47,6 +47,14 @@ describe('Add', () => {
 
   it('one user case', async () => {
     await localDeploy();
+
+    // Buy ticket
+
+    // Wait next round
+
+    // Produce result
+
+    // Get reward
   });
 
   it('several users test case', async () => {
