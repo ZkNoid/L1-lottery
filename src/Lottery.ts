@@ -14,11 +14,13 @@ import {
   PublicKey,
   CircuitString,
   Poseidon,
+  MerkleMap,
 } from 'o1js';
 import { Ticket } from './Ticket';
 import { BLOCK_PER_ROUND, NUMBERS_IN_TICKET, TICKET_PRICE } from './constants';
 import { DistributionProof } from './DistributionProof';
 import { PackedUInt32Factory } from './o1js-pack/Packed';
+import { getEmpty2dMerkleMap } from './util';
 
 export class NumberPacked extends PackedUInt32Factory() {}
 
@@ -37,6 +39,11 @@ const generateNumbersSeed = (seed: Field): UInt32[] => {
 
   return numbers;
 };
+
+const emptyMapRoot = new MerkleMap().getRoot();
+
+const empty2dMap = getEmpty2dMerkleMap();
+const empty2dMapRoot = empty2dMap.getRoot();
 
 // #TODO constrain round to current
 // #TODO add events
@@ -59,6 +66,11 @@ export class Lottery extends SmartContract {
   init() {
     super.init();
 
+    this.ticketRoot.set(empty2dMapRoot); // Redoo, becase leafs is not 0, but empty map root
+    this.ticketNullifier.set(emptyMapRoot);
+    this.bankRoot.set(emptyMapRoot);
+    this.roundResultRoot.set(emptyMapRoot);
+
     this.startBlock.set(this.network.blockchainLength.getAndRequireEquals());
 
     // #TODO Permisions
@@ -66,8 +78,8 @@ export class Lottery extends SmartContract {
 
   @method async buyTicket(
     ticket: Ticket,
-    rountWitness: MerkleMapWitness,
-    ticketWitness: MerkleMapWitness,
+    roundWitness: MerkleMapWitness,
+    roundTicketWitness: MerkleMapWitness,
     prevBankValue: Field,
     bankWitness: MerkleMapWitness
   ) {
@@ -77,14 +89,14 @@ export class Lottery extends SmartContract {
     ticket.check().assertTrue();
 
     // Calculate round ticket root
-    const [roundTicketRootBefore, key] = ticketWitness.computeRootAndKey(
+    const [roundTicketRootBefore, key] = roundTicketWitness.computeRootAndKey(
       Field(0) // Because ticket should be empty before buying
     );
     // Key can be any right now. We can change it to
     // key.assertEquals(ticket.hash(), 'Wrong key for ticket witness');
 
     // Calculate round root
-    const [ticketRootBefore, roundKey] = rountWitness.computeRootAndKey(
+    const [ticketRootBefore, roundKey] = roundWitness.computeRootAndKey(
       roundTicketRootBefore
     );
 
@@ -96,10 +108,12 @@ export class Lottery extends SmartContract {
     roundKey.assertEquals(this.getCurrentRound().value);
 
     // Recalculate round ticket root with new value
-    const [newRoundTicketRoot] = ticketWitness.computeRootAndKey(ticket.hash());
+    const [newRoundTicketRoot] = roundTicketWitness.computeRootAndKey(
+      ticket.hash()
+    );
 
     // Recalculate ticket root
-    const [newTicketRoot] = rountWitness.computeRootAndKey(newRoundTicketRoot);
+    const [newTicketRoot] = roundWitness.computeRootAndKey(newRoundTicketRoot);
 
     this.ticketRoot.set(newTicketRoot);
 

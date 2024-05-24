@@ -12,6 +12,10 @@ import {
 } from 'o1js';
 import { NUMBERS_IN_TICKET, SCORE_COEFFICIENTS } from './constants';
 
+function getRandomInt(max: number) {
+  return Math.floor(Math.random() * max);
+}
+
 // #TODO add user address to ticket
 // technically we can remove round from ticket
 export class Ticket extends Struct({
@@ -29,6 +33,16 @@ export class Ticket extends Struct({
       numbers: numbers.map((number) => UInt8.from(number)),
       owner,
       amount: UInt64.from(amount),
+    });
+  }
+
+  static random(owner: PublicKey): Ticket {
+    return new Ticket({
+      numbers: [...Array(NUMBERS_IN_TICKET)].map(() =>
+        UInt8.from(getRandomInt(10))
+      ),
+      owner,
+      amount: UInt64.from(1),
     });
   }
 
