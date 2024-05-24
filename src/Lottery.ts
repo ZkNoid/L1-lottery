@@ -53,8 +53,13 @@ export class Lottery extends SmartContract {
   // Stores merkle map with wining combination for each rounds
   @state(Field) roundResultRoot = State<Field>();
 
+  // Stores block of deploy
+  @state(UInt32) startBlock = State<UInt32>();
+
   init() {
     super.init();
+
+    this.startBlock.set(this.network.blockchainLength.getAndRequireEquals());
 
     // #TODO Permisions
   }
@@ -226,7 +231,8 @@ export class Lottery extends SmartContract {
   }
 
   public getCurrentRound(): UInt32 {
+    const startBlock = this.startBlock.getAndRequireEquals();
     const blockNum = this.network.blockchainLength.getAndRequireEquals();
-    return blockNum.div(BLOCK_PER_ROUND);
+    return blockNum.sub(startBlock).div(BLOCK_PER_ROUND);
   }
 }
