@@ -1,3 +1,3 @@
-import { Add } from './Lottery.js';
+import { Lottery } from './Lottery.js';
 
-export { Add };
+export { Lottery };

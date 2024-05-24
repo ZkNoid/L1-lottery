@@ -1,0 +1,291 @@
+import { Field, InferProvable, provable, Provable, Struct, UInt32 } from 'o1js';
+
+// https://github.com/45930/o1js-pack
+
+const MAX_BITS_PER_FIELD = 254n;
+
+export function PackingPlant<A, T extends InferProvable<A> = InferProvable<A>>(
+  elementType: A,
+  l: number,
+  bitSize: bigint
+) {
+  if (bitSize * BigInt(l) > MAX_BITS_PER_FIELD) {
+    throw new Error(
+      `The Packing Plant is only accepting orders that can fit into one Field, try using MultiPackingPlant`
+    );
+  }
+  abstract class Packed_ extends Struct({
+    packed: Field,
+  }) {
+    static type = provable({ packed: Field }, {});
+    static l: number = l;
+    static bitSize: bigint = bitSize;
+
+    constructor(packed: Field) {
+      super({ packed });
+    }
+
+    // Must implement these in type-specific implementation
+    static extractField(input: T): Field {
+      throw new Error('Must implement extractField');
+    }
+    static sizeInBits(): bigint {
+      throw new Error('Must implement sizeInBits');
+    }
+    static unpack(f: Field): Array<T> {
+      throw new Error('Must implement unpack');
+    }
+    // End
+
+    /**
+     *
+     * @param unpacked Array of the implemented packed type
+     * @throws if the length of the array is longer than the length of the implementing factory config
+     */
+    static checkPack(unpacked: Array<T>) {
+      if (unpacked.length > l) {
+        throw new Error(
+          `Input of size ${unpacked.length} is larger than expected size of ${l}`
+        );
+      }
+    }
+
+    /**
+     *
+     * @param unpacked Array of the implemented packed type, must be shorter than the max allowed, which varies by type, will throw if the input is too long
+     * @returns Field, packed with the information from the unpacked input
+     */
+    static pack(unpacked: Array<T>): Field {
+      this.checkPack(unpacked);
+      let f = this.extractField(unpacked[0]);
+      const n = Math.min(unpacked.length, l);
+      for (let i = 1; i < n; i++) {
+        const c = Field((2n ** this.sizeInBits()) ** BigInt(i));
+        f = f.add(this.extractField(unpacked[i]).mul(c));
+      }
+      return f;
+    }
+
+    /**
+     *
+     * @param f Field, packed with the information, as returned by #pack
+     * @returns Array of bigints, which can be decoded by the implementing class into the final type
+     */
+    static unpackToBigints(f: Field): Array<bigint> {
+      let unpacked = new Array(l);
+      unpacked.fill(0n);
+      let packedN;
+      if (f) {
+        packedN = f.toBigInt();
+      } else {
+        throw new Error('No Packed Value Provided');
+      }
+      for (let i = 0; i < l; i++) {
+        unpacked[i] = packedN & ((1n << this.sizeInBits()) - 1n);
+        packedN >>= this.sizeInBits();
+      }
+      return unpacked;
+    }
+
+    // NOTE: adding to fields here breaks the proof generation.  Probably not overriding it correctly
+    /**
+     * @returns array of single Field element which constitute the packed object
+     */
+    toFields(): Array<Field> {
+      return [this.packed];
+    }
+
+    assertEquals(other: Packed_) {
+      this.packed.assertEquals(other.packed);
+    }
+  }
+  return Packed_;
+}
+
+export function MultiPackingPlant<
+  A,
+  T extends InferProvable<A> = InferProvable<A>
+>(elementType: A, l: number, bitSize: bigint) {
+  if (bitSize * BigInt(l) > 8n * MAX_BITS_PER_FIELD) {
+    throw new Error(
+      `The Packing Plant is only accepting orders that can fit into eight Fields`
+    );
+  }
+  const n = Math.ceil(Number(bitSize * BigInt(l)) / Number(255n));
+  abstract class Packed_ extends Struct({
+    packed: Provable.Array(Field, n),
+  }) {
+    static type = provable({ packed: Provable.Array(Field, n) }, {});
+    static l: number = l;
+    static n: number = n;
+    static bitSize: bigint = bitSize;
+
+    constructor(packed: Array<Field>) {
+      super({ packed });
+    }
+
+    // Must implement these in type-specific implementation
+    static extractField(input: T | undefined): Field {
+      throw new Error('Must implement extractField');
+    }
+    static sizeInBits(): bigint {
+      throw new Error('Must implement sizeInBits');
+    }
+    static elementsPerField(): number {
+      throw new Error('Must implement elementsPerField');
+    }
+    static unpack(fields: Array<Field>): Array<T> {
+      throw new Error('Must implement unpack');
+    }
+    // End
+
+    /**
+     *
+     * @param unpacked Array of the implemented packed type
+     * @throws if the length of the array is longer than the length of the implementing factory config
+     */
+    static checkPack(unpacked: Array<T>) {
+      if (unpacked.length > this.l) {
+        throw new Error(
+          `Input of size ${unpacked.length} is larger than expected size of ${l}`
+        );
+      }
+    }
+
+    /**
+     *
+     * @param unpacked Array of the implemented packed type, must be shorter than the max allowed, which varies by type, will throw if the input is too long
+     * @returns Array of Fields, packed such that each Field has as much information as possible
+     *
+     * e.g. 15 Characters pack into 1 Field.  15 or fewer Characters will return an array of 1 Field
+     *      30 of fewer Characters will return an aray of 2 Fields
+     */
+    static pack(unpacked: Array<T>): Array<Field> {
+      this.checkPack(unpacked);
+      const q = this.elementsPerField();
+      let fields = [];
+      let mutableUnpacked = [...unpacked];
+      for (let i = 0; i < this.n; i++) {
+        let f = this.extractField(mutableUnpacked[i * q]);
+        if (!f) {
+          throw new Error('Unexpected Array Length');
+        }
+        for (let j = 1; j < q; j++) {
+          const idx = i * q + j;
+          let value = this.extractField(mutableUnpacked[idx]);
+          if (!value) {
+            throw new Error('Unexpected Array Length');
+          }
+          value = value || Field(0);
+          const c = Field((2n ** this.sizeInBits()) ** BigInt(j));
+          f = f.add(value.mul(c));
+        }
+        fields.push(f);
+      }
+      return fields;
+    }
+
+    /**
+     *
+     * @param fields Array of Fields, packed such that each Field has as much information as possible, as returned in #pack
+     * @returns Array of bigints, which can be decoded by the implementing class into the final type
+     */
+    static unpackToBigints(fields: Array<Field>): Array<bigint> {
+      let uints_ = new Array(this.l); // array length is number of elements per field * number of fields
+      uints_.fill(0n);
+      let packedNs = new Array(this.n);
+      packedNs.fill(0n);
+      const packedArg = new Array(this.n);
+      packedArg.fill(Field(0), 0, this.n);
+      for (let i = 0; i < this.n; i++) {
+        if (fields[i]) {
+          packedArg[i] = fields[i];
+        }
+      }
+      if (packedArg.length !== this.n) {
+        throw new Error(`Packed value must be exactly ${this.n} in length`);
+      }
+      for (let i = 0; i < this.n; i++) {
+        packedNs[i] = packedArg[i].toConstant().toBigInt();
+      }
+      for (let i = 0; i < packedNs.length; i++) {
+        let packedN = packedNs[i];
+        for (let j = 0; j < this.elementsPerField(); j++) {
+          const k = i * this.elementsPerField() + j;
+          uints_[k] = packedN & ((1n << this.sizeInBits()) - 1n);
+          packedN >>= this.sizeInBits();
+        }
+      }
+      return uints_;
+    }
+
+    // NOTE: adding to fields here breaks the proof generation.  Probably not overriding it correctly
+    /**
+     * @returns array of Field elements which constitute the multi-packed object
+     */
+    toFields(): Array<Field> {
+      return this.packed;
+    }
+
+    assertEquals(other: Packed_) {
+      for (let x = 0; x < n; x++) {
+        this.packed[x].assertEquals(other.packed[x]);
+      }
+    }
+  }
+  return Packed_;
+}
+
+const L = 7; // 7 32-bit uints fit in one Field
+const SIZE_IN_BITS = 32n;
+
+export function PackedUInt32Factory(l: number = L) {
+  class PackedUInt32_ extends PackingPlant(UInt32, l, SIZE_IN_BITS) {
+    static extractField(input: UInt32): Field {
+      return input.value;
+    }
+
+    static sizeInBits(): bigint {
+      return SIZE_IN_BITS;
+    }
+
+    /**
+     *
+     * @param f Field, packed with the information, as returned by #pack
+     * @returns Array of UInt32
+     */
+    static unpack(f: Field): UInt32[] {
+      const unpacked = Provable.witness(Provable.Array(UInt32, l), () => {
+        const unpacked = this.unpackToBigints(f);
+        return unpacked.map((x) => UInt32.from(x));
+      });
+      f.assertEquals(PackedUInt32_.pack(unpacked));
+      return unpacked;
+    }
+
+    /**
+     *
+     * @param uint32s Array of UInt32s to be packed
+     * @returns Instance of the implementing class
+     */
+    static fromUInt32s(uint32s: Array<UInt32>): PackedUInt32_ {
+      const packed = PackedUInt32_.pack(uint32s);
+      return new PackedUInt32_(packed);
+    }
+
+    /**
+     *
+     * @param bigints Array of bigints to be packed
+     * @returns Instance of the implementing class
+     */
+    static fromBigInts(bigints: Array<bigint>): PackedUInt32_ {
+      const uint32s = bigints.map((x) => UInt32.from(x));
+      return PackedUInt32_.fromUInt32s(uint32s);
+    }
+
+    toBigInts(): Array<bigint> {
+      return PackedUInt32_.unpack(this.packed).map((x) => x.toBigint());
+    }
+  }
+  return PackedUInt32_;
+}

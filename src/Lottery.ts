@@ -15,10 +15,10 @@ import {
   CircuitString,
   Poseidon,
 } from 'o1js';
-import { PackedUInt32Factory } from 'o1js-pack';
 import { Ticket } from './Ticket';
 import { BLOCK_PER_ROUND, NUMBERS_IN_TICKET, TICKET_PRICE } from './constants';
 import { DistributionProof } from './DistributionProof';
+import { PackedUInt32Factory } from './o1js-pack/Packed';
 
 export class NumberPacked extends PackedUInt32Factory() {}
 

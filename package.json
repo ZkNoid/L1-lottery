@@ -40,8 +40,5 @@
   },
   "engines": {
     "node": ">=18.14.0"
-  },
-  "dependencies": {
-    "o1js-pack": "^0.6.0"
   }
 }
