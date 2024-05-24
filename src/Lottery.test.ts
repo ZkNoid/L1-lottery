@@ -10,6 +10,7 @@ import {
 import { Lottery } from './Lottery';
 import { Ticket } from './Ticket';
 import { getEmpty2dMerkleMap } from './util';
+import { TICKET_PRICE } from './constants';
 
 /*
  * This file specifies how to test the `Add` example smart contract. It is safe to delete this file and replace
@@ -62,6 +63,28 @@ class StateManager {
     return [roundWitness, ticketRoundWitness];
   }
 
+  addTicket(
+    ticket: Ticket,
+    round: number
+  ): [MerkleMapWitness, MerkleMapWitness, MerkleMapWitness, Field] {
+    const [roundWitness, ticketRoundWitness] = this.getNextTicketWitenss(round);
+    const [bankWitness, bankValue] = this.getBankWitness(round);
+
+    this.roundTicketMap[round].set(
+      Field.from(this.lastTicketInRound[round]),
+      ticket.hash()
+    );
+    this.lastTicketInRound[round]++;
+    this.ticketMap.set(Field.from(round), this.roundTicketMap[round].getRoot());
+
+    this.bankMap.set(
+      Field.from(round),
+      bankValue.add(TICKET_PRICE.mul(ticket.amount).value)
+    );
+
+    return [roundWitness, ticketRoundWitness, bankWitness, bankValue];
+  }
+
   // Returns witness and value
   getBankWitness(round: number): [MerkleMapWitness, Field] {
     const bankWitness = this.bankMap.getWitness(Field.from(round));
@@ -81,7 +104,8 @@ describe('Add', () => {
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     lottery: Lottery,
-    state: StateManager;
+    state: StateManager,
+    checkConsistancy: () => void;
 
   beforeAll(async () => {
     if (proofsEnabled) await Lottery.compile();
@@ -98,6 +122,17 @@ describe('Add', () => {
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     lottery = new Lottery(zkAppAddress);
     state = new StateManager();
+
+    checkConsistancy = () => {
+      expect(lottery.ticketRoot.get()).toEqual(state.ticketMap.getRoot());
+      expect(lottery.ticketNullifier.get()).toEqual(
+        state.ticketNullifierMap.getRoot()
+      );
+      expect(lottery.bankRoot.get()).toEqual(state.bankMap.getRoot());
+      expect(lottery.roundResultRoot.get()).toEqual(
+        state.roundResultMap.getRoot()
+      );
+    };
   });
 
   async function localDeploy() {
@@ -115,11 +150,12 @@ describe('Add', () => {
 
     let curRound = 0;
 
+    const balanceBefore = Mina.getBalance(senderAccount);
+
     // Buy ticket
     const ticket = Ticket.random(senderAccount);
-    let [roundWitness, roundTicketWitness] =
-      state.getNextTicketWitenss(curRound);
-    let [bankWitness, bankValue] = state.getBankWitness(curRound);
+    let [roundWitness, roundTicketWitness, bankWitness, bankValue] =
+      state.addTicket(ticket, curRound);
     let tx = await Mina.transaction(senderAccount, async () => {
       await lottery.buyTicket(
         ticket,
@@ -132,6 +168,12 @@ describe('Add', () => {
 
     await tx.prove();
     await tx.sign([senderKey]).send();
+
+    const balanceAfter = Mina.getBalance(senderAccount);
+
+    expect(balanceBefore.sub(balanceAfter)).toEqual(TICKET_PRICE);
+
+    checkConsistancy();
 
     // Wait next round
 
