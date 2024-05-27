@@ -6,11 +6,12 @@ import {
   Mina,
   PrivateKey,
   PublicKey,
+  UInt32,
 } from 'o1js';
 import { Lottery } from './Lottery';
 import { Ticket } from './Ticket';
 import { getEmpty2dMerkleMap } from './util';
-import { TICKET_PRICE } from './constants';
+import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants';
 
 /*
  * This file specifies how to test the `Add` example smart contract. It is safe to delete this file and replace
@@ -105,7 +106,8 @@ describe('Add', () => {
     zkAppPrivateKey: PrivateKey,
     lottery: Lottery,
     state: StateManager,
-    checkConsistancy: () => void;
+    checkConsistancy: () => void,
+    mineNBlocks: (n: number) => void;
 
   beforeAll(async () => {
     if (proofsEnabled) await Lottery.compile();
@@ -122,6 +124,11 @@ describe('Add', () => {
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     lottery = new Lottery(zkAppAddress);
     state = new StateManager();
+
+    mineNBlocks = (n: number) => {
+      let curAmount = Local.getNetworkState().blockchainLength;
+      Local.setBlockchainLength(curAmount.add(n));
+    };
 
     checkConsistancy = () => {
       expect(lottery.ticketRoot.get()).toEqual(state.ticketMap.getRoot());
@@ -176,6 +183,7 @@ describe('Add', () => {
     checkConsistancy();
 
     // Wait next round
+    mineNBlocks(BLOCK_PER_ROUND);
 
     // Produce result
 
