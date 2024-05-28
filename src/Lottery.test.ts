@@ -9,7 +9,12 @@ import {
   UInt32,
   UInt64,
 } from 'o1js';
-import { MockLottery, NumberPacked, mockWinningCombination } from './Lottery';
+import {
+  Lottery,
+  MockLottery,
+  NumberPacked,
+  mockWinningCombination,
+} from './Lottery';
 import { Ticket } from './Ticket';
 import { getEmpty2dMerkleMap } from './util';
 import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants';
@@ -56,6 +61,7 @@ class StateManager {
   bankMap: MerkleMap;
   roundResultMap: MerkleMap;
   startBlock: Field;
+  dpProofs: { [key: number]: DistributionProof };
 
   constructor() {
     this.ticketMap = getEmpty2dMerkleMap();
@@ -65,6 +71,7 @@ class StateManager {
     this.ticketNullifierMap = new MerkleMap();
     this.bankMap = new MerkleMap();
     this.roundResultMap = new MerkleMap();
+    this.dpProofs = {};
   }
 
   getNextTicketWitenss(round: number): [MerkleMapWitness, MerkleMapWitness] {
@@ -117,6 +124,10 @@ class StateManager {
   }
 
   async getDP(round: number): Promise<DistributionProof> {
+    if (this.dpProofs[round]) {
+      return this.dpProofs[round];
+    }
+
     const winningCombination = this.roundResultMap.get(Field.from(round));
     let ticketsInRound = this.lastTicketInRound[round];
     let curMap = new MerkleMap();
@@ -146,6 +157,7 @@ class StateManager {
       // curProof = await DistibutionProgram.addTicket(input, curProof);
     }
 
+    this.dpProofs[round] = curProof;
     return curProof;
   }
 
@@ -231,7 +243,13 @@ describe('Add', () => {
     mineNBlocks: (n: number) => void;
 
   beforeAll(async () => {
-    if (proofsEnabled) await MockLottery.compile();
+    if (proofsEnabled) {
+      console.log(`Compiling distribution program proof`);
+      await DistibutionProgram.compile();
+      console.log(`Compiling MockLottery`);
+      await Lottery.compile();
+      console.log(`Successfully compiled`);
+    }
   });
 
   beforeEach(async () => {

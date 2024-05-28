@@ -307,9 +307,7 @@ export class Lottery extends SmartContract {
 
   public getWiningNumbersForRound(): UInt32[] {
     // Temporary function implementation. Later will be switch with oracle call.
-    return generateNumbersSeed(
-      this.network.stakingEpochData.seed.getAndRequireEquals() // Probably not secure as seed is not updating quite often
-    );
+    return generateNumbersSeed(Field(12345));
   }
 }
 
