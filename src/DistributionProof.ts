@@ -54,12 +54,6 @@ export const addTicket = async (
     NumberPacked.unpack(input.winningCombination)
   );
 
-  Provable.asProver(() => {
-    console.log(
-      `Ticket score of ${key.toString()} ticket is ${ticketScore.toString()}`
-    );
-  });
-
   return new DistributionProofPublicOutput({
     root: newRoot,
     total: prevProof.publicOutput.total.add(ticketScore),
