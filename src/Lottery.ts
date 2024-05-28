@@ -16,6 +16,7 @@ import {
   Poseidon,
   MerkleMap,
   Provable,
+  Struct,
 } from 'o1js';
 import { Ticket } from './Ticket';
 import { BLOCK_PER_ROUND, NUMBERS_IN_TICKET, TICKET_PRICE } from './constants';
@@ -49,7 +50,27 @@ const empty2dMapRoot = empty2dMap.getRoot();
 // #TODO constrain round to current
 // #TODO add events
 
+export class BuyTicketEvent extends Struct({
+  ticket: Ticket,
+  round: Field,
+}) {}
+
+export class ProduceResultEvent extends Struct({
+  result: Field,
+  round: Field,
+}) {}
+
+export class GetRewardEvent extends Struct({
+  ticket: Ticket,
+  round: Field,
+}) {}
+
 export class Lottery extends SmartContract {
+  events = {
+    'buy-ticket': BuyTicketEvent,
+    'produce-result': ProduceResultEvent,
+    'get-reward': GetRewardEvent,
+  };
   // Stores merkle map with all tickets, that user have bought. Each leaf of this tree is a root of tree for corresponding round
   @state(Field) ticketRoot = State<Field>();
 
@@ -138,6 +159,14 @@ export class Lottery extends SmartContract {
     );
 
     this.bankRoot.set(newBankRoot);
+
+    this.emitEvent(
+      'buy-ticket',
+      new BuyTicketEvent({
+        ticket,
+        round: roundKey,
+      })
+    );
   }
 
   @method async produceResult(resultWiness: MerkleMapWitness) {
@@ -164,6 +193,14 @@ export class Lottery extends SmartContract {
     const [newResultRoot] = resultWiness.computeRootAndKey(newLeafValue);
 
     this.roundResultRoot.set(newResultRoot);
+
+    this.emitEvent(
+      'produce-result',
+      new ProduceResultEvent({
+        result: newLeafValue,
+        round,
+      })
+    );
   }
 
   @method async getReward(
@@ -253,6 +290,13 @@ export class Lottery extends SmartContract {
     );
 
     this.ticketNullifier.set(newNullifierValue);
+    this.emitEvent(
+      'get-reward',
+      new GetRewardEvent({
+        ticket,
+        round,
+      })
+    );
   }
 
   public getCurrentRound(): UInt32 {
