@@ -18,11 +18,15 @@ import {
   Provable,
   Struct,
 } from 'o1js';
-import { Ticket } from './Ticket';
-import { BLOCK_PER_ROUND, NUMBERS_IN_TICKET, TICKET_PRICE } from './constants';
-import { DistributionProof } from './DistributionProof';
-import { PackedUInt32Factory } from './o1js-pack/Packed';
-import { getEmpty2dMerkleMap } from './util';
+import { Ticket } from './Ticket.js';
+import {
+  BLOCK_PER_ROUND,
+  NUMBERS_IN_TICKET,
+  TICKET_PRICE,
+} from './constants.js';
+import { DistributionProof } from './DistributionProof.js';
+import { PackedUInt32Factory } from './o1js-pack/Packed.js';
+import { getEmpty2dMerkleMap } from './util.js';
 
 export class NumberPacked extends PackedUInt32Factory() {}
 

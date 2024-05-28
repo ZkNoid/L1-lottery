@@ -8,8 +8,8 @@ import {
   SelfProof,
 } from 'o1js';
 import { NUMBERS_IN_TICKET } from './constants';
-import { Ticket } from './Ticket';
-import { NumberPacked } from './Lottery';
+import { Ticket } from './Ticket.js';
+import { NumberPacked } from './Lottery.js';
 
 export class DistributionProofPublicInput extends Struct({
   winningCombination: Field,

@@ -1,3 +1,4 @@
 import { Lottery } from './Lottery.js';
+import { Ticket } from './Ticket';
 
-export { Lottery };
+export { Ticket, Lottery };

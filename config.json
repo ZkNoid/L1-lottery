@@ -1,4 +1,31 @@
 {
   "version": 1,
-  "deployAliases": {}
+  "deployAliases": {
+    "zeko": {
+      "url": "https://devnet.zeko.io/graphql",
+      "keyPath": "keys/zeko.json",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.1",
+      "smartContract": "MockLottery"
+    },
+    "berkeley": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/berkeley/v1/graphql",
+      "keyPath": "keys/devnet.json",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.1",
+      "smartContract": "MockLottery"
+    },
+    "devnet": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "keyPath": "keys/devnet.json",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.1",
+      "smartContract": "MockLottery"
+    }
+  }
 }
