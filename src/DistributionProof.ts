@@ -13,9 +13,7 @@ import { Ticket } from './Ticket';
 export class DistributionProofPublicInput extends Struct({
   winingCombination: Provable.Array(Field, NUMBERS_IN_TICKET),
   ticket: Ticket,
-  oldValue: Field,
   valueWitness: MerkleMapWitness,
-  valueDiff: Field,
 }) {}
 
 export class DistributionProofPublicOutput extends Struct({
@@ -49,24 +47,18 @@ const DistibutionProgram = ZkProgram({
           DistributionProofPublicOutput
         >
       ) {
-        input.valueDiff.assertGreaterThan(
-          Field.from(0),
-          'valueDiff should be > 0'
-        );
         prevProof.verify();
 
         const [initialRoot, key] = input.valueWitness.computeRootAndKey(
-          input.oldValue
+          Field(0)
         );
         key.assertEquals(input.ticket.hash(), 'Wrong key for that ticket');
         initialRoot.assertEquals(prevProof.publicOutput.root);
 
-        const newValue = input.oldValue.add(input.valueDiff);
+        const newValue = input.ticket.hash();
 
         const [newRoot] = input.valueWitness.computeRootAndKey(newValue);
-        const ticketScore = input.ticket
-          .getScore(input.winingCombination)
-          .mul(input.valueDiff);
+        const ticketScore = input.ticket.getScore(input.winingCombination);
 
         return new DistributionProofPublicOutput({
           root: newRoot,
