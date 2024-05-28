@@ -8,7 +8,7 @@ import {
   PublicKey,
   UInt32,
 } from 'o1js';
-import { Lottery } from './Lottery';
+import { MockLottery, NumberPacked, mockWinningCombination } from './Lottery';
 import { Ticket } from './Ticket';
 import { getEmpty2dMerkleMap } from './util';
 import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants';
@@ -93,6 +93,16 @@ class StateManager {
 
     return [bankWitness, value];
   }
+
+  updateResult(round: number): MerkleMapWitness {
+    const witness = this.roundResultMap.getWitness(Field.from(round));
+    const packedNumbers = NumberPacked.pack(
+      mockWinningCombination.map((val) => UInt32.from(val))
+    );
+    this.roundResultMap.set(Field.from(round), packedNumbers);
+
+    return witness;
+  }
 }
 
 let proofsEnabled = false;
@@ -104,13 +114,13 @@ describe('Add', () => {
     senderKey: PrivateKey,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
-    lottery: Lottery,
+    lottery: MockLottery,
     state: StateManager,
     checkConsistancy: () => void,
     mineNBlocks: (n: number) => void;
 
   beforeAll(async () => {
-    if (proofsEnabled) await Lottery.compile();
+    if (proofsEnabled) await MockLottery.compile();
   });
 
   beforeEach(async () => {
@@ -122,7 +132,7 @@ describe('Add', () => {
 
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
-    lottery = new Lottery(zkAppAddress);
+    lottery = new MockLottery(zkAppAddress);
     state = new StateManager();
 
     mineNBlocks = (n: number) => {
@@ -186,6 +196,14 @@ describe('Add', () => {
     mineNBlocks(BLOCK_PER_ROUND);
 
     // Produce result
+    const resultWitness = state.updateResult(curRound);
+    let tx2 = await Mina.transaction(senderAccount, async () => {
+      await lottery.produceResult(resultWitness);
+    });
+
+    await tx2.prove();
+    await tx2.sign([senderKey]).send();
+    checkConsistancy();
 
     // Get reward
   });

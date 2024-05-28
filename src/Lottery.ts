@@ -15,6 +15,7 @@ import {
   CircuitString,
   Poseidon,
   MerkleMap,
+  Provable,
 } from 'o1js';
 import { Ticket } from './Ticket';
 import { BLOCK_PER_ROUND, NUMBERS_IN_TICKET, TICKET_PRICE } from './constants';
@@ -143,6 +144,7 @@ export class Lottery extends SmartContract {
     const [initialResultRoot, round] = resultWiness.computeRootAndKey(
       Field.from(0)
     );
+
     this.roundResultRoot
       .getAndRequireEquals()
       .assertEquals(initialResultRoot, 'Wrong resultWitness or value');
@@ -153,9 +155,7 @@ export class Lottery extends SmartContract {
     );
 
     // Generate new ticket using value from blockchain
-    let winningNumbers = generateNumbersSeed(
-      this.network.stakingEpochData.seed.getAndRequireEquals() // Probably not secure as seed is not updating quite often
-    );
+    let winningNumbers = this.getWiningNumbersForRound();
 
     let newLeafValue = NumberPacked.pack(winningNumbers);
 
@@ -259,5 +259,20 @@ export class Lottery extends SmartContract {
     const startBlock = this.startBlock.getAndRequireEquals();
     const blockNum = this.network.blockchainLength.getAndRequireEquals();
     return blockNum.sub(startBlock).div(BLOCK_PER_ROUND);
+  }
+
+  public getWiningNumbersForRound(): UInt32[] {
+    // Temporary function implementation. Later will be switch with oracle call.
+    return generateNumbersSeed(
+      this.network.stakingEpochData.seed.getAndRequireEquals() // Probably not secure as seed is not updating quite often
+    );
+  }
+}
+
+export const mockWinningCombination = [1, 1, 1, 1, 1, 1];
+
+export class MockLottery extends Lottery {
+  override getWiningNumbersForRound(): UInt32[] {
+    return mockWinningCombination.map((val) => UInt32.from(val));
   }
 }
