@@ -12,34 +12,44 @@ import { MockLottery, NumberPacked, mockWinningCombination } from './Lottery';
 import { Ticket } from './Ticket';
 import { getEmpty2dMerkleMap } from './util';
 import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants';
+import {
+  DistibutionProgram,
+  DistributionProof,
+  DistributionProofPublicInput,
+  addTicket,
+  init,
+} from './DistributionProof';
+import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
+import { Pickles } from 'o1js/dist/node/snarky';
 
-/*
- * This file specifies how to test the `Add` example smart contract. It is safe to delete this file and replace
- * with your own tests.
- *
- * See https://docs.minaprotocol.com/zkapps for more info.
- */
-
-// interface LeafValue<T = void> {
-//   value: Field;
-//   additionalInfo?: T;
-// }
-
-// class MapManager<T = void> {
-//   map: MerkleMap;
-//   values: { [key: number]: LeafValue<T> };
-
-//   constructor() {
-//     return {
-//       map: new MerkleMap(),
-//       values: {},
-//     };
-//   }
-// }
+export async function mockProof<I, O, P>(
+  publicOutput: O,
+  ProofType: new ({
+    proof,
+    publicInput,
+    publicOutput,
+    maxProofsVerified,
+  }: {
+    proof: unknown;
+    publicInput: I;
+    publicOutput: any;
+    maxProofsVerified: 0 | 2 | 1;
+  }) => P,
+  publicInput: I
+): Promise<P> {
+  const [, proof] = Pickles.proofOfBase64(await dummyBase64Proof(), 2);
+  return new ProofType({
+    proof: proof,
+    maxProofsVerified: 2,
+    publicInput,
+    publicOutput,
+  });
+}
 
 class StateManager {
   ticketMap: MerkleMap;
   roundTicketMap: MerkleMap[];
+  roundTickets: Ticket[][];
   lastTicketInRound: number[];
   ticketNullifierMap: MerkleMap;
   bankMap: MerkleMap;
@@ -50,6 +60,7 @@ class StateManager {
     this.ticketMap = getEmpty2dMerkleMap();
     this.roundTicketMap = [new MerkleMap()];
     this.lastTicketInRound = [0];
+    this.roundTickets = [[]];
     this.ticketNullifierMap = new MerkleMap();
     this.bankMap = new MerkleMap();
     this.roundResultMap = new MerkleMap();
@@ -75,6 +86,7 @@ class StateManager {
       Field.from(this.lastTicketInRound[round]),
       ticket.hash()
     );
+    this.roundTickets[round].push(ticket);
     this.lastTicketInRound[round]++;
     this.ticketMap.set(Field.from(round), this.roundTicketMap[round].getRoot());
 
@@ -102,6 +114,105 @@ class StateManager {
     this.roundResultMap.set(Field.from(round), packedNumbers);
 
     return witness;
+  }
+
+  async getDP(round: number): Promise<DistributionProof> {
+    const winningCombination = this.roundResultMap.get(Field.from(round));
+    let ticketsInRound = this.lastTicketInRound[round];
+    let curMap = new MerkleMap();
+
+    let input = new DistributionProofPublicInput({
+      winningCombination,
+      ticket: Ticket.random(PublicKey.empty()),
+      valueWitness: this.roundTicketMap[round].getWitness(Field(0)),
+    });
+
+    let curProof = await mockProof(await init(input), DistributionProof, input);
+
+    for (let i = 0; i < ticketsInRound; i++) {
+      const ticket = this.roundTickets[round][i];
+
+      const input = new DistributionProofPublicInput({
+        winningCombination,
+        ticket: ticket,
+        valueWitness: curMap.getWitness(Field(i)),
+      });
+      curMap.set(Field(i), ticket.hash());
+      curProof = await mockProof(
+        await addTicket(input, curProof),
+        DistributionProof,
+        input
+      );
+      // curProof = await DistibutionProgram.addTicket(input, curProof);
+    }
+
+    return curProof;
+  }
+
+  // Changes value of nullifier!
+  async getReward(
+    round: number,
+    ticket: Ticket
+  ): Promise<{
+    roundWitness: MerkleMapWitness;
+    roundTicketWitness: MerkleMapWitness;
+    dp: DistributionProof;
+    winningNumbers: Field;
+    resultWitness: MerkleMapWitness;
+    bankValue: Field;
+    bankWitness: MerkleMapWitness;
+    nullifierWitness: MerkleMapWitness;
+  }> {
+    const roundWitness = this.ticketMap.getWitness(Field.from(round));
+
+    const ticketHash = ticket.hash();
+    let roundTicketWitness;
+    // Find ticket in tree
+    for (let i = 0; i < this.lastTicketInRound[round]; i++) {
+      if (
+        this.roundTicketMap[round].tree
+          .getLeaf(BigInt(i))
+          .equals(ticketHash)
+          .toBoolean()
+      ) {
+        roundTicketWitness = this.roundTicketMap[round].getWitness(
+          Field.from(i)
+        );
+      }
+    }
+    if (!roundTicketWitness) {
+      throw Error(`No such ticket in round ${round}`);
+    }
+
+    const dp = await this.getDP(round);
+    const winningNumbers = this.roundResultMap.get(Field.from(round));
+    if (winningNumbers.equals(Field(0)).toBoolean()) {
+      throw Error('Do not have a result for this round');
+    }
+    const resultWitness = this.roundResultMap.getWitness(Field.from(round));
+
+    const bankValue = this.bankMap.get(Field.from(round));
+    const bankWitness = this.bankMap.getWitness(Field.from(round));
+
+    const nullifierWitness = this.ticketNullifierMap.getWitness(
+      ticket.nullifierHash(Field.from(round))
+    );
+
+    this.ticketNullifierMap.set(
+      ticket.nullifierHash(Field.from(round)),
+      Field(1)
+    );
+
+    return {
+      roundWitness,
+      roundTicketWitness,
+      dp,
+      winningNumbers,
+      resultWitness,
+      bankValue,
+      bankWitness,
+      nullifierWitness,
+    };
   }
 }
 
@@ -170,7 +281,7 @@ describe('Add', () => {
     const balanceBefore = Mina.getBalance(senderAccount);
 
     // Buy ticket
-    const ticket = Ticket.random(senderAccount);
+    const ticket = Ticket.from(mockWinningCombination, senderAccount, 1);
     let [roundWitness, roundTicketWitness, bankWitness, bankValue] =
       state.addTicket(ticket, curRound);
     let tx = await Mina.transaction(senderAccount, async () => {
@@ -206,6 +317,24 @@ describe('Add', () => {
     checkConsistancy();
 
     // Get reward
+    const rp = await state.getReward(curRound, ticket);
+    let tx3 = await Mina.transaction(senderAccount, async () => {
+      await lottery.getReward(
+        ticket,
+        rp.roundWitness,
+        rp.roundTicketWitness,
+        rp.dp,
+        rp.winningNumbers,
+        rp.resultWitness,
+        rp.bankValue,
+        rp.bankWitness,
+        rp.nullifierWitness
+      );
+    });
+
+    await tx3.prove();
+    await tx3.sign([senderKey]).send();
+    checkConsistancy();
   });
 
   it('several users test case', async () => {

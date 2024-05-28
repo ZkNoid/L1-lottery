@@ -9,9 +9,10 @@ import {
 } from 'o1js';
 import { NUMBERS_IN_TICKET } from './constants';
 import { Ticket } from './Ticket';
+import { NumberPacked } from './Lottery';
 
 export class DistributionProofPublicInput extends Struct({
-  winingCombination: Provable.Array(Field, NUMBERS_IN_TICKET),
+  winningCombination: Field,
   ticket: Ticket,
   valueWitness: MerkleMapWitness,
 }) {}
@@ -24,18 +25,58 @@ export class DistributionProofPublicOutput extends Struct({
 const emptyMap = new MerkleMap();
 const emptyMapRoot = emptyMap.getRoot();
 
-const DistibutionProgram = ZkProgram({
+export const init = async (
+  input: DistributionProofPublicInput
+): Promise<DistributionProofPublicOutput> => {
+  return new DistributionProofPublicOutput({
+    root: emptyMapRoot,
+    total: Field.from(0),
+  });
+};
+
+export const addTicket = async (
+  input: DistributionProofPublicInput,
+  prevProof: SelfProof<
+    DistributionProofPublicInput,
+    DistributionProofPublicOutput
+  >
+): Promise<DistributionProofPublicOutput> => {
+  prevProof.verify();
+
+  const [initialRoot, key] = input.valueWitness.computeRootAndKey(Field(0));
+  // key.assertEquals(input.ticket.hash(), 'Wrong key for that ticket');
+  initialRoot.assertEquals(prevProof.publicOutput.root);
+
+  const newValue = input.ticket.hash();
+
+  const [newRoot] = input.valueWitness.computeRootAndKey(newValue);
+  const ticketScore = input.ticket.getScore(
+    NumberPacked.unpack(input.winningCombination)
+  );
+
+  Provable.asProver(() => {
+    console.log(
+      `Ticket score of ${key.toString()} ticket is ${ticketScore.toString()}`
+    );
+  });
+
+  return new DistributionProofPublicOutput({
+    root: newRoot,
+    total: prevProof.publicOutput.total.add(ticketScore),
+  });
+};
+
+export const DistibutionProgram = ZkProgram({
   name: 'distribution-program',
   publicInput: DistributionProofPublicInput,
   publicOutput: DistributionProofPublicOutput,
   methods: {
     init: {
       privateInputs: [],
-      async method(): Promise<DistributionProofPublicOutput> {
-        return new DistributionProofPublicOutput({
-          root: emptyMapRoot,
-          total: Field.from(0),
-        });
+      async method(
+        input: DistributionProofPublicInput
+      ): Promise<DistributionProofPublicOutput> {
+        return init(input);
       },
     },
     addTicket: {
@@ -47,23 +88,7 @@ const DistibutionProgram = ZkProgram({
           DistributionProofPublicOutput
         >
       ) {
-        prevProof.verify();
-
-        const [initialRoot, key] = input.valueWitness.computeRootAndKey(
-          Field(0)
-        );
-        key.assertEquals(input.ticket.hash(), 'Wrong key for that ticket');
-        initialRoot.assertEquals(prevProof.publicOutput.root);
-
-        const newValue = input.ticket.hash();
-
-        const [newRoot] = input.valueWitness.computeRootAndKey(newValue);
-        const ticketScore = input.ticket.getScore(input.winingCombination);
-
-        return new DistributionProofPublicOutput({
-          root: newRoot,
-          total: prevProof.publicOutput.total.add(ticketScore),
-        });
+        return addTicket(input, prevProof);
       },
     },
   },

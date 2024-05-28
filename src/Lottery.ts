@@ -53,6 +53,7 @@ export class Lottery extends SmartContract {
   // Stores merkle map with all tickets, that user have bought. Each leaf of this tree is a root of tree for corresponding round
   @state(Field) ticketRoot = State<Field>();
 
+  // #TODO rework nullifier. For now you can create ticket, that will fail nullifier check. Also it is too heavy
   @state(Field) ticketNullifier = State<Field>();
 
   // Stores merkle map with total bank for each round.
@@ -167,9 +168,8 @@ export class Lottery extends SmartContract {
 
   @method async getReward(
     ticket: Ticket,
-    value: Field,
     roundWitness: MerkleMapWitness,
-    ticketWitness: MerkleMapWitness,
+    roundTicketWitness: MerkleMapWitness,
     dp: DistributionProof,
     winningNumbers: Field,
     resutWitness: MerkleMapWitness,
@@ -182,8 +182,10 @@ export class Lottery extends SmartContract {
     dp.verify();
 
     // Calculate and check ticket root. Check that root in proof is equal to that root
-    const [roundTicketRoot, ticketKey] = ticketWitness.computeRootAndKey(value);
-    ticketKey.assertEquals(ticket.hash(), 'Wrong witness for ticket');
+    const [roundTicketRoot, ticketKey] = roundTicketWitness.computeRootAndKey(
+      ticket.hash()
+    );
+    // ticketKey.assertEquals(ticket.hash(), 'Wrong witness for ticket');
     dp.publicOutput.root.assertEquals(
       roundTicketRoot,
       'Wrong distribution proof'
@@ -217,9 +219,7 @@ export class Lottery extends SmartContract {
       .assertEquals(resultRoot, 'Wrong result witness');
 
     // Compute score using winnging ticket
-    const score = ticket.getScore(
-      NumberPacked.unpack(winningNumbers).map((number) => number.value)
-    );
+    const score = ticket.getScore(NumberPacked.unpack(winningNumbers));
 
     // Pay user
     const [bankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
@@ -244,9 +244,9 @@ export class Lottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(prevNullifierRoot, 'Wrong nullifier witness');
     nullifierKey.assertEquals(
-      Poseidon.hash([ticket.hash(), round]),
+      ticket.nullifierHash(round),
       'Wrong nullifier witness key'
-    ); // Change to single hash
+    );
 
     const [newNullifierValue] = nullieiferWitness.computeRootAndKey(
       Field.from(1)

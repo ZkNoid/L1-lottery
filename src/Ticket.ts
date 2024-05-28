@@ -19,7 +19,7 @@ function getRandomInt(max: number) {
 // #TODO add user address to ticket
 // technically we can remove round from ticket
 export class Ticket extends Struct({
-  numbers: Provable.Array(UInt8, NUMBERS_IN_TICKET),
+  numbers: Provable.Array(UInt32, NUMBERS_IN_TICKET),
   owner: PublicKey,
   amount: UInt64,
 }) {
@@ -30,7 +30,7 @@ export class Ticket extends Struct({
       );
     }
     return new Ticket({
-      numbers: numbers.map((number) => UInt8.from(number)),
+      numbers: numbers.map((number) => UInt32.from(number)),
       owner,
       amount: UInt64.from(amount),
     });
@@ -39,7 +39,7 @@ export class Ticket extends Struct({
   static random(owner: PublicKey): Ticket {
     return new Ticket({
       numbers: [...Array(NUMBERS_IN_TICKET)].map(() =>
-        UInt8.from(getRandomInt(10))
+        UInt32.from(getRandomInt(10))
       ),
       owner,
       amount: UInt64.from(1),
@@ -67,7 +67,7 @@ export class Ticket extends Struct({
 
   check(): Bool {
     return this.numbers.reduce(
-      (acc, val) => acc.and(val.lessThan(10)),
+      (acc, val) => acc.and(val.lessThan(UInt32.from(10))),
       Bool(true)
     );
   }
@@ -81,20 +81,30 @@ export class Ticket extends Struct({
     );
   }
 
-  getScore(winningCombination: Field[]): Field {
+  nullifierHash(round: Field): Field {
+    return Poseidon.hash(
+      this.numbers
+        .map((number) => number.value)
+        .concat(this.owner.toFields())
+        .concat(this.amount.value)
+        .concat(round)
+    );
+  }
+
+  getScore(winningCombination: UInt32[]): Field {
     let result = Field.from(0);
 
     for (let i = 0; i < NUMBERS_IN_TICKET; i++) {
       result = result.add(
         Provable.if(
-          winningCombination[i].equals(this.numbers[i].value),
+          winningCombination[i].equals(this.numbers[i]),
           Field.from(1),
           Field.from(0)
         )
       );
     }
 
-    const conditions = [...Array(NUMBERS_IN_TICKET)].map((val, index) =>
+    const conditions = [...Array(NUMBERS_IN_TICKET + 1)].map((val, index) =>
       result.equals(index)
     );
 
