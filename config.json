@@ -7,7 +7,7 @@
       "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "deployer",
       "fee": "0.1",
-      "smartContract": "MockLottery"
+      "smartContract": "Test"
     },
     "berkeley": {
       "networkId": "testnet",
