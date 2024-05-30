@@ -17,11 +17,14 @@ import {
   MerkleMap,
   Provable,
   Struct,
+  PrivateKey,
 } from 'o1js';
 import { Ticket } from './Ticket.js';
 import {
   BLOCK_PER_ROUND,
+  COMMISION,
   NUMBERS_IN_TICKET,
+  PRESICION,
   TICKET_PRICE,
 } from './constants.js';
 import { DistributionProof } from './DistributionProof.js';
@@ -50,6 +53,16 @@ const emptyMapRoot = new MerkleMap().getRoot();
 
 const empty2dMap = getEmpty2dMerkleMap();
 const empty2dMapRoot = empty2dMap.getRoot();
+
+// !!!!!!!!!!!!!!!!!!!1 Shoud be upadted with valid address before deploying
+const { publicKey: treasury, privateKey: treasuryKey } =
+  PrivateKey.randomKeypair();
+
+const comisionTicket = Ticket.from(Array(6).fill(0), PublicKey.empty(), 1);
+
+export function getTotalScoreAndCommision(value: UInt64) {
+  return value.add(value.mul(COMMISION).div(PRESICION));
+}
 
 // #TODO constrain round to current
 // #TODO add events
@@ -261,6 +274,7 @@ export class Lottery extends SmartContract {
 
     // Compute score using winnging ticket
     const score = ticket.getScore(NumberPacked.unpack(winningNumbers));
+    const totalScore = getTotalScoreAndCommision(dp.publicOutput.total);
 
     // Pay user
     const [bankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
@@ -271,9 +285,7 @@ export class Lottery extends SmartContract {
 
     this.send({
       to: ticket.owner,
-      amount: UInt64.fromFields([bankValue])
-        .mul(UInt64.fromFields([score]))
-        .div(UInt64.fromFields([dp.publicOutput.total])),
+      amount: UInt64.fromFields([bankValue]).mul(score).div(totalScore),
     });
 
     // Add ticket to nullifier
@@ -301,6 +313,51 @@ export class Lottery extends SmartContract {
         round,
       })
     );
+  }
+
+  @method async getCommisionForRound(
+    result: Field,
+    resultWitness: MerkleMapWitness,
+    dp: DistributionProof,
+    bankValue: Field,
+    bankWitness: MerkleMapWitness,
+    nullifierWitness: MerkleMapWitness
+  ): Promise<void> {
+    this.sender.getAndRequireSignature().assertEquals(treasury);
+
+    const [resultRoot, round] = resultWitness.computeRootAndKey(result);
+    this.roundResultRoot
+      .getAndRequireEquals()
+      .assertEquals(resultRoot, 'Wrong resultRoot');
+
+    const [bankRoot, bankRound] = resultWitness.computeRootAndKey(bankValue);
+    this.bankRoot
+      .getAndRequireEquals()
+      .assertEquals(bankRoot, 'Wrong bank root');
+    round.assertEquals(bankRound, 'Bank round != result round');
+
+    const [nullifierRoot, nullifierkKey] = nullifierWitness.computeRootAndKey(
+      Field(0)
+    );
+    this.ticketNullifier
+      .getAndRequireEquals()
+      .assertEquals(nullifierRoot, 'Wrong nullifier root');
+    nullifierkKey.assertEquals(comisionTicket.nullifierHash(round));
+
+    // Send commision
+    dp.verify();
+    const totalScore = getTotalScoreAndCommision(dp.publicOutput.total);
+
+    this.send({
+      to: treasury,
+      amount: totalScore.sub(dp.publicOutput.total),
+    });
+
+    // Upadte nullifier
+
+    const [newNulifierRoot] = nullifierWitness.computeRootAndKey(Field(1));
+
+    this.ticketNullifier.set(newNulifierRoot);
   }
 
   public getCurrentRound(): UInt32 {

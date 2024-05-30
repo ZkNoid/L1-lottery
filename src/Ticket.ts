@@ -91,27 +91,27 @@ export class Ticket extends Struct({
     );
   }
 
-  getScore(winningCombination: UInt32[]): Field {
-    let result = Field.from(0);
+  getScore(winningCombination: UInt32[]): UInt64 {
+    let result = UInt64.from(0);
 
     for (let i = 0; i < NUMBERS_IN_TICKET; i++) {
       result = result.add(
         Provable.if(
           winningCombination[i].equals(this.numbers[i]),
-          Field.from(1),
-          Field.from(0)
+          UInt64.from(1),
+          UInt64.from(0)
         )
       );
     }
 
     const conditions = [...Array(NUMBERS_IN_TICKET + 1)].map((val, index) =>
-      result.equals(index)
+      result.equals(UInt64.from(index))
     );
 
     const values = SCORE_COEFFICIENTS.map((val) =>
-      Field.from(val).mul(this.amount.value)
+      UInt64.from(val).mul(this.amount)
     );
 
-    return Provable.switch(conditions, Field, values);
+    return Provable.switch(conditions, UInt64, values);
   }
 }

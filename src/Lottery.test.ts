@@ -13,6 +13,7 @@ import {
   Lottery,
   MockLottery,
   NumberPacked,
+  getTotalScoreAndCommision,
   mockWinningCombination,
 } from './Lottery';
 import { Ticket } from './Ticket';
@@ -425,7 +426,7 @@ describe('Add', () => {
         index < i ? 1 : 2
       );
       const ticket = Ticket.from(ticketCombination, user, 1);
-      const score = UInt64.fromFields([ticket.getScore(winningCombination)]);
+      const score = ticket.getScore(winningCombination);
 
       const rp = await state.getReward(curRound, ticket);
       let tx3 = await Mina.transaction(user, async () => {
@@ -449,7 +450,7 @@ describe('Add', () => {
       const balanceAfter = Mina.getBalance(user);
 
       expect(balanceAfter.sub(balanceBefore)).toEqual(
-        bank.mul(score).div(UInt64.fromFields([rp.dp.publicOutput.total]))
+        bank.mul(score).div(getTotalScoreAndCommision(rp.dp.publicOutput.total))
       );
     }
   });

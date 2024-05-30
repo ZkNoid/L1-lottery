@@ -10,6 +10,7 @@ import {
 import { NUMBERS_IN_TICKET } from './constants';
 import { Ticket } from './Ticket.js';
 import { NumberPacked } from './Lottery.js';
+import { UInt64 } from 'o1js';
 
 export class DistributionProofPublicInput extends Struct({
   winningCombination: Field,
@@ -19,7 +20,7 @@ export class DistributionProofPublicInput extends Struct({
 
 export class DistributionProofPublicOutput extends Struct({
   root: Field,
-  total: Field,
+  total: UInt64,
 }) {}
 
 const emptyMap = new MerkleMap();
@@ -30,7 +31,7 @@ export const init = async (
 ): Promise<DistributionProofPublicOutput> => {
   return new DistributionProofPublicOutput({
     root: emptyMapRoot,
-    total: Field.from(0),
+    total: UInt64.from(0),
   });
 };
 
