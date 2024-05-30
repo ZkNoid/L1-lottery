@@ -55,10 +55,14 @@ const empty2dMap = getEmpty2dMerkleMap();
 const empty2dMapRoot = empty2dMap.getRoot();
 
 // !!!!!!!!!!!!!!!!!!!1 Shoud be upadted with valid address before deploying
-const { publicKey: treasury, privateKey: treasuryKey } =
+export const { publicKey: treasury, privateKey: treasuryKey } =
   PrivateKey.randomKeypair();
 
-const comisionTicket = Ticket.from(Array(6).fill(0), PublicKey.empty(), 1);
+export const comisionTicket = Ticket.from(
+  Array(6).fill(0),
+  PublicKey.empty(),
+  1
+);
 
 export function getTotalScoreAndCommision(value: UInt64) {
   return value.add(value.mul(COMMISION).div(PRESICION));
@@ -316,6 +320,7 @@ export class Lottery extends SmartContract {
   }
 
   @method async getCommisionForRound(
+    ticketWitness: MerkleMapWitness,
     result: Field,
     resultWitness: MerkleMapWitness,
     dp: DistributionProof,
@@ -346,6 +351,15 @@ export class Lottery extends SmartContract {
 
     // Send commision
     dp.verify();
+
+    const [ticketRoot, ticketKey] = ticketWitness.computeRootAndKey(
+      dp.publicOutput.root
+    );
+    this.ticketRoot
+      .getAndRequireEquals()
+      .assertEquals(ticketRoot, 'Wrong ticket root');
+    ticketKey.assertEquals(round, 'Wrong ticket round');
+
     const totalScore = getTotalScoreAndCommision(dp.publicOutput.total);
 
     this.send({

@@ -13,8 +13,11 @@ import {
   Lottery,
   MockLottery,
   NumberPacked,
+  comisionTicket,
   getTotalScoreAndCommision,
   mockWinningCombination,
+  treasury,
+  treasuryKey,
 } from './Lottery';
 import { Ticket } from './Ticket';
 import { getEmpty2dMerkleMap } from './util';
@@ -225,6 +228,47 @@ class StateManager {
       nullifierWitness,
     };
   }
+
+  async getCommision(round: number): Promise<{
+    roundWitness: MerkleMapWitness;
+    dp: DistributionProof;
+    winningNumbers: Field;
+    resultWitness: MerkleMapWitness;
+    bankValue: Field;
+    bankWitness: MerkleMapWitness;
+    nullifierWitness: MerkleMapWitness;
+  }> {
+    const roundWitness = this.ticketMap.getWitness(Field.from(round));
+
+    const dp = await this.getDP(round);
+    const winningNumbers = this.roundResultMap.get(Field.from(round));
+    if (winningNumbers.equals(Field(0)).toBoolean()) {
+      throw Error('Do not have a result for this round');
+    }
+    const resultWitness = this.roundResultMap.getWitness(Field.from(round));
+
+    const bankValue = this.bankMap.get(Field.from(round));
+    const bankWitness = this.bankMap.getWitness(Field.from(round));
+
+    const nullifierWitness = this.ticketNullifierMap.getWitness(
+      comisionTicket.nullifierHash(Field.from(round))
+    );
+
+    this.ticketNullifierMap.set(
+      comisionTicket.nullifierHash(Field.from(round)),
+      Field(1)
+    );
+
+    return {
+      roundWitness,
+      dp,
+      winningNumbers,
+      resultWitness,
+      bankValue,
+      bankWitness,
+      nullifierWitness,
+    };
+  }
 }
 
 let proofsEnabled = false;
@@ -255,6 +299,7 @@ describe('Add', () => {
 
   beforeEach(async () => {
     const Local = await Mina.LocalBlockchain({ proofsEnabled });
+    Local.addAccount(treasury, '100');
     Mina.setActiveInstance(Local);
     [deployerAccount, senderAccount, ...restAccs] = Local.testAccounts;
     users = restAccs.slice(0, 7);
@@ -453,5 +498,24 @@ describe('Add', () => {
         bank.mul(score).div(getTotalScoreAndCommision(rp.dp.publicOutput.total))
       );
     }
+
+    // Get commision
+    let cp = await state.getCommision(curRound);
+    let tx4 = await Mina.transaction(treasury, async () => {
+      await lottery.getCommisionForRound(
+        cp.roundWitness,
+        cp.winningNumbers,
+        cp.resultWitness,
+        cp.dp,
+        cp.bankValue,
+        cp.bankWitness,
+        cp.nullifierWitness
+      );
+    });
+
+    await tx4.prove();
+    await tx4.sign([treasuryKey]).send();
+
+    checkConsistancy();
   });
 });
