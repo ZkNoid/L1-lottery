@@ -397,7 +397,7 @@ describe('Add', () => {
     await txn.sign([deployerKey, zkAppPrivateKey]).send();
   }
 
-  xit('one user case', async () => {
+  it('one user case', async () => {
     await localDeploy();
 
     let curRound = 0;
@@ -461,7 +461,7 @@ describe('Add', () => {
     checkConsistancy();
   });
 
-  xit('several users test case', async () => {
+  it('several users test case', async () => {
     await localDeploy();
 
     /*

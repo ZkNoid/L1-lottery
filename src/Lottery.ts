@@ -86,11 +86,17 @@ export class GetRewardEvent extends Struct({
   round: Field,
 }) {}
 
+export class RefundEvent extends Struct({
+  ticket: Ticket,
+  round: Field,
+}) {}
+
 export class Lottery extends SmartContract {
   events = {
     'buy-ticket': BuyTicketEvent,
     'produce-result': ProduceResultEvent,
     'get-reward': GetRewardEvent,
+    'get-refund': RefundEvent,
   };
   // Stores merkle map with all tickets, that user have bought. Each leaf of this tree is a root of tree for corresponding round
   @state(Field) ticketRoot = State<Field>();
@@ -235,6 +241,7 @@ export class Lottery extends SmartContract {
   ) {
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
 
+    // Check ticket in merkle map
     const [roundTicketRoot, ticketKey] = roundTicketWitness.computeRootAndKey(
       ticket.hash()
     );
@@ -249,25 +256,28 @@ export class Lottery extends SmartContract {
         'Generated tickets root and contact ticket is not equal'
       );
 
+    // Check that result is zero for this round
     const [resultRoot, resultRound] = resultWitness.computeRootAndKey(Field(0));
     this.roundResultRoot
       .getAndRequireEquals()
       .assertEquals(resultRoot, 'Wrong result witness');
     round.assertEquals(resultRound, 'Wrong result round');
 
+    // Can call refund after ~ 2 days after round finished
     const curRound = this.getCurrentRound();
-
     curRound.assertGreaterThan(
       UInt32.fromFields([round.add(2)]),
       'To early for refund'
     );
 
+    // Check bank witness
     const [prevBankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
     this.bankRoot
       .getAndRequireEquals()
       .assertEquals(prevBankRoot, 'Wrong bank witness');
     bankKey.assertEquals(round, 'Wrong bank round');
 
+    // Check that ticket has not been used before
     const [prevNullifierRoot, nullifierKey] =
       nullieiferWitness.computeRootAndKey(Field(0));
 
@@ -279,12 +289,14 @@ export class Lottery extends SmartContract {
       'Wrong nullifier witness key'
     );
 
+    // Update nullifier
     const [newNullifierValue] = nullieiferWitness.computeRootAndKey(
       Field.from(1)
     );
 
     this.ticketNullifier.set(newNullifierValue);
 
+    // Update bank for round
     const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
     const [newBankRoot] = bankWitness.computeRootAndKey(
       bankValue.sub(totalTicketPrice.value)
@@ -292,10 +304,19 @@ export class Lottery extends SmartContract {
 
     this.bankRoot.set(newBankRoot);
 
+    // Send ticket price back to user
     this.send({
       to: ticket.owner,
       amount: totalTicketPrice,
     });
+
+    this.emitEvent(
+      'get-refund',
+      new RefundEvent({
+        ticket,
+        round,
+      })
+    );
   }
 
   @method async getReward(
