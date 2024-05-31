@@ -20,7 +20,8 @@
     "format": "prettier --write --ignore-unknown **/*",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "testw": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "lint": "npx eslint src/* --fix"
+    "lint": "npx eslint src/* --fix",
+    "analyze": "npm run build && node build/scripts/analyze.js"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",
@@ -40,5 +41,8 @@
   },
   "engines": {
     "node": ">=18.14.0"
+  },
+  "dependencies": {
+    "@types/node": "^20.12.13"
   }
 }
