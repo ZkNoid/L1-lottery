@@ -28,10 +28,7 @@ import {
   TICKET_PRICE,
 } from './constants.js';
 import { DistributionProof } from './DistributionProof.js';
-import { PackedUInt32Factory } from './o1js-pack/Packed.js';
-import { getEmpty2dMerkleMap } from './util.js';
-
-export class NumberPacked extends PackedUInt32Factory() {}
+import { NumberPacked, getEmpty2dMerkleMap } from './util.js';
 
 const generateNumbersSeed = (seed: Field): UInt32[] => {
   const initMask = 0b1111;

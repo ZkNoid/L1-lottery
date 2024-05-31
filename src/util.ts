@@ -1,4 +1,5 @@
 import { MerkleMap, Poseidon } from 'o1js';
+import { PackedUInt32Factory } from './o1js-pack/Packed.js';
 
 export const getEmpty2dMerkleMap = () => {
   const emptyMapRoot = new MerkleMap().getRoot();
@@ -14,3 +15,5 @@ export const getEmpty2dMerkleMap = () => {
 
   return empty2dMap;
 };
+
+export class NumberPacked extends PackedUInt32Factory() {}

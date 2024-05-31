@@ -1,16 +1,14 @@
 import {
   Field,
   Struct,
-  Provable,
   MerkleMapWitness,
   ZkProgram,
   MerkleMap,
   SelfProof,
 } from 'o1js';
-import { NUMBERS_IN_TICKET } from './constants';
 import { Ticket } from './Ticket.js';
-import { NumberPacked } from './Lottery.js';
 import { UInt64 } from 'o1js';
+import { NumberPacked } from './util.js';
 
 export class DistributionProofPublicInput extends Struct({
   winningCombination: Field,

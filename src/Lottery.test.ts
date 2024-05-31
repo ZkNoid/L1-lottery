@@ -12,7 +12,6 @@ import {
 import {
   Lottery,
   MockLottery,
-  NumberPacked,
   comisionTicket,
   getNullifierId,
   getTotalScoreAndCommision,
@@ -21,7 +20,7 @@ import {
   treasuryKey,
 } from './Lottery';
 import { Ticket } from './Ticket';
-import { getEmpty2dMerkleMap } from './util';
+import { NumberPacked, getEmpty2dMerkleMap } from './util';
 import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants';
 import {
   DistibutionProgram,
