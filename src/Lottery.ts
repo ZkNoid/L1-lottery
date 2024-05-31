@@ -68,6 +68,13 @@ export function getTotalScoreAndCommision(value: UInt64) {
   return value.add(value.mul(COMMISION).div(PRESICION));
 }
 
+export function getNullifierId(round: Field, ticketId: Field): Field {
+  Gadgets.rangeCheck64(round);
+  Gadgets.rangeCheck64(ticketId);
+
+  return Field.fromBits([...round.toBits(64), ...ticketId.toBits(64)]);
+}
+
 // #TODO constrain round to current
 // #TODO add events
 
@@ -142,6 +149,7 @@ export class Lottery extends SmartContract {
     const [roundTicketRootBefore, key] = roundTicketWitness.computeRootAndKey(
       Field(0) // Because ticket should be empty before buying
     );
+    key.assertGreaterThan(Field(0), '0 slot is reserved for comission ticket');
     // Key can be any right now. We can change it to
     // key.assertEquals(ticket.hash(), 'Wrong key for ticket witness');
 
@@ -285,7 +293,7 @@ export class Lottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(prevNullifierRoot, 'Wrong nullifier witness');
     nullifierKey.assertEquals(
-      ticket.nullifierHash(round),
+      getNullifierId(round, ticketKey),
       'Wrong nullifier witness key'
     );
 
@@ -396,7 +404,7 @@ export class Lottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(prevNullifierRoot, 'Wrong nullifier witness');
     nullifierKey.assertEquals(
-      ticket.nullifierHash(round),
+      getNullifierId(round, ticketKey),
       'Wrong nullifier witness key'
     );
 
@@ -442,7 +450,7 @@ export class Lottery extends SmartContract {
     this.ticketNullifier
       .getAndRequireEquals()
       .assertEquals(nullifierRoot, 'Wrong nullifier root');
-    nullifierkKey.assertEquals(comisionTicket.nullifierHash(round));
+    nullifierkKey.assertEquals(getNullifierId(round, Field(0)));
 
     // Send commision
     dp.verify();

@@ -81,15 +81,15 @@ export class Ticket extends Struct({
     );
   }
 
-  nullifierHash(round: Field): Field {
-    return Poseidon.hash(
-      this.numbers
-        .map((number) => number.value)
-        .concat(this.owner.toFields())
-        .concat(this.amount.value)
-        .concat(round)
-    );
-  }
+  // nullifierHash(round: Field): Field {
+  //   return Poseidon.hash(
+  //     this.numbers
+  //       .map((number) => number.value)
+  //       .concat(this.owner.toFields())
+  //       .concat(this.amount.value)
+  //       .concat(round)
+  //   );
+  // }
 
   getScore(winningCombination: UInt32[]): UInt64 {
     let result = UInt64.from(0);

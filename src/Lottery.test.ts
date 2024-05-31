@@ -14,6 +14,7 @@ import {
   MockLottery,
   NumberPacked,
   comisionTicket,
+  getNullifierId,
   getTotalScoreAndCommision,
   mockWinningCombination,
   treasury,
@@ -70,8 +71,8 @@ class StateManager {
   constructor() {
     this.ticketMap = getEmpty2dMerkleMap();
     this.roundTicketMap = [new MerkleMap()];
-    this.lastTicketInRound = [0];
-    this.roundTickets = [[]];
+    this.lastTicketInRound = [1];
+    this.roundTickets = [[comisionTicket]];
     this.ticketNullifierMap = new MerkleMap();
     this.bankMap = new MerkleMap();
     this.roundResultMap = new MerkleMap();
@@ -144,7 +145,7 @@ class StateManager {
 
     let curProof = await mockProof(await init(input), DistributionProof, input);
 
-    for (let i = 0; i < ticketsInRound; i++) {
+    for (let i = 1; i < ticketsInRound; i++) {
       const ticket = this.roundTickets[round][i];
 
       const input = new DistributionProofPublicInput({
@@ -184,12 +185,16 @@ class StateManager {
     const ticketHash = ticket.hash();
     let roundTicketWitness;
     // Find ticket in tree
-    for (let i = 0; i < this.lastTicketInRound[round]; i++) {
+    let ticketId = 0;
+    for (; ticketId < this.lastTicketInRound[round]; ticketId++) {
       if (
-        this.roundTicketMap[round].get(Field(i)).equals(ticketHash).toBoolean()
+        this.roundTicketMap[round]
+          .get(Field(ticketId))
+          .equals(ticketHash)
+          .toBoolean()
       ) {
         roundTicketWitness = this.roundTicketMap[round].getWitness(
-          Field.from(i)
+          Field.from(ticketId)
         );
         break;
       }
@@ -209,11 +214,11 @@ class StateManager {
     const bankWitness = this.bankMap.getWitness(Field.from(round));
 
     const nullifierWitness = this.ticketNullifierMap.getWitness(
-      ticket.nullifierHash(Field.from(round))
+      getNullifierId(Field.from(round), Field.from(ticketId))
     );
 
     this.ticketNullifierMap.set(
-      ticket.nullifierHash(Field.from(round)),
+      getNullifierId(Field.from(round), Field.from(ticketId)),
       Field(1)
     );
 
@@ -251,11 +256,11 @@ class StateManager {
     const bankWitness = this.bankMap.getWitness(Field.from(round));
 
     const nullifierWitness = this.ticketNullifierMap.getWitness(
-      comisionTicket.nullifierHash(Field.from(round))
+      getNullifierId(Field.from(round), Field.from(0))
     );
 
     this.ticketNullifierMap.set(
-      comisionTicket.nullifierHash(Field.from(round)),
+      getNullifierId(Field.from(round), Field.from(0)),
       Field(1)
     );
 
@@ -286,12 +291,16 @@ class StateManager {
     const ticketHash = ticket.hash();
     let roundTicketWitness;
     // Find ticket in tree
-    for (let i = 0; i < this.lastTicketInRound[round]; i++) {
+    let ticketId = 0;
+    for (; ticketId < this.lastTicketInRound[round]; ticketId++) {
       if (
-        this.roundTicketMap[round].get(Field(i)).equals(ticketHash).toBoolean()
+        this.roundTicketMap[round]
+          .get(Field(ticketId))
+          .equals(ticketHash)
+          .toBoolean()
       ) {
         roundTicketWitness = this.roundTicketMap[round].getWitness(
-          Field.from(i)
+          Field.from(ticketId)
         );
         break;
       }
@@ -306,11 +315,11 @@ class StateManager {
     const bankWitness = this.bankMap.getWitness(Field.from(round));
 
     const nullifierWitness = this.ticketNullifierMap.getWitness(
-      ticket.nullifierHash(Field.from(round))
+      getNullifierId(Field.from(round), Field.from(ticketId))
     );
 
     this.ticketNullifierMap.set(
-      ticket.nullifierHash(Field.from(round)),
+      getNullifierId(Field.from(round), Field.from(ticketId)),
       Field(1)
     );
 
