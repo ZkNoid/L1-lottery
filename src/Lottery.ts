@@ -224,6 +224,80 @@ export class Lottery extends SmartContract {
     );
   }
 
+  @method async refund(
+    ticket: Ticket,
+    roundWitness: MerkleMapWitness,
+    roundTicketWitness: MerkleMapWitness,
+    resultWitness: MerkleMapWitness,
+    bankValue: Field,
+    bankWitness: MerkleMapWitness,
+    nullieiferWitness: MerkleMapWitness
+  ) {
+    ticket.owner.assertEquals(this.sender.getAndRequireSignature());
+
+    const [roundTicketRoot, ticketKey] = roundTicketWitness.computeRootAndKey(
+      ticket.hash()
+    );
+
+    const [prevTicketRoot, round] =
+      roundWitness.computeRootAndKey(roundTicketRoot);
+
+    this.ticketRoot
+      .getAndRequireEquals()
+      .assertEquals(
+        prevTicketRoot,
+        'Generated tickets root and contact ticket is not equal'
+      );
+
+    const [resultRoot, resultRound] = resultWitness.computeRootAndKey(Field(0));
+    this.roundResultRoot
+      .getAndRequireEquals()
+      .assertEquals(resultRoot, 'Wrong result witness');
+    round.assertEquals(resultRound, 'Wrong result round');
+
+    const curRound = this.getCurrentRound();
+
+    curRound.assertGreaterThan(
+      UInt32.fromFields([round.add(2)]),
+      'To early for refund'
+    );
+
+    const [prevBankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
+    this.bankRoot
+      .getAndRequireEquals()
+      .assertEquals(prevBankRoot, 'Wrong bank witness');
+    bankKey.assertEquals(round, 'Wrong bank round');
+
+    const [prevNullifierRoot, nullifierKey] =
+      nullieiferWitness.computeRootAndKey(Field(0));
+
+    this.ticketNullifier
+      .getAndRequireEquals()
+      .assertEquals(prevNullifierRoot, 'Wrong nullifier witness');
+    nullifierKey.assertEquals(
+      ticket.nullifierHash(round),
+      'Wrong nullifier witness key'
+    );
+
+    const [newNullifierValue] = nullieiferWitness.computeRootAndKey(
+      Field.from(1)
+    );
+
+    this.ticketNullifier.set(newNullifierValue);
+
+    const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
+    const [newBankRoot] = bankWitness.computeRootAndKey(
+      bankValue.sub(totalTicketPrice.value)
+    );
+
+    this.bankRoot.set(newBankRoot);
+
+    this.send({
+      to: ticket.owner,
+      amount: totalTicketPrice,
+    });
+  }
+
   @method async getReward(
     ticket: Ticket,
     roundWitness: MerkleMapWitness,

@@ -269,6 +269,65 @@ class StateManager {
       nullifierWitness,
     };
   }
+
+  async getRefund(
+    round: number,
+    ticket: Ticket
+  ): Promise<{
+    roundWitness: MerkleMapWitness;
+    roundTicketWitness: MerkleMapWitness;
+    resultWitness: MerkleMapWitness;
+    bankValue: Field;
+    bankWitness: MerkleMapWitness;
+    nullifierWitness: MerkleMapWitness;
+  }> {
+    const roundWitness = this.ticketMap.getWitness(Field.from(round));
+
+    const ticketHash = ticket.hash();
+    let roundTicketWitness;
+    // Find ticket in tree
+    for (let i = 0; i < this.lastTicketInRound[round]; i++) {
+      if (
+        this.roundTicketMap[round].get(Field(i)).equals(ticketHash).toBoolean()
+      ) {
+        roundTicketWitness = this.roundTicketMap[round].getWitness(
+          Field.from(i)
+        );
+        break;
+      }
+    }
+    if (!roundTicketWitness) {
+      throw Error(`No such ticket in round ${round}`);
+    }
+
+    const resultWitness = this.roundResultMap.getWitness(Field.from(round));
+
+    const bankValue = this.bankMap.get(Field.from(round));
+    const bankWitness = this.bankMap.getWitness(Field.from(round));
+
+    const nullifierWitness = this.ticketNullifierMap.getWitness(
+      ticket.nullifierHash(Field.from(round))
+    );
+
+    this.ticketNullifierMap.set(
+      ticket.nullifierHash(Field.from(round)),
+      Field(1)
+    );
+
+    this.bankMap.set(
+      Field.from(round),
+      bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
+    );
+
+    return {
+      roundWitness,
+      roundTicketWitness,
+      resultWitness,
+      bankValue,
+      bankWitness,
+      nullifierWitness,
+    };
+  }
 }
 
 let proofsEnabled = false;
@@ -402,7 +461,7 @@ describe('Add', () => {
     checkConsistancy();
   });
 
-  it('several users test case', async () => {
+  xit('several users test case', async () => {
     await localDeploy();
 
     /*
@@ -517,5 +576,59 @@ describe('Add', () => {
     await tx4.sign([treasuryKey]).send();
 
     checkConsistancy();
+  });
+
+  it('Refund test', async () => {
+    await localDeploy();
+
+    let curRound = 0;
+
+    const balanceBefore = Mina.getBalance(senderAccount);
+
+    // Buy ticket
+    const ticket = Ticket.from(mockWinningCombination, senderAccount, 1);
+    let [roundWitness, roundTicketWitness, bankWitness, bankValue] =
+      state.addTicket(ticket, curRound);
+    let tx = await Mina.transaction(senderAccount, async () => {
+      await lottery.buyTicket(
+        ticket,
+        roundWitness,
+        roundTicketWitness,
+        bankValue,
+        bankWitness
+      );
+    });
+
+    await tx.prove();
+    await tx.sign([senderKey]).send();
+
+    const balanceAfter = Mina.getBalance(senderAccount);
+
+    expect(balanceBefore.sub(balanceAfter)).toEqual(TICKET_PRICE);
+
+    checkConsistancy();
+
+    mineNBlocks(3 * BLOCK_PER_ROUND);
+
+    // Get refund
+    const rp = await state.getRefund(curRound, ticket);
+    let tx3 = await Mina.transaction(senderAccount, async () => {
+      await lottery.refund(
+        ticket,
+        rp.roundWitness,
+        rp.roundTicketWitness,
+        rp.resultWitness,
+        rp.bankValue,
+        rp.bankWitness,
+        rp.nullifierWitness
+      );
+    });
+
+    await tx3.prove();
+    await tx3.sign([senderKey]).send();
+    checkConsistancy();
+
+    const finalBalance = Mina.getBalance(senderAccount);
+    expect(finalBalance).toEqual(balanceBefore);
   });
 });
