@@ -9,11 +9,12 @@ import {
 import { Ticket } from './Ticket.js';
 import { UInt64 } from 'o1js';
 import { NumberPacked } from './util.js';
+import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 
 export class DistributionProofPublicInput extends Struct({
   winningCombination: Field,
   ticket: Ticket,
-  valueWitness: MerkleMapWitness,
+  valueWitness: MerkleMap20Witness,
 }) {}
 
 export class DistributionProofPublicOutput extends Struct({
@@ -21,7 +22,7 @@ export class DistributionProofPublicOutput extends Struct({
   total: UInt64,
 }) {}
 
-const emptyMap = new MerkleMap();
+const emptyMap = new MerkleMap20();
 const emptyMapRoot = emptyMap.getRoot();
 
 export const init = async (

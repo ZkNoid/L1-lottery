@@ -1,9 +1,9 @@
 {
-  "Lottery_buyTicket": 31672,
-  "Lottery_produceResult": 10480,
-  "Lottery_refund": 40037,
-  "Lottery_getReward": 38242,
-  "Lottery_getCommisionForRound": 31404,
-  "DistributionProof_init": 145,
-  "DistibutionProof_addTicket": 8386
+  "Lottery_buyTicket": 5228,
+  "Lottery_produceResult": 1620,
+  "Lottery_refund": 14813,
+  "Lottery_getReward": 14810,
+  "Lottery_getCommisionForRound": 13572,
+  "DistributionProof_init": 33,
+  "DistibutionProof_addTicket": 1218
 }

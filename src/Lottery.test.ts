@@ -31,6 +31,7 @@ import {
 } from './DistributionProof';
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
+import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -57,28 +58,30 @@ export async function mockProof<I, O, P>(
 }
 
 class StateManager {
-  ticketMap: MerkleMap;
-  roundTicketMap: MerkleMap[];
+  ticketMap: MerkleMap20;
+  roundTicketMap: MerkleMap20[];
   roundTickets: Ticket[][];
   lastTicketInRound: number[];
   ticketNullifierMap: MerkleMap;
-  bankMap: MerkleMap;
-  roundResultMap: MerkleMap;
+  bankMap: MerkleMap20;
+  roundResultMap: MerkleMap20;
   startBlock: Field;
   dpProofs: { [key: number]: DistributionProof };
 
   constructor() {
-    this.ticketMap = getEmpty2dMerkleMap();
-    this.roundTicketMap = [new MerkleMap()];
+    this.ticketMap = getEmpty2dMerkleMap(20);
+    this.roundTicketMap = [new MerkleMap20()];
     this.lastTicketInRound = [1];
     this.roundTickets = [[comisionTicket]];
     this.ticketNullifierMap = new MerkleMap();
-    this.bankMap = new MerkleMap();
-    this.roundResultMap = new MerkleMap();
+    this.bankMap = new MerkleMap20();
+    this.roundResultMap = new MerkleMap20();
     this.dpProofs = {};
   }
 
-  getNextTicketWitenss(round: number): [MerkleMapWitness, MerkleMapWitness] {
+  getNextTicketWitenss(
+    round: number
+  ): [MerkleMap20Witness, MerkleMap20Witness] {
     const roundWitness = this.ticketMap.getWitness(Field.from(round));
     const ticketRoundWitness = this.roundTicketMap[round].getWitness(
       Field.from(this.lastTicketInRound[round])
@@ -90,7 +93,7 @@ class StateManager {
   addTicket(
     ticket: Ticket,
     round: number
-  ): [MerkleMapWitness, MerkleMapWitness, MerkleMapWitness, Field] {
+  ): [MerkleMap20Witness, MerkleMap20Witness, MerkleMap20Witness, Field] {
     const [roundWitness, ticketRoundWitness] = this.getNextTicketWitenss(round);
     const [bankWitness, bankValue] = this.getBankWitness(round);
     this.roundTicketMap[round].set(
@@ -110,14 +113,14 @@ class StateManager {
   }
 
   // Returns witness and value
-  getBankWitness(round: number): [MerkleMapWitness, Field] {
+  getBankWitness(round: number): [MerkleMap20Witness, Field] {
     const bankWitness = this.bankMap.getWitness(Field.from(round));
     const value = this.bankMap.get(Field.from(round));
 
     return [bankWitness, value];
   }
 
-  updateResult(round: number): MerkleMapWitness {
+  updateResult(round: number): MerkleMap20Witness {
     const witness = this.roundResultMap.getWitness(Field.from(round));
     const packedNumbers = NumberPacked.pack(
       mockWinningCombination.map((val) => UInt32.from(val))
@@ -134,7 +137,7 @@ class StateManager {
 
     const winningCombination = this.roundResultMap.get(Field.from(round));
     let ticketsInRound = this.lastTicketInRound[round];
-    let curMap = new MerkleMap();
+    let curMap = new MerkleMap20();
 
     let input = new DistributionProofPublicInput({
       winningCombination,
@@ -170,13 +173,13 @@ class StateManager {
     round: number,
     ticket: Ticket
   ): Promise<{
-    roundWitness: MerkleMapWitness;
-    roundTicketWitness: MerkleMapWitness;
+    roundWitness: MerkleMap20Witness;
+    roundTicketWitness: MerkleMap20Witness;
     dp: DistributionProof;
     winningNumbers: Field;
-    resultWitness: MerkleMapWitness;
+    resultWitness: MerkleMap20Witness;
     bankValue: Field;
-    bankWitness: MerkleMapWitness;
+    bankWitness: MerkleMap20Witness;
     nullifierWitness: MerkleMapWitness;
   }> {
     const roundWitness = this.ticketMap.getWitness(Field.from(round));
@@ -234,12 +237,12 @@ class StateManager {
   }
 
   async getCommision(round: number): Promise<{
-    roundWitness: MerkleMapWitness;
+    roundWitness: MerkleMap20Witness;
     dp: DistributionProof;
     winningNumbers: Field;
-    resultWitness: MerkleMapWitness;
+    resultWitness: MerkleMap20Witness;
     bankValue: Field;
-    bankWitness: MerkleMapWitness;
+    bankWitness: MerkleMap20Witness;
     nullifierWitness: MerkleMapWitness;
   }> {
     const roundWitness = this.ticketMap.getWitness(Field.from(round));
@@ -278,11 +281,11 @@ class StateManager {
     round: number,
     ticket: Ticket
   ): Promise<{
-    roundWitness: MerkleMapWitness;
-    roundTicketWitness: MerkleMapWitness;
-    resultWitness: MerkleMapWitness;
+    roundWitness: MerkleMap20Witness;
+    roundTicketWitness: MerkleMap20Witness;
+    resultWitness: MerkleMap20Witness;
     bankValue: Field;
-    bankWitness: MerkleMapWitness;
+    bankWitness: MerkleMap20Witness;
     nullifierWitness: MerkleMapWitness;
   }> {
     const roundWitness = this.ticketMap.getWitness(Field.from(round));
@@ -416,6 +419,13 @@ describe('Add', () => {
     const ticket = Ticket.from(mockWinningCombination, senderAccount, 1);
     let [roundWitness, roundTicketWitness, bankWitness, bankValue] =
       state.addTicket(ticket, curRound);
+
+    console.log('roundWitnessLength: ', roundWitness.isLefts.length);
+    console.log(
+      'roundTicketWitnessLength: ',
+      roundTicketWitness.isLefts.length
+    );
+    console.log('bankWitnessLength: ', bankWitness.isLefts.length);
     let tx = await Mina.transaction(senderAccount, async () => {
       await lottery.buyTicket(
         ticket,

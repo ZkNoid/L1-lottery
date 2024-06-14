@@ -29,6 +29,7 @@ import {
 } from './constants.js';
 import { DistributionProof } from './DistributionProof.js';
 import { NumberPacked, getEmpty2dMerkleMap } from './util.js';
+import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 
 const generateNumbersSeed = (seed: Field): UInt32[] => {
   const initMask = 0b1111;
@@ -47,8 +48,9 @@ const generateNumbersSeed = (seed: Field): UInt32[] => {
 };
 
 const emptyMapRoot = new MerkleMap().getRoot();
+const emptyMap20Root = new MerkleMap20().getRoot();
 
-const empty2dMap = getEmpty2dMerkleMap();
+const empty2dMap = getEmpty2dMerkleMap(20);
 const empty2dMapRoot = empty2dMap.getRoot();
 
 // !!!!!!!!!!!!!!!!!!!1 Shoud be upadted with valid address before deploying
@@ -122,8 +124,8 @@ export class Lottery extends SmartContract {
 
     this.ticketRoot.set(empty2dMapRoot); // Redoo, becase leafs is not 0, but empty map root
     this.ticketNullifier.set(emptyMapRoot);
-    this.bankRoot.set(emptyMapRoot);
-    this.roundResultRoot.set(emptyMapRoot);
+    this.bankRoot.set(emptyMap20Root);
+    this.roundResultRoot.set(emptyMap20Root);
 
     this.startBlock.set(this.network.blockchainLength.getAndRequireEquals());
 
@@ -132,10 +134,10 @@ export class Lottery extends SmartContract {
 
   @method async buyTicket(
     ticket: Ticket,
-    roundWitness: MerkleMapWitness,
-    roundTicketWitness: MerkleMapWitness,
+    roundWitness: MerkleMap20Witness,
+    roundTicketWitness: MerkleMap20Witness,
     prevBankValue: Field,
-    bankWitness: MerkleMapWitness
+    bankWitness: MerkleMap20Witness
   ) {
     ticket.owner.equals(this.sender.getAndRequireSignature()); // Do we need this check?
 
@@ -201,7 +203,7 @@ export class Lottery extends SmartContract {
     );
   }
 
-  @method async produceResult(resultWiness: MerkleMapWitness) {
+  @method async produceResult(resultWiness: MerkleMap20Witness) {
     // Check that result for this round is not computed yet, and that witness it is valid
     const [initialResultRoot, round] = resultWiness.computeRootAndKey(
       Field.from(0)
@@ -237,11 +239,11 @@ export class Lottery extends SmartContract {
 
   @method async refund(
     ticket: Ticket,
-    roundWitness: MerkleMapWitness,
-    roundTicketWitness: MerkleMapWitness,
-    resultWitness: MerkleMapWitness,
+    roundWitness: MerkleMap20Witness,
+    roundTicketWitness: MerkleMap20Witness,
+    resultWitness: MerkleMap20Witness,
     bankValue: Field,
-    bankWitness: MerkleMapWitness,
+    bankWitness: MerkleMap20Witness,
     nullieiferWitness: MerkleMapWitness
   ) {
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
@@ -326,13 +328,13 @@ export class Lottery extends SmartContract {
 
   @method async getReward(
     ticket: Ticket,
-    roundWitness: MerkleMapWitness,
-    roundTicketWitness: MerkleMapWitness,
+    roundWitness: MerkleMap20Witness,
+    roundTicketWitness: MerkleMap20Witness,
     dp: DistributionProof,
     winningNumbers: Field,
-    resutWitness: MerkleMapWitness,
+    resutWitness: MerkleMap20Witness,
     bankValue: Field,
-    bankWitness: MerkleMapWitness,
+    bankWitness: MerkleMap20Witness,
     nullieiferWitness: MerkleMapWitness
   ) {
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
@@ -420,12 +422,12 @@ export class Lottery extends SmartContract {
   }
 
   @method async getCommisionForRound(
-    ticketWitness: MerkleMapWitness,
+    ticketWitness: MerkleMap20Witness,
     result: Field,
-    resultWitness: MerkleMapWitness,
+    resultWitness: MerkleMap20Witness,
     dp: DistributionProof,
     bankValue: Field,
-    bankWitness: MerkleMapWitness,
+    bankWitness: MerkleMap20Witness,
     nullifierWitness: MerkleMapWitness
   ): Promise<void> {
     this.sender.getAndRequireSignature().assertEquals(treasury);
