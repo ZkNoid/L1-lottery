@@ -144,6 +144,7 @@ export class Lottery extends SmartContract {
     // Ticket validity check
     ticket.check().assertTrue();
 
+    // Check that ticket is not bought previously and update ticket tree
     const round = this.getCurrentRound().value;
     const { ticketId } = this.checkAndUpdateTicketMap(
       roundWitness,
@@ -153,6 +154,7 @@ export class Lottery extends SmartContract {
       ticket.hash()
     );
 
+    // Check that TicketId > 0. TicketId == 0 - ticket for commision
     ticketId.assertGreaterThan(Field(0), 'Zero ticket - commision ticket');
 
     // Get ticket price from user
@@ -161,6 +163,7 @@ export class Lottery extends SmartContract {
     );
     senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
 
+    // Update bank
     const newBankValue = prevBankValue.add(
       TICKET_PRICE.mul(ticket.amount).value
     );
@@ -219,10 +222,10 @@ export class Lottery extends SmartContract {
     bankWitness: MerkleMap20Witness,
     nullifierWitness: MerkleMapWitness
   ) {
+    // Check taht owner trying to claim
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
 
     // Check ticket in merkle map
-
     const { ticketId } = this.checkTicket(
       roundWitness,
       round,
@@ -245,6 +248,7 @@ export class Lottery extends SmartContract {
     const newBankValue = bankValue.sub(totalTicketPrice.value);
     this.checkAndUpdateBank(bankWitness, round, bankValue, newBankValue);
 
+    // Check and update nullifier
     this.checkAndUpdateNullifier(
       nullifierWitness,
       getNullifierId(round, ticketId),
@@ -279,10 +283,12 @@ export class Lottery extends SmartContract {
     bankWitness: MerkleMap20Witness,
     nullifierWitness: MerkleMapWitness
   ) {
+    // Check taht owner trying to claim
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
     // Verify distibution proof
     dp.verify();
 
+    // Check ticket in tree
     const { ticketId, roundRoot: roundTicketRoot } = this.checkTicket(
       roundWitness,
       round,
@@ -311,7 +317,6 @@ export class Lottery extends SmartContract {
     });
 
     // Add ticket to nullifier
-
     this.checkAndUpdateNullifier(
       nullifierWitness,
       getNullifierId(round, ticketId),
@@ -338,12 +343,18 @@ export class Lottery extends SmartContract {
     bankWitness: MerkleMap20Witness,
     nullifierWitness: MerkleMapWitness
   ): Promise<void> {
+    dp.verify();
+
+    // Only treasury account can claim commision
     this.sender.getAndRequireSignature().assertEquals(treasury);
 
+    // Check result for round is right
     this.checkResult(resultWitness, round, result);
 
+    // Check bank value for round
     this.checkBank(bankWitness, round, bankValue);
 
+    // Update nullifier for ticket
     this.checkAndUpdateNullifier(
       nullifierWitness,
       getNullifierId(round, Field(0)),
@@ -351,9 +362,7 @@ export class Lottery extends SmartContract {
       Field.from(1)
     );
 
-    // Send commision
-    dp.verify();
-
+    // Check ticket
     const [ticketRoot, ticketKey] = ticketWitness.computeRootAndKey(
       dp.publicOutput.root
     );
@@ -362,6 +371,7 @@ export class Lottery extends SmartContract {
       .assertEquals(ticketRoot, 'Wrong ticket root');
     ticketKey.assertEquals(round, 'Wrong ticket round');
 
+    // Send commision to treasury
     const totalScore = getTotalScoreAndCommision(dp.publicOutput.total);
 
     this.send({
