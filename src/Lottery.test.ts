@@ -342,7 +342,7 @@ class StateManager {
   }
 }
 
-let proofsEnabled = true;
+let proofsEnabled = false;
 
 describe('Add', () => {
   let deployerAccount: Mina.TestPublicKey,

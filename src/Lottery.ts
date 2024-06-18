@@ -181,18 +181,23 @@ export class Lottery extends SmartContract {
     senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
 
     // Update bank info
-    const [prevBankRoot, bankKey] =
-      bankWitness.computeRootAndKey(prevBankValue);
-    this.bankRoot
-      .getAndRequireEquals()
-      .assertEquals(prevBankRoot, 'Wrong bank witness');
-    bankKey.assertEquals(roundKey, 'Wrong bank round');
+    // const [prevBankRoot, bankKey] =
+    //   bankWitness.computeRootAndKey(prevBankValue);
+    // this.bankRoot
+    //   .getAndRequireEquals()
+    //   .assertEquals(prevBankRoot, 'Wrong bank witness');
+    // bankKey.assertEquals(roundKey, 'Wrong bank round');
 
-    const [newBankRoot] = bankWitness.computeRootAndKey(
-      prevBankValue.add(TICKET_PRICE.mul(ticket.amount).value)
+    // const [newBankRoot] = bankWitness.computeRootAndKey(
+    //   prevBankValue.add(TICKET_PRICE.mul(ticket.amount).value)
+    // );
+
+    // this.bankRoot.set(newBankRoot);
+
+    const newBankValue = prevBankValue.add(
+      TICKET_PRICE.mul(ticket.amount).value
     );
-
-    this.bankRoot.set(newBankRoot);
+    this.checkAndUpdateBank(bankWitness, roundKey, prevBankValue, newBankValue);
 
     this.emitEvent(
       'buy-ticket',
@@ -278,11 +283,12 @@ export class Lottery extends SmartContract {
     );
 
     // Check bank witness
-    const [prevBankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
-    this.bankRoot
-      .getAndRequireEquals()
-      .assertEquals(prevBankRoot, 'Wrong bank witness');
-    bankKey.assertEquals(round, 'Wrong bank round');
+    this.checkBank(bankWitness, round, bankValue);
+    // const [prevBankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
+    // this.bankRoot
+    //   .getAndRequireEquals()
+    //   .assertEquals(prevBankRoot, 'Wrong bank witness');
+    // bankKey.assertEquals(round, 'Wrong bank round');
 
     // Check that ticket has not been used before
     const [prevNullifierRoot, nullifierKey] =
@@ -485,6 +491,49 @@ export class Lottery extends SmartContract {
   public getWiningNumbersForRound(): UInt32[] {
     // Temporary function implementation. Later will be switch with oracle call.
     return generateNumbersSeed(Field(12345));
+  }
+
+  private checkBank(
+    witness: MerkleMap20Witness,
+    round: Field,
+    curValue: Field
+  ) {
+    this.checkMap20(this.bankRoot, witness, round, curValue);
+  }
+
+  private checkAndUpdateBank(
+    witness: MerkleMap20Witness,
+    round: Field,
+    curValue: Field,
+    newValue: Field
+  ) {
+    this.checkAndUpdateMap20(this.bankRoot, witness, round, curValue, newValue);
+  }
+
+  private checkAndUpdateMap20(
+    state: State<Field>,
+    witness: MerkleMap20Witness,
+    key: Field,
+    curValue: Field,
+    newValue: Field
+  ) {
+    this.checkMap20(state, witness, key, curValue);
+
+    const [newRoot] = witness.computeRootAndKey(newValue);
+    state.set(newRoot);
+  }
+
+  private checkMap20(
+    state: State<Field>,
+    witness: MerkleMap20Witness,
+    key: Field,
+    curValue: Field
+  ) {
+    const curRoot = state.getAndRequireEquals();
+
+    const [prevRoot, witnessKey] = witness.computeRootAndKey(curValue);
+    curRoot.assertEquals(prevRoot, 'Wrong witness');
+    witnessKey.assertEquals(key, 'Wrong key');
   }
 }
 
