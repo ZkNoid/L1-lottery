@@ -1,5 +1,6 @@
 import {
   AccountUpdate,
+  Cache,
   Field,
   MerkleMap,
   MerkleMapWitness,
@@ -341,7 +342,7 @@ class StateManager {
   }
 }
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('Add', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -360,9 +361,9 @@ describe('Add', () => {
   beforeAll(async () => {
     if (proofsEnabled) {
       console.log(`Compiling distribution program proof`);
-      await DistibutionProgram.compile();
+      await DistibutionProgram.compile({ cache: Cache.FileSystem('./cache') });
       console.log(`Compiling MockLottery`);
-      await Lottery.compile();
+      await Lottery.compile({ cache: Cache.FileSystem('./cache') });
       console.log(`Successfully compiled`);
     }
   });
