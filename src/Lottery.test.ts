@@ -464,6 +464,7 @@ describe('Add', () => {
     let tx3 = await Mina.transaction(senderAccount, async () => {
       await lottery.getReward(
         ticket,
+        Field.from(curRound),
         rp.roundWitness,
         rp.roundTicketWitness,
         rp.dp,
@@ -555,6 +556,7 @@ describe('Add', () => {
       let tx3 = await Mina.transaction(user, async () => {
         await lottery.getReward(
           ticket,
+          Field(curRound),
           rp.roundWitness,
           rp.roundTicketWitness,
           rp.dp,
@@ -635,6 +637,7 @@ describe('Add', () => {
     let tx3 = await Mina.transaction(senderAccount, async () => {
       await lottery.refund(
         ticket,
+        Field(curRound),
         rp.roundWitness,
         rp.roundTicketWitness,
         rp.resultWitness,
