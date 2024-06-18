@@ -583,6 +583,7 @@ describe('Add', () => {
       await lottery.getCommisionForRound(
         cp.roundWitness,
         cp.winningNumbers,
+        Field.from(curRound),
         cp.resultWitness,
         cp.dp,
         cp.bankValue,

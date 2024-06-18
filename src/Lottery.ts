@@ -255,11 +255,7 @@ export class Lottery extends SmartContract {
       );
 
     // Check that result is zero for this round
-    const [resultRoot, resultRound] = resultWitness.computeRootAndKey(Field(0));
-    this.roundResultRoot
-      .getAndRequireEquals()
-      .assertEquals(resultRoot, 'Wrong result witness');
-    round.assertEquals(resultRound, 'Wrong result round');
+    this.checkResult(resultWitness, round, Field(0));
 
     // Can call refund after ~ 2 days after round finished
     const curRound = this.getCurrentRound();
@@ -337,15 +333,7 @@ export class Lottery extends SmartContract {
     );
 
     // Check result root info
-    const [resultRoot, resultRound] =
-      resutWitness.computeRootAndKey(winningNumbers);
-    resultRound.assertEquals(
-      round,
-      'Winning ticket and your ticket is from different rounds'
-    );
-    this.roundResultRoot
-      .getAndRequireEquals()
-      .assertEquals(resultRoot, 'Wrong result witness');
+    this.checkResult(resutWitness, round, winningNumbers);
 
     // Compute score using winnging ticket
     const score = ticket.getScore(NumberPacked.unpack(winningNumbers));
@@ -380,6 +368,7 @@ export class Lottery extends SmartContract {
   @method async getCommisionForRound(
     ticketWitness: MerkleMap20Witness,
     result: Field,
+    round: Field,
     resultWitness: MerkleMap20Witness,
     dp: DistributionProof,
     bankValue: Field,
@@ -388,10 +377,7 @@ export class Lottery extends SmartContract {
   ): Promise<void> {
     this.sender.getAndRequireSignature().assertEquals(treasury);
 
-    const [resultRoot, round] = resultWitness.computeRootAndKey(result);
-    this.roundResultRoot
-      .getAndRequireEquals()
-      .assertEquals(resultRoot, 'Wrong resultRoot');
+    this.checkResult(resultWitness, round, result);
 
     const [bankRoot, bankRound] = resultWitness.computeRootAndKey(bankValue);
     this.bankRoot
@@ -433,6 +419,29 @@ export class Lottery extends SmartContract {
   public getWiningNumbersForRound(): UInt32[] {
     // Temporary function implementation. Later will be switch with oracle call.
     return generateNumbersSeed(Field(12345));
+  }
+
+  private checkResult(
+    witness: MerkleMap20Witness,
+    round: Field,
+    curValue: Field
+  ) {
+    this.checkMap(this.roundResultRoot, witness, round, curValue);
+  }
+
+  private checkAndUpdateResult(
+    witness: MerkleMap20Witness,
+    round: Field,
+    curValue: Field,
+    newValue: Field
+  ) {
+    this.checkAndUpdateMap(
+      this.roundResultRoot,
+      witness,
+      round,
+      curValue,
+      newValue
+    );
   }
 
   private checkBank(
