@@ -144,35 +144,18 @@ export class Lottery extends SmartContract {
     // Ticket validity check
     ticket.check().assertTrue();
 
-    // Calculate round ticket root
-    const [roundTicketRootBefore, key] = roundTicketWitness.computeRootAndKey(
-      Field(0) // Because ticket should be empty before buying
-    );
-    key.assertGreaterThan(Field(0), '0 slot is reserved for comission ticket');
-    // Key can be any right now. We can change it to
-    // key.assertEquals(ticket.hash(), 'Wrong key for ticket witness');
-
-    // Calculate round root
-    const [ticketRootBefore, roundKey] = roundWitness.computeRootAndKey(
-      roundTicketRootBefore
-    );
-
-    // Check that computed ticket root is equal to contract ticketRoot.
-    this.ticketRoot
-      .getAndRequireEquals()
-      .assertEquals(ticketRootBefore, 'Round witness check fail');
-    // Check that key is a ticket round
-    roundKey.assertEquals(this.getCurrentRound().value);
-
-    // Recalculate round ticket root with new value
-    const [newRoundTicketRoot] = roundTicketWitness.computeRootAndKey(
+    // Check that ticket is not bought previously and update ticket tree
+    const round = this.getCurrentRound().value;
+    const { ticketId } = this.checkAndUpdateTicketMap(
+      roundWitness,
+      round,
+      roundTicketWitness,
+      Field(0),
       ticket.hash()
     );
 
-    // Recalculate ticket root
-    const [newTicketRoot] = roundWitness.computeRootAndKey(newRoundTicketRoot);
-
-    this.ticketRoot.set(newTicketRoot);
+    // Check that TicketId > 0. TicketId == 0 - ticket for commision
+    ticketId.assertGreaterThan(Field(0), 'Zero ticket - commision ticket');
 
     // Get ticket price from user
     let senderUpdate = AccountUpdate.createSigned(
@@ -180,25 +163,17 @@ export class Lottery extends SmartContract {
     );
     senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
 
-    // Update bank info
-    const [prevBankRoot, bankKey] =
-      bankWitness.computeRootAndKey(prevBankValue);
-    this.bankRoot
-      .getAndRequireEquals()
-      .assertEquals(prevBankRoot, 'Wrong bank witness');
-    bankKey.assertEquals(roundKey, 'Wrong bank round');
-
-    const [newBankRoot] = bankWitness.computeRootAndKey(
-      prevBankValue.add(TICKET_PRICE.mul(ticket.amount).value)
+    // Update bank
+    const newBankValue = prevBankValue.add(
+      TICKET_PRICE.mul(ticket.amount).value
     );
-
-    this.bankRoot.set(newBankRoot);
+    this.checkAndUpdateBank(bankWitness, round, prevBankValue, newBankValue);
 
     this.emitEvent(
       'buy-ticket',
       new BuyTicketEvent({
         ticket,
-        round: roundKey,
+        round: round,
       })
     );
   }
@@ -239,36 +214,27 @@ export class Lottery extends SmartContract {
 
   @method async refund(
     ticket: Ticket,
+    round: Field,
     roundWitness: MerkleMap20Witness,
     roundTicketWitness: MerkleMap20Witness,
     resultWitness: MerkleMap20Witness,
     bankValue: Field,
     bankWitness: MerkleMap20Witness,
-    nullieiferWitness: MerkleMapWitness
+    nullifierWitness: MerkleMapWitness
   ) {
+    // Check taht owner trying to claim
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
 
     // Check ticket in merkle map
-    const [roundTicketRoot, ticketKey] = roundTicketWitness.computeRootAndKey(
+    const { ticketId } = this.checkTicket(
+      roundWitness,
+      round,
+      roundTicketWitness,
       ticket.hash()
     );
 
-    const [prevTicketRoot, round] =
-      roundWitness.computeRootAndKey(roundTicketRoot);
-
-    this.ticketRoot
-      .getAndRequireEquals()
-      .assertEquals(
-        prevTicketRoot,
-        'Generated tickets root and contact ticket is not equal'
-      );
-
     // Check that result is zero for this round
-    const [resultRoot, resultRound] = resultWitness.computeRootAndKey(Field(0));
-    this.roundResultRoot
-      .getAndRequireEquals()
-      .assertEquals(resultRoot, 'Wrong result witness');
-    round.assertEquals(resultRound, 'Wrong result round');
+    this.checkResult(resultWitness, round, Field(0));
 
     // Can call refund after ~ 2 days after round finished
     const curRound = this.getCurrentRound();
@@ -277,39 +243,18 @@ export class Lottery extends SmartContract {
       'To early for refund'
     );
 
-    // Check bank witness
-    const [prevBankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
-    this.bankRoot
-      .getAndRequireEquals()
-      .assertEquals(prevBankRoot, 'Wrong bank witness');
-    bankKey.assertEquals(round, 'Wrong bank round');
+    // Check and update bank witness
+    const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
+    const newBankValue = bankValue.sub(totalTicketPrice.value);
+    this.checkAndUpdateBank(bankWitness, round, bankValue, newBankValue);
 
-    // Check that ticket has not been used before
-    const [prevNullifierRoot, nullifierKey] =
-      nullieiferWitness.computeRootAndKey(Field(0));
-
-    this.ticketNullifier
-      .getAndRequireEquals()
-      .assertEquals(prevNullifierRoot, 'Wrong nullifier witness');
-    nullifierKey.assertEquals(
-      getNullifierId(round, ticketKey),
-      'Wrong nullifier witness key'
-    );
-
-    // Update nullifier
-    const [newNullifierValue] = nullieiferWitness.computeRootAndKey(
+    // Check and update nullifier
+    this.checkAndUpdateNullifier(
+      nullifierWitness,
+      getNullifierId(round, ticketId),
+      Field(0),
       Field.from(1)
     );
-
-    this.ticketNullifier.set(newNullifierValue);
-
-    // Update bank for round
-    const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
-    const [newBankRoot] = bankWitness.computeRootAndKey(
-      bankValue.sub(totalTicketPrice.value)
-    );
-
-    this.bankRoot.set(newBankRoot);
 
     // Send ticket price back to user
     this.send({
@@ -328,6 +273,7 @@ export class Lottery extends SmartContract {
 
   @method async getReward(
     ticket: Ticket,
+    round: Field,
     roundWitness: MerkleMap20Witness,
     roundTicketWitness: MerkleMap20Witness,
     dp: DistributionProof,
@@ -335,59 +281,35 @@ export class Lottery extends SmartContract {
     resutWitness: MerkleMap20Witness,
     bankValue: Field,
     bankWitness: MerkleMap20Witness,
-    nullieiferWitness: MerkleMapWitness
+    nullifierWitness: MerkleMapWitness
   ) {
+    // Check taht owner trying to claim
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
     // Verify distibution proof
     dp.verify();
 
-    // Calculate and check ticket root. Check that root in proof is equal to that root
-    const [roundTicketRoot, ticketKey] = roundTicketWitness.computeRootAndKey(
+    // Check ticket in tree
+    const { ticketId, roundRoot: roundTicketRoot } = this.checkTicket(
+      roundWitness,
+      round,
+      roundTicketWitness,
       ticket.hash()
     );
-    // ticketKey.assertEquals(ticket.hash(), 'Wrong witness for ticket');
+
     dp.publicOutput.root.assertEquals(
       roundTicketRoot,
       'Wrong distribution proof'
     );
 
-    // Check that ticket root is equal to ticket root on contract
-    const [prevTicketRoot, round] =
-      roundWitness.computeRootAndKey(roundTicketRoot);
-    this.ticketRoot
-      .getAndRequireEquals()
-      .assertEquals(
-        prevTicketRoot,
-        'Generated tickets root and contact ticket is not equal'
-      );
-
-    // Check that round is finished
-    round.assertLessThan(
-      this.getCurrentRound().value,
-      'Round is still not over'
-    );
-
     // Check result root info
-    const [resultRoot, resultRound] =
-      resutWitness.computeRootAndKey(winningNumbers);
-    resultRound.assertEquals(
-      round,
-      'Winning ticket and your ticket is from different rounds'
-    );
-    this.roundResultRoot
-      .getAndRequireEquals()
-      .assertEquals(resultRoot, 'Wrong result witness');
+    this.checkResult(resutWitness, round, winningNumbers);
 
     // Compute score using winnging ticket
     const score = ticket.getScore(NumberPacked.unpack(winningNumbers));
     const totalScore = getTotalScoreAndCommision(dp.publicOutput.total);
 
     // Pay user
-    const [bankRoot, bankKey] = bankWitness.computeRootAndKey(bankValue);
-    this.bankRoot
-      .getAndRequireEquals()
-      .assertEquals(bankRoot, 'Wrong bank root witness');
-    bankKey.assertEquals(round, 'Wrong bank round');
+    this.checkBank(bankWitness, round, bankValue);
 
     this.send({
       to: ticket.owner,
@@ -395,23 +317,13 @@ export class Lottery extends SmartContract {
     });
 
     // Add ticket to nullifier
-
-    const [prevNullifierRoot, nullifierKey] =
-      nullieiferWitness.computeRootAndKey(Field(0));
-
-    this.ticketNullifier
-      .getAndRequireEquals()
-      .assertEquals(prevNullifierRoot, 'Wrong nullifier witness');
-    nullifierKey.assertEquals(
-      getNullifierId(round, ticketKey),
-      'Wrong nullifier witness key'
-    );
-
-    const [newNullifierValue] = nullieiferWitness.computeRootAndKey(
+    this.checkAndUpdateNullifier(
+      nullifierWitness,
+      getNullifierId(round, ticketId),
+      Field(0),
       Field.from(1)
     );
 
-    this.ticketNullifier.set(newNullifierValue);
     this.emitEvent(
       'get-reward',
       new GetRewardEvent({
@@ -424,36 +336,33 @@ export class Lottery extends SmartContract {
   @method async getCommisionForRound(
     ticketWitness: MerkleMap20Witness,
     result: Field,
+    round: Field,
     resultWitness: MerkleMap20Witness,
     dp: DistributionProof,
     bankValue: Field,
     bankWitness: MerkleMap20Witness,
     nullifierWitness: MerkleMapWitness
   ): Promise<void> {
-    this.sender.getAndRequireSignature().assertEquals(treasury);
-
-    const [resultRoot, round] = resultWitness.computeRootAndKey(result);
-    this.roundResultRoot
-      .getAndRequireEquals()
-      .assertEquals(resultRoot, 'Wrong resultRoot');
-
-    const [bankRoot, bankRound] = resultWitness.computeRootAndKey(bankValue);
-    this.bankRoot
-      .getAndRequireEquals()
-      .assertEquals(bankRoot, 'Wrong bank root');
-    round.assertEquals(bankRound, 'Bank round != result round');
-
-    const [nullifierRoot, nullifierkKey] = nullifierWitness.computeRootAndKey(
-      Field(0)
-    );
-    this.ticketNullifier
-      .getAndRequireEquals()
-      .assertEquals(nullifierRoot, 'Wrong nullifier root');
-    nullifierkKey.assertEquals(getNullifierId(round, Field(0)));
-
-    // Send commision
     dp.verify();
 
+    // Only treasury account can claim commision
+    this.sender.getAndRequireSignature().assertEquals(treasury);
+
+    // Check result for round is right
+    this.checkResult(resultWitness, round, result);
+
+    // Check bank value for round
+    this.checkBank(bankWitness, round, bankValue);
+
+    // Update nullifier for ticket
+    this.checkAndUpdateNullifier(
+      nullifierWitness,
+      getNullifierId(round, Field(0)),
+      Field(0),
+      Field.from(1)
+    );
+
+    // Check ticket
     const [ticketRoot, ticketKey] = ticketWitness.computeRootAndKey(
       dp.publicOutput.root
     );
@@ -462,18 +371,13 @@ export class Lottery extends SmartContract {
       .assertEquals(ticketRoot, 'Wrong ticket root');
     ticketKey.assertEquals(round, 'Wrong ticket round');
 
+    // Send commision to treasury
     const totalScore = getTotalScoreAndCommision(dp.publicOutput.total);
 
     this.send({
       to: treasury,
       amount: totalScore.sub(dp.publicOutput.total),
     });
-
-    // Upadte nullifier
-
-    const [newNulifierRoot] = nullifierWitness.computeRootAndKey(Field(1));
-
-    this.ticketNullifier.set(newNulifierRoot);
   }
 
   public getCurrentRound(): UInt32 {
@@ -485,6 +389,124 @@ export class Lottery extends SmartContract {
   public getWiningNumbersForRound(): UInt32[] {
     // Temporary function implementation. Later will be switch with oracle call.
     return generateNumbersSeed(Field(12345));
+  }
+
+  private checkResult(
+    witness: MerkleMap20Witness,
+    round: Field,
+    curValue: Field
+  ) {
+    this.checkMap(this.roundResultRoot, witness, round, curValue);
+  }
+
+  private checkAndUpdateResult(
+    witness: MerkleMap20Witness,
+    round: Field,
+    curValue: Field,
+    newValue: Field
+  ) {
+    this.checkAndUpdateMap(
+      this.roundResultRoot,
+      witness,
+      round,
+      curValue,
+      newValue
+    );
+  }
+
+  private checkBank(
+    witness: MerkleMap20Witness,
+    round: Field,
+    curValue: Field
+  ) {
+    this.checkMap(this.bankRoot, witness, round, curValue);
+  }
+
+  private checkAndUpdateBank(
+    witness: MerkleMap20Witness,
+    round: Field,
+    curValue: Field,
+    newValue: Field
+  ) {
+    this.checkAndUpdateMap(this.bankRoot, witness, round, curValue, newValue);
+  }
+
+  private checkAndUpdateNullifier(
+    witness: MerkleMapWitness,
+    key: Field,
+    curValue: Field,
+    newValue: Field
+  ) {
+    this.checkAndUpdateMap(
+      this.ticketNullifier,
+      witness,
+      key,
+      curValue,
+      newValue
+    );
+  }
+
+  private checkAndUpdateMap(
+    state: State<Field>,
+    witness: MerkleMap20Witness | MerkleMapWitness,
+    key: Field,
+    curValue: Field,
+    newValue: Field
+  ) {
+    this.checkMap(state, witness, key, curValue);
+
+    const [newRoot] = witness.computeRootAndKey(newValue);
+    state.set(newRoot);
+  }
+
+  private checkMap(
+    state: State<Field>,
+    witness: MerkleMap20Witness | MerkleMapWitness,
+    key: Field,
+    curValue: Field
+  ) {
+    const curRoot = state.getAndRequireEquals();
+
+    const [prevRoot, witnessKey] = witness.computeRootAndKey(curValue);
+    curRoot.assertEquals(prevRoot, 'Wrong witness');
+    witnessKey.assertEquals(key, 'Wrong key');
+  }
+
+  private checkAndUpdateTicketMap(
+    firstWitness: MerkleMap20Witness | MerkleMapWitness,
+    key1: Field,
+    secondWitness: MerkleMap20Witness | MerkleMapWitness,
+    // key2: Field, For know second level key is not checked as later it would transform to merkle map
+    prevValue: Field,
+    newValue: Field
+  ): { ticketId: Field } {
+    const res = this.checkTicket(firstWitness, key1, secondWitness, prevValue);
+
+    const [newRoot2] = secondWitness.computeRootAndKey(newValue);
+    const [newRoot1] = firstWitness.computeRootAndKey(newRoot2);
+    this.ticketRoot.set(newRoot1);
+
+    return res;
+  }
+
+  private checkTicket(
+    firstWitness: MerkleMap20Witness | MerkleMapWitness,
+    key1: Field,
+    secondWitness: MerkleMap20Witness | MerkleMapWitness,
+    // key2: Field, For know second level key is not checked as later it would transform to merkle map
+    value: Field
+  ): { ticketId: Field; roundRoot: Field } {
+    const [secondLevelRoot, ticketId] = secondWitness.computeRootAndKey(value);
+
+    const [firstLevelRoot, firstLevelKey] =
+      firstWitness.computeRootAndKey(secondLevelRoot);
+
+    firstLevelKey.assertEquals(key1, 'Wrong first level key');
+    this.ticketRoot
+      .getAndRequireEquals()
+      .assertEquals(firstLevelRoot, 'Wrong 2d witness');
+
+    return { ticketId, roundRoot: secondLevelRoot };
   }
 }
 
