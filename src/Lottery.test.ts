@@ -69,7 +69,7 @@ class StateManager {
   startBlock: Field;
   dpProofs: { [key: number]: DistributionProof };
 
-  constructor() {
+  constructor(startBlock: Field) {
     this.ticketMap = getEmpty2dMerkleMap(20);
     this.roundTicketMap = [new MerkleMap20()];
     this.lastTicketInRound = [1];
@@ -78,6 +78,22 @@ class StateManager {
     this.bankMap = new MerkleMap20();
     this.roundResultMap = new MerkleMap20();
     this.dpProofs = {};
+    this.startBlock = startBlock;
+  }
+
+  syncWithCurBlock(curBlock: number) {
+    let localRound = this.roundTicketMap.length - 1;
+    let curRound = Math.ceil((curBlock - +this.startBlock) / BLOCK_PER_ROUND);
+
+    this.startNextRound(curRound - localRound);
+  }
+
+  startNextRound(amount: number = 1) {
+    for (let i = 0; i < amount; i++) {
+      this.roundTicketMap.push(new MerkleMap20());
+      this.lastTicketInRound.push(1);
+      this.roundTickets.push([comisionTicket]);
+    }
   }
 
   getNextTicketWitenss(
@@ -380,7 +396,7 @@ describe('Add', () => {
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     lottery = new MockLottery(zkAppAddress);
-    state = new StateManager();
+    state = new StateManager(Local.getNetworkState().blockchainLength.value);
 
     mineNBlocks = (n: number) => {
       let curAmount = Local.getNetworkState().blockchainLength;
@@ -653,5 +669,113 @@ describe('Add', () => {
 
     const finalBalance = Mina.getBalance(senderAccount);
     expect(finalBalance).toEqual(balanceBefore);
+  });
+
+  it('Multiple round test', async () => {
+    await localDeploy();
+
+    const amountOfRounds = 10;
+    const amountOfTickets = 10;
+
+    for (let round = 0; round < amountOfRounds; round++) {
+      console.log(`Process: ${round} round`);
+
+      // Generate tickets
+      let tickets = [];
+      for (let j = 0; j < amountOfTickets; j++) {
+        let ticket = Ticket.random(users[j % users.length]);
+        tickets.push({
+          owner: users[j % users.length],
+          ticket,
+        });
+      }
+
+      // For each ticket - buy ticket
+      for (let j = 0; j < amountOfTickets; j++) {
+        let ticket = tickets[j];
+
+        const balanceBefore = Mina.getBalance(ticket.owner);
+
+        let [roundWitness, roundTicketWitness, bankWitness, bankValue] =
+          state.addTicket(ticket.ticket, round);
+        let tx = await Mina.transaction(ticket.owner, async () => {
+          await lottery.buyTicket(
+            ticket.ticket,
+            roundWitness,
+            roundTicketWitness,
+            bankValue,
+            bankWitness
+          );
+        });
+
+        await tx.prove();
+        await tx.sign([ticket.owner.key]).send();
+
+        const balanceAfter = Mina.getBalance(ticket.owner);
+
+        expect(balanceBefore.sub(balanceAfter)).toEqual(TICKET_PRICE);
+
+        checkConsistancy();
+      }
+
+      const bank = TICKET_PRICE.mul(amountOfTickets);
+
+      // Wait for the end of round
+      mineNBlocks(BLOCK_PER_ROUND);
+
+      // Produce result
+      const resultWitness = state.updateResult(round);
+      let tx2 = await Mina.transaction(senderAccount, async () => {
+        await lottery.produceResult(resultWitness);
+      });
+
+      await tx2.prove();
+      await tx2.sign([senderKey]).send();
+      checkConsistancy();
+
+      // Get rewards
+      for (let j = 0; j < amountOfTickets; j++) {
+        const ticketInfo = tickets[j];
+        const balanceBefore = Mina.getBalance(ticketInfo.owner);
+
+        const ticket = ticketInfo.ticket;
+        const score = ticket.getScore(
+          mockWinningCombination.map((val) => UInt32.from(val))
+        );
+
+        const rp = await state.getReward(round, ticket);
+        let tx3 = await Mina.transaction(ticketInfo.owner, async () => {
+          await lottery.getReward(
+            ticket,
+            Field(round),
+            rp.roundWitness,
+            rp.roundTicketWitness,
+            rp.dp,
+            rp.winningNumbers,
+            rp.resultWitness,
+            rp.bankValue,
+            rp.bankWitness,
+            rp.nullifierWitness
+          );
+        });
+
+        await tx3.prove();
+        await tx3.sign([ticketInfo.owner.key]).send();
+        checkConsistancy();
+
+        const balanceAfter = Mina.getBalance(ticketInfo.owner);
+
+        expect(balanceAfter.sub(balanceBefore)).toEqual(
+          bank
+            .mul(score)
+            .div(getTotalScoreAndCommision(rp.dp.publicOutput.total))
+        );
+      }
+
+      // Sync state round
+      state.syncWithCurBlock(
+        +Mina.activeInstance.getNetworkState().blockchainLength
+      );
+    }
   });
 });
