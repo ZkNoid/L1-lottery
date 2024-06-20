@@ -9,3 +9,5 @@ export const SCORE_COEFFICIENTS = [0, 90, 324, 2187, 26244, 590490, 31886460]; /
 
 export const PRESICION = 1000;
 export const COMMISION = 30; // 3% comission
+
+export const mockWinningCombination = [1, 1, 1, 1, 1, 1];

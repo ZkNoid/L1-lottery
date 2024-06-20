@@ -26,9 +26,15 @@ import {
   NUMBERS_IN_TICKET,
   PRESICION,
   TICKET_PRICE,
+  mockWinningCombination,
 } from './constants.js';
 import { DistributionProof } from './DistributionProof.js';
-import { NumberPacked, getEmpty2dMerkleMap } from './util.js';
+import {
+  NumberPacked,
+  getEmpty2dMerkleMap,
+  getNullifierId,
+  getTotalScoreAndCommision,
+} from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 
 const generateNumbersSeed = (seed: Field): UInt32[] => {
@@ -56,23 +62,6 @@ const empty2dMapRoot = empty2dMap.getRoot();
 // !!!!!!!!!!!!!!!!!!!1 Shoud be upadted with valid address before deploying
 export const { publicKey: treasury, privateKey: treasuryKey } =
   PrivateKey.randomKeypair();
-
-export const comisionTicket = Ticket.from(
-  Array(6).fill(0),
-  PublicKey.empty(),
-  1
-);
-
-export function getTotalScoreAndCommision(value: UInt64) {
-  return value.add(value.mul(COMMISION).div(PRESICION));
-}
-
-export function getNullifierId(round: Field, ticketId: Field): Field {
-  Gadgets.rangeCheck64(round);
-  Gadgets.rangeCheck64(ticketId);
-
-  return Field.fromBits([...round.toBits(64), ...ticketId.toBits(64)]);
-}
 
 // #TODO constrain round to current
 // #TODO add events
@@ -140,10 +129,8 @@ export class Lottery extends SmartContract {
     bankWitness: MerkleMap20Witness
   ) {
     ticket.owner.equals(this.sender.getAndRequireSignature()); // Do we need this check?
-
     // Ticket validity check
     ticket.check().assertTrue();
-
     // Check that ticket is not bought previously and update ticket tree
     const round = this.getCurrentRound().value;
     const { ticketId } = this.checkAndUpdateTicketMap(
@@ -153,14 +140,13 @@ export class Lottery extends SmartContract {
       Field(0),
       ticket.hash()
     );
-
     // Check that TicketId > 0. TicketId == 0 - ticket for commision
     ticketId.assertGreaterThan(Field(0), 'Zero ticket - commision ticket');
-
     // Get ticket price from user
     let senderUpdate = AccountUpdate.createSigned(
       this.sender.getAndRequireSignature()
     );
+
     senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
 
     // Update bank
@@ -509,8 +495,6 @@ export class Lottery extends SmartContract {
     return { ticketId, roundRoot: secondLevelRoot };
   }
 }
-
-export const mockWinningCombination = [1, 1, 1, 1, 1, 1];
 
 export class MockLottery extends Lottery {
   override getWiningNumbersForRound(): UInt32[] {
