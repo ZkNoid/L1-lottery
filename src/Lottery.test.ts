@@ -10,7 +10,7 @@ import {
   UInt32,
   UInt64,
 } from 'o1js';
-import { Lottery, MockLottery, treasury, treasuryKey } from './Lottery';
+import { Lottery, MockLottery } from './Lottery';
 import { Ticket } from './Ticket';
 import {
   NumberPacked,
@@ -33,6 +33,7 @@ import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
 import { StateManager } from './StateManager';
+import { treasury, treasuryKey } from './private_constants';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,

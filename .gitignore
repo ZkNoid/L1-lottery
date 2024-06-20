@@ -13,3 +13,5 @@ coverage
 keys
 
 cache
+
+src/private_constants.ts

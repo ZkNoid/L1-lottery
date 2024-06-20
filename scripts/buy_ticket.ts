@@ -17,7 +17,7 @@ import { Cache, Mina, NetworkId, PrivateKey, fetchAccount } from 'o1js';
 import { DistibutionProgram } from '../src/DistributionProof.js';
 import { StateManager } from '../src/StateManager.js';
 import { Ticket } from '../src/Ticket.js';
-import { LotteryCut } from '../src/LotteryCut.js';
+import { Lottery } from '../src/Lottery.js';
 
 // check command line arg
 let deployAlias = process.argv[2];
@@ -69,13 +69,13 @@ const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
 Mina.setActiveInstance(Network);
 let feepayerAddress = feepayerKey.toPublicKey();
 let zkAppAddress = zkAppKey.toPublicKey();
-let lottery = new LotteryCut(zkAppAddress);
+let lottery = new Lottery(zkAppAddress);
 
 // compile the contract to create prover keys
 console.log('compile the DP');
 await DistibutionProgram.compile();
 console.log('compile the Lottery');
-let lotteryCompileResult = await LotteryCut.compile();
+let lotteryCompileResult = await Lottery.compile();
 // let mockLotteryCompileResult = await MockLottery.compile({
 //   cache: Cache.FileSystem('../cache'),
 // });

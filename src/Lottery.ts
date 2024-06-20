@@ -60,8 +60,12 @@ const empty2dMap = getEmpty2dMerkleMap(20);
 const empty2dMapRoot = empty2dMap.getRoot();
 
 // !!!!!!!!!!!!!!!!!!!1 Shoud be upadted with valid address before deploying
-export const { publicKey: treasury, privateKey: treasuryKey } =
-  PrivateKey.randomKeypair();
+// export const { publicKey: treasury, privateKey: treasuryKey } =
+//   PrivateKey.randomKeypair();
+
+const treasury = PublicKey.fromBase58(
+  'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ'
+);
 
 // #TODO constrain round to current
 // #TODO add events
