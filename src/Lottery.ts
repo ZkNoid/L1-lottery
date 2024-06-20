@@ -36,6 +36,7 @@ import {
   getTotalScoreAndCommision,
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
+import { treasury } from './private_constants.js';
 
 const generateNumbersSeed = (seed: Field): UInt32[] => {
   const initMask = 0b1111;
@@ -62,11 +63,6 @@ const empty2dMapRoot = empty2dMap.getRoot();
 // !!!!!!!!!!!!!!!!!!!1 Shoud be upadted with valid address before deploying
 // export const { publicKey: treasury, privateKey: treasuryKey } =
 //   PrivateKey.randomKeypair();
-
-const treasury = PublicKey.fromBase58(
-  'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ'
-);
-
 // #TODO constrain round to current
 // #TODO add events
 
@@ -377,8 +373,9 @@ export class Lottery extends SmartContract {
   }
 
   public getWiningNumbersForRound(): UInt32[] {
-    // Temporary function implementation. Later will be switch with oracle call.
-    return generateNumbersSeed(Field(12345));
+    return mockWinningCombination.map((val) => UInt32.from(val));
+    // // Temporary function implementation. Later will be switch with oracle call.
+    // return generateNumbersSeed(Field(12345));
   }
 
   private checkResult(
