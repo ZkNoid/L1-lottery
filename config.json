@@ -35,6 +35,15 @@
       "feepayerAlias": "deployer",
       "fee": "0.1",
       "smartContract": "MockLottery"
+    },
+    "devnet_ready_1": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "keyPath": "keys/devnet_ready_1.json",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.1",
+      "smartContract": "Lottery"
     }
   }
 }
