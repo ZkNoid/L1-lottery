@@ -1,7 +1,7 @@
-import { Lottery, comisionTicket, getNullifierId } from './Lottery.js';
+import { Lottery } from './Lottery.js';
 import { Ticket } from './Ticket';
 import { DistibutionProgram, DistributionProofPublicInput } from './DistributionProof.js';
-import { NumberPacked, getEmpty2dMerkleMap } from './util.js';
+import { NumberPacked, comisionTicket, getEmpty2dMerkleMap, getNullifierId } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 import { TICKET_PRICE } from './constants.js';
 
