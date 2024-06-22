@@ -36,8 +36,8 @@ import {
   getTotalScoreAndCommision,
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
-import { treasury } from './private_constants.js';
 
+const treasury = PublicKey.fromBase58('B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ');
 const generateNumbersSeed = (seed: Field): UInt32[] => {
   const initMask = 0b1111;
   const masks = [...Array(NUMBERS_IN_TICKET)].map(
