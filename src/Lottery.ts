@@ -41,6 +41,10 @@ export interface MerkleCheckResult {
   key: Field;
 }
 
+export const mockResult = NumberPacked.pack(
+  mockWinningCombination.map((v) => UInt32.from(v))
+);
+
 const treasury = PublicKey.fromBase58(
   'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ'
 );
@@ -173,7 +177,7 @@ export class Lottery extends SmartContract {
     );
   }
 
-  @method async produceResult(resultWiness: MerkleMap20Witness) {
+  @method async produceResult(resultWiness: MerkleMap20Witness, result: Field) {
     // Check that result for this round is not computed yet, and that witness it is valid
     const [initialResultRoot, round] = resultWiness.computeRootAndKey(
       Field.from(0)
@@ -188,7 +192,8 @@ export class Lottery extends SmartContract {
     // Generate new ticket using value from blockchain
     let winningNumbers = this.getWiningNumbersForRound();
 
-    let newLeafValue = NumberPacked.pack(winningNumbers);
+    // let newLeafValue = NumberPacked.pack(winningNumbers);
+    let newLeafValue = result; // For test purpose
 
     // Update result tree
     const [newResultRoot] = resultWiness.computeRootAndKey(newLeafValue);

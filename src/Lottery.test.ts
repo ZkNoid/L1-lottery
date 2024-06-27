@@ -10,7 +10,7 @@ import {
   UInt32,
   UInt64,
 } from 'o1js';
-import { Lottery, MockLottery } from './Lottery';
+import { Lottery, MockLottery, mockResult } from './Lottery';
 import { Ticket } from './Ticket';
 import {
   NumberPacked,
@@ -169,7 +169,7 @@ describe('Add', () => {
     // Produce result
     const resultWitness = state.updateResult(curRound);
     let tx2 = await Mina.transaction(senderAccount, async () => {
-      await lottery.produceResult(resultWitness);
+      await lottery.produceResult(resultWitness, mockResult);
     });
 
     await tx2.prove();
@@ -244,7 +244,7 @@ describe('Add', () => {
     console.log(`Produce result`);
     const resultWitness = state.updateResult(curRound);
     let tx2 = await Mina.transaction(senderAccount, async () => {
-      await lottery.produceResult(resultWitness);
+      await lottery.produceResult(resultWitness, mockResult);
     });
 
     await tx2.prove();
@@ -423,7 +423,7 @@ describe('Add', () => {
       // Produce result
       const resultWitness = state.updateResult(round);
       let tx2 = await Mina.transaction(senderAccount, async () => {
-        await lottery.produceResult(resultWitness);
+        await lottery.produceResult(resultWitness, mockResult);
       });
 
       await tx2.prove();
