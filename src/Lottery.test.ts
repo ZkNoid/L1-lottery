@@ -100,8 +100,8 @@ describe('Add', () => {
     state = new StateManager(Local.getNetworkState().blockchainLength.value);
 
     mineNBlocks = (n: number) => {
-      let curAmount = Local.getNetworkState().blockchainLength;
-      Local.setBlockchainLength(curAmount.add(n));
+      let curAmount = Local.getNetworkState().globalSlotSinceGenesis;
+      Local.setGlobalSlot(curAmount.add(n));
     };
 
     checkConsistancy = () => {
@@ -181,7 +181,6 @@ describe('Add', () => {
     let tx3 = await Mina.transaction(senderAccount, async () => {
       await lottery.getReward(
         ticket,
-        Field.from(curRound),
         rp.roundWitness,
         rp.roundTicketWitness,
         rp.dp,
@@ -273,7 +272,6 @@ describe('Add', () => {
       let tx3 = await Mina.transaction(user, async () => {
         await lottery.getReward(
           ticket,
-          Field(curRound),
           rp.roundWitness,
           rp.roundTicketWitness,
           rp.dp,
@@ -302,7 +300,6 @@ describe('Add', () => {
       await lottery.getCommisionForRound(
         cp.roundWitness,
         cp.winningNumbers,
-        Field.from(curRound),
         cp.resultWitness,
         cp.dp,
         cp.bankValue,
@@ -354,7 +351,6 @@ describe('Add', () => {
     let tx3 = await Mina.transaction(senderAccount, async () => {
       await lottery.refund(
         ticket,
-        Field(curRound),
         rp.roundWitness,
         rp.roundTicketWitness,
         rp.resultWitness,
@@ -448,7 +444,6 @@ describe('Add', () => {
         let tx3 = await Mina.transaction(ticketInfo.owner, async () => {
           await lottery.getReward(
             ticket,
-            Field(round),
             rp.roundWitness,
             rp.roundTicketWitness,
             rp.dp,
@@ -475,7 +470,7 @@ describe('Add', () => {
 
       // Sync state round
       state.syncWithCurBlock(
-        +Mina.activeInstance.getNetworkState().blockchainLength
+        +Mina.activeInstance.getNetworkState().globalSlotSinceGenesis
       );
     }
   });

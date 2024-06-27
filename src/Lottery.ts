@@ -37,7 +37,13 @@ import {
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 
-const treasury = PublicKey.fromBase58('B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ');
+export interface MerkleCheckResult {
+  key: Field;
+}
+
+const treasury = PublicKey.fromBase58(
+  'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ'
+);
 const generateNumbersSeed = (seed: Field): UInt32[] => {
   const initMask = 0b1111;
   const masks = [...Array(NUMBERS_IN_TICKET)].map(
@@ -116,7 +122,9 @@ export class Lottery extends SmartContract {
     this.bankRoot.set(emptyMap20Root);
     this.roundResultRoot.set(emptyMap20Root);
 
-    this.startBlock.set(this.network.blockchainLength.getAndRequireEquals());
+    this.startBlock.set(
+      this.network.globalSlotSinceGenesis.getAndRequireEquals()
+    );
 
     // #TODO Permisions
   }
@@ -132,14 +140,15 @@ export class Lottery extends SmartContract {
     // Ticket validity check
     ticket.check().assertTrue();
     // Check that ticket is not bought previously and update ticket tree
-    const round = this.getCurrentRound().value;
-    const { ticketId } = this.checkAndUpdateTicketMap(
+    const { ticketId, round } = this.checkAndUpdateTicketMap(
       roundWitness,
-      round,
+      null,
       roundTicketWitness,
       Field(0),
       ticket.hash()
     );
+    this.checkCurrentRound(UInt32.fromFields([round]));
+
     // Check that TicketId > 0. TicketId == 0 - ticket for commision
     ticketId.assertGreaterThan(Field(0), 'Zero ticket - commision ticket');
     // Get ticket price from user
@@ -174,10 +183,7 @@ export class Lottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(initialResultRoot, 'Wrong resultWitness or value');
 
-    round.assertLessThan(
-      this.getCurrentRound().value,
-      'Round is still not over'
-    );
+    this.checkRoundPass(UInt32.fromFields([round]));
 
     // Generate new ticket using value from blockchain
     let winningNumbers = this.getWiningNumbersForRound();
@@ -200,7 +206,6 @@ export class Lottery extends SmartContract {
 
   @method async refund(
     ticket: Ticket,
-    round: Field,
     roundWitness: MerkleMap20Witness,
     roundTicketWitness: MerkleMap20Witness,
     resultWitness: MerkleMap20Witness,
@@ -212,9 +217,9 @@ export class Lottery extends SmartContract {
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
 
     // Check ticket in merkle map
-    const { ticketId } = this.checkTicket(
+    const { ticketId, round } = this.checkTicket(
       roundWitness,
-      round,
+      null,
       roundTicketWitness,
       ticket.hash()
     );
@@ -223,11 +228,7 @@ export class Lottery extends SmartContract {
     this.checkResult(resultWitness, round, Field(0));
 
     // Can call refund after ~ 2 days after round finished
-    const curRound = this.getCurrentRound();
-    curRound.assertGreaterThan(
-      UInt32.fromFields([round.add(2)]),
-      'To early for refund'
-    );
+    this.checkRoundPass(UInt32.fromFields([round.add(2)]));
 
     // Check and update bank witness
     const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
@@ -259,7 +260,6 @@ export class Lottery extends SmartContract {
 
   @method async getReward(
     ticket: Ticket,
-    round: Field,
     roundWitness: MerkleMap20Witness,
     roundTicketWitness: MerkleMap20Witness,
     dp: DistributionProof,
@@ -275,12 +275,11 @@ export class Lottery extends SmartContract {
     dp.verify();
 
     // Check ticket in tree
-    const { ticketId, roundRoot: roundTicketRoot } = this.checkTicket(
-      roundWitness,
+    const {
+      ticketId,
+      roundRoot: roundTicketRoot,
       round,
-      roundTicketWitness,
-      ticket.hash()
-    );
+    } = this.checkTicket(roundWitness, null, roundTicketWitness, ticket.hash());
 
     dp.publicOutput.root.assertEquals(
       roundTicketRoot,
@@ -322,7 +321,6 @@ export class Lottery extends SmartContract {
   @method async getCommisionForRound(
     ticketWitness: MerkleMap20Witness,
     result: Field,
-    round: Field,
     resultWitness: MerkleMap20Witness,
     dp: DistributionProof,
     bankValue: Field,
@@ -335,7 +333,7 @@ export class Lottery extends SmartContract {
     this.sender.getAndRequireSignature().assertEquals(treasury);
 
     // Check result for round is right
-    this.checkResult(resultWitness, round, result);
+    const { key: round } = this.checkResult(resultWitness, null, result);
 
     // Check bank value for round
     this.checkBank(bankWitness, round, bankValue);
@@ -366,10 +364,26 @@ export class Lottery extends SmartContract {
     });
   }
 
-  public getCurrentRound(): UInt32 {
+  // public getCurrentRound(): UInt32 {
+  //   const startBlock = this.startBlock.getAndRequireEquals();
+  //   const blockNum = this.network.globalSlotSinceGenesis.getAndRequireEquals();
+  //   return blockNum.sub(startBlock).div(BLOCK_PER_ROUND);
+  // }
+
+  public checkCurrentRound(round: UInt32) {
     const startBlock = this.startBlock.getAndRequireEquals();
-    const blockNum = this.network.blockchainLength.getAndRequireEquals();
-    return blockNum.sub(startBlock).div(BLOCK_PER_ROUND);
+    this.network.globalSlotSinceGenesis.requireBetween(
+      startBlock.add(round.mul(BLOCK_PER_ROUND)),
+      startBlock.add(round.add(1).mul(BLOCK_PER_ROUND))
+    );
+  }
+
+  public checkRoundPass(round: UInt32) {
+    const startBlock = this.startBlock.getAndRequireEquals();
+    this.network.globalSlotSinceGenesis.requireBetween(
+      startBlock.add(round.mul(BLOCK_PER_ROUND)),
+      UInt32.MAXINT()
+    );
   }
 
   public getWiningNumbersForRound(): UInt32[] {
@@ -380,10 +394,10 @@ export class Lottery extends SmartContract {
 
   private checkResult(
     witness: MerkleMap20Witness,
-    round: Field,
+    round: Field | null,
     curValue: Field
-  ) {
-    this.checkMap(this.roundResultRoot, witness, round, curValue);
+  ): MerkleCheckResult {
+    return this.checkMap(this.roundResultRoot, witness, round, curValue);
   }
 
   private checkAndUpdateResult(
@@ -391,8 +405,8 @@ export class Lottery extends SmartContract {
     round: Field,
     curValue: Field,
     newValue: Field
-  ) {
-    this.checkAndUpdateMap(
+  ): MerkleCheckResult {
+    return this.checkAndUpdateMap(
       this.roundResultRoot,
       witness,
       round,
@@ -405,8 +419,8 @@ export class Lottery extends SmartContract {
     witness: MerkleMap20Witness,
     round: Field,
     curValue: Field
-  ) {
-    this.checkMap(this.bankRoot, witness, round, curValue);
+  ): MerkleCheckResult {
+    return this.checkMap(this.bankRoot, witness, round, curValue);
   }
 
   private checkAndUpdateBank(
@@ -414,8 +428,14 @@ export class Lottery extends SmartContract {
     round: Field,
     curValue: Field,
     newValue: Field
-  ) {
-    this.checkAndUpdateMap(this.bankRoot, witness, round, curValue, newValue);
+  ): MerkleCheckResult {
+    return this.checkAndUpdateMap(
+      this.bankRoot,
+      witness,
+      round,
+      curValue,
+      newValue
+    );
   }
 
   private checkAndUpdateNullifier(
@@ -423,8 +443,8 @@ export class Lottery extends SmartContract {
     key: Field,
     curValue: Field,
     newValue: Field
-  ) {
-    this.checkAndUpdateMap(
+  ): MerkleCheckResult {
+    return this.checkAndUpdateMap(
       this.ticketNullifier,
       witness,
       key,
@@ -436,37 +456,45 @@ export class Lottery extends SmartContract {
   private checkAndUpdateMap(
     state: State<Field>,
     witness: MerkleMap20Witness | MerkleMapWitness,
-    key: Field,
+    key: Field | null,
     curValue: Field,
     newValue: Field
-  ) {
-    this.checkMap(state, witness, key, curValue);
+  ): MerkleCheckResult {
+    let checkRes = this.checkMap(state, witness, key, curValue);
 
     const [newRoot] = witness.computeRootAndKey(newValue);
     state.set(newRoot);
+
+    return checkRes;
   }
 
   private checkMap(
     state: State<Field>,
     witness: MerkleMap20Witness | MerkleMapWitness,
-    key: Field,
+    key: Field | null,
     curValue: Field
-  ) {
+  ): MerkleCheckResult {
     const curRoot = state.getAndRequireEquals();
 
     const [prevRoot, witnessKey] = witness.computeRootAndKey(curValue);
     curRoot.assertEquals(prevRoot, 'Wrong witness');
-    witnessKey.assertEquals(key, 'Wrong key');
+    if (key) {
+      witnessKey.assertEquals(key, 'Wrong key');
+    }
+
+    return {
+      key: witnessKey,
+    };
   }
 
   private checkAndUpdateTicketMap(
     firstWitness: MerkleMap20Witness | MerkleMapWitness,
-    key1: Field,
+    key1: Field | null,
     secondWitness: MerkleMap20Witness | MerkleMapWitness,
     // key2: Field, For know second level key is not checked as later it would transform to merkle map
     prevValue: Field,
     newValue: Field
-  ): { ticketId: Field } {
+  ): { ticketId: Field; round: Field } {
     const res = this.checkTicket(firstWitness, key1, secondWitness, prevValue);
 
     const [newRoot2] = secondWitness.computeRootAndKey(newValue);
@@ -478,22 +506,24 @@ export class Lottery extends SmartContract {
 
   private checkTicket(
     firstWitness: MerkleMap20Witness | MerkleMapWitness,
-    key1: Field,
+    key1: Field | null,
     secondWitness: MerkleMap20Witness | MerkleMapWitness,
     // key2: Field, For know second level key is not checked as later it would transform to merkle map
     value: Field
-  ): { ticketId: Field; roundRoot: Field } {
+  ): { ticketId: Field; round: Field; roundRoot: Field } {
     const [secondLevelRoot, ticketId] = secondWitness.computeRootAndKey(value);
 
-    const [firstLevelRoot, firstLevelKey] =
+    const [firstLevelRoot, round] =
       firstWitness.computeRootAndKey(secondLevelRoot);
 
-    firstLevelKey.assertEquals(key1, 'Wrong first level key');
+    if (key1) {
+      round.assertEquals(key1, 'Wrong round');
+    }
     this.ticketRoot
       .getAndRequireEquals()
       .assertEquals(firstLevelRoot, 'Wrong 2d witness');
 
-    return { ticketId, roundRoot: secondLevelRoot };
+    return { ticketId, round, roundRoot: secondLevelRoot };
   }
 }
 
