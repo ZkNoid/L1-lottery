@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -22,7 +22,8 @@
     "testw": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "lint": "npx eslint src/* --fix",
     "analyze": "npm run build && node build/scripts/analyze.js",
-    "cache": "npm run build && node build/scripts/generate_cache.js"
+    "cache": "npm run build && node build/scripts/generate_cache.js",
+    "trees": "npm run build && node build/scripts/build_trees.js"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",

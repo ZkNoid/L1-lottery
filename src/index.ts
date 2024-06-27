@@ -4,6 +4,7 @@ import { DistibutionProgram, DistributionProofPublicInput } from './Distribution
 import { NumberPacked, comisionTicket, getEmpty2dMerkleMap, getNullifierId } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 import { TICKET_PRICE } from './constants.js';
+import { StateManager } from './StateManager.js';
 
 export {
   Ticket,
@@ -16,5 +17,6 @@ export {
   TICKET_PRICE,
   NumberPacked,
   DistributionProofPublicInput,
-  comisionTicket
+  comisionTicket,
+  StateManager
 };
