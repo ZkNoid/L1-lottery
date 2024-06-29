@@ -66,9 +66,10 @@ export class StateManager {
   bankMap: MerkleMap20;
   roundResultMap: MerkleMap20;
   startBlock: Field;
+  isMock: boolean;
   dpProofs: { [key: number]: DistributionProof };
 
-  constructor(startBlock: Field) {
+  constructor(startBlock: Field, isMock: boolean = true) {
     this.ticketMap = getEmpty2dMerkleMap(20);
     this.roundTicketMap = [new MerkleMap20()];
     this.lastTicketInRound = [1];
@@ -78,6 +79,7 @@ export class StateManager {
     this.roundResultMap = new MerkleMap20();
     this.dpProofs = {};
     this.startBlock = startBlock;
+    this.isMock = isMock;
   }
 
   syncWithCurBlock(curBlock: number) {
@@ -161,7 +163,9 @@ export class StateManager {
       valueWitness: this.roundTicketMap[round].getWitness(Field(0)),
     });
 
-    let curProof = await mockProof(await init(input), DistributionProof, input);
+    let curProof = this.isMock
+      ? await mockProof(await init(input), DistributionProof, input)
+      : await DistibutionProgram.init(input);
 
     for (let i = 1; i < ticketsInRound; i++) {
       const ticket = this.roundTickets[round][i];
@@ -172,11 +176,16 @@ export class StateManager {
         valueWitness: curMap.getWitness(Field(i)),
       });
       curMap.set(Field(i), ticket.hash());
-      curProof = await mockProof(
-        await addTicket(input, curProof),
-        DistributionProof,
-        input
-      );
+
+      if (this.isMock) {
+        curProof = await mockProof(
+          await addTicket(input, curProof),
+          DistributionProof,
+          input
+        );
+      } else {
+        curProof = await DistibutionProgram.addTicket(input, curProof);
+      }
       // curProof = await DistibutionProgram.addTicket(input, curProof);
     }
 

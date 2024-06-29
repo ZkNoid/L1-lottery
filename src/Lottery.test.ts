@@ -59,7 +59,7 @@ export async function mockProof<I, O, P>(
   });
 }
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
 describe('Add', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -97,7 +97,10 @@ describe('Add', () => {
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     lottery = new MockLottery(zkAppAddress);
-    state = new StateManager(Local.getNetworkState().blockchainLength.value);
+    state = new StateManager(
+      Local.getNetworkState().blockchainLength.value,
+      !proofsEnabled
+    );
 
     mineNBlocks = (n: number) => {
       let curAmount = Local.getNetworkState().globalSlotSinceGenesis;
@@ -138,12 +141,6 @@ describe('Add', () => {
     let [roundWitness, roundTicketWitness, bankWitness, bankValue] =
       state.addTicket(ticket, curRound);
 
-    console.log('roundWitnessLength: ', roundWitness.isLefts.length);
-    console.log(
-      'roundTicketWitnessLength: ',
-      roundTicketWitness.isLefts.length
-    );
-    console.log('bankWitnessLength: ', bankWitness.isLefts.length);
     let tx = await Mina.transaction(senderAccount, async () => {
       await lottery.buyTicket(
         ticket,
