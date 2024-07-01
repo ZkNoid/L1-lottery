@@ -2,6 +2,7 @@ import {
   AccountUpdate,
   Cache,
   Field,
+  JsonProof,
   MerkleMap,
   MerkleMapWitness,
   Mina,
@@ -196,7 +197,8 @@ export class StateManager {
   // Changes value of nullifier!
   async getReward(
     round: number,
-    ticket: Ticket
+    ticket: Ticket,
+    roundDP: JsonProof | undefined = undefined
   ): Promise<{
     roundWitness: MerkleMap20Witness;
     roundTicketWitness: MerkleMap20Witness;
@@ -230,7 +232,9 @@ export class StateManager {
       throw Error(`No such ticket in round ${round}`);
     }
 
-    const dp = await this.getDP(round);
+    const dp = !roundDP
+      ? await this.getDP(round)
+      : await DistributionProof.fromJSON(roundDP);
     const winningNumbers = this.roundResultMap.get(Field.from(round));
     if (winningNumbers.equals(Field(0)).toBoolean()) {
       throw Error('Do not have a result for this round');
