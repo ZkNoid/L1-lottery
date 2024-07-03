@@ -37,6 +37,7 @@ import {
   getTotalScoreAndCommision,
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
+import { TicketReduceProof } from './TicketReduceProof.js';
 
 export interface MerkleCheckResult {
   key: Field;
@@ -180,7 +181,7 @@ export class PLottery extends SmartContract {
 
     // Check that state on contract is equal to state on proof
     lastProcessedState.assertEquals(
-      reduceProof.publicInput.initialState,
+      reduceProof.publicOutput.initialState,
       'Initial state is not match contract last processed state'
     );
 
