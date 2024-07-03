@@ -37,7 +37,7 @@ import {
   getTotalScoreAndCommision,
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
-import { TicketReduceProof } from './TicketReduceProof.js';
+import { LotteryAction, TicketReduceProof } from './TicketReduceProof.js';
 
 export interface MerkleCheckResult {
   key: Field;
@@ -94,11 +94,6 @@ export class GetRewardEvent extends Struct({
 }) {}
 
 export class RefundEvent extends Struct({
-  ticket: Ticket,
-  round: Field,
-}) {}
-
-export class LotteryAction extends Struct({
   ticket: Ticket,
   round: Field,
 }) {}
