@@ -1,12 +1,46 @@
-import { Field, SelfProof, Struct, ZkProgram } from 'o1js';
+import {
+  Field,
+  MerkleList,
+  Poseidon,
+  SelfProof,
+  Struct,
+  ZkProgram,
+} from 'o1js';
 import { Ticket } from './Ticket';
 import { MerkleMap20Witness } from './CustomMerkleMap';
 import { TICKET_PRICE } from './constants';
+import { emptyHashWithPrefix } from 'o1js/dist/node/lib/provable/crypto/poseidon';
 
 export class LotteryAction extends Struct({
   ticket: Ticket,
   round: Field,
 }) {}
+
+export const actionListAdd = (hash: Field, action: LotteryAction): Field => {
+  return Poseidon.hashWithPrefix('MinaZkappSeqEvents**', [
+    hash,
+    Poseidon.hashWithPrefix(
+      'MinaZkappEvent******',
+      LotteryAction.toFields(action)
+    ),
+  ]);
+};
+
+export class ActionList extends MerkleList.create(
+  LotteryAction,
+  actionListAdd,
+  emptyHashWithPrefix('MinaZkappActionsEmpty')
+) {}
+
+const merkleActionsAdd = (hash: Field, actionsHash: Field): Field => {
+  return Poseidon.hashWithPrefix('MinaZkappSeqEvents**', [hash, actionsHash]);
+};
+
+export class MerkleActions extends MerkleList.create(
+  ActionList.provable,
+  (hash, x) => merkleActionsAdd(hash, x.hash),
+  emptyHashWithPrefix('MinaZkappActionStateEmptyElt')
+) {}
 
 export class TicketReduceProofPublicInput extends Struct({
   action: LotteryAction,
@@ -23,6 +57,7 @@ export class TicketReduceProofPublicOutput extends Struct({
   initialBankRoot: Field,
   newTicketRoot: Field,
   newBankRoot: Field,
+  processedActionList: Field,
 }) {}
 
 export const init = async (
@@ -38,6 +73,7 @@ export const init = async (
     initialBankRoot,
     newTicketRoot: initialTicketRoot,
     newBankRoot: initialBankRoot,
+    processedActionList: ActionList.emptyHash,
   });
 };
 
@@ -87,21 +123,53 @@ export const addTicket = async (
     input.bankValue.add(TICKET_PRICE.mul(input.action.ticket.amount).value)
   );
 
-  let finalState = updateActionState(
-    prevProof.publicOutput.finalState,
+  let processedActionList = actionListAdd(
+    prevProof.publicOutput.processedActionList,
     input.action
   );
+
+  return new TicketReduceProofPublicOutput({
+    initialState: prevProof.publicOutput.initialState,
+    finalState: prevProof.publicOutput.finalState,
+    initialTicketRoot: prevProof.publicOutput.initialTicketRoot,
+    initialBankRoot: prevProof.publicOutput.initialBankRoot,
+    newTicketRoot,
+    newBankRoot,
+    processedActionList,
+  });
+};
+
+export const cutActions = async (
+  input: TicketReduceProofPublicInput,
+  prevProof: SelfProof<
+    TicketReduceProofPublicInput,
+    TicketReduceProofPublicOutput
+  >
+): Promise<TicketReduceProofPublicOutput> => {
+  prevProof.verify();
+
+  let finalState = merkleActionsAdd(
+    prevProof.publicOutput.finalState,
+    prevProof.publicOutput.processedActionList
+  );
+  let processedActionList = ActionList.emptyHash;
 
   return new TicketReduceProofPublicOutput({
     initialState: prevProof.publicOutput.initialState,
     finalState,
     initialTicketRoot: prevProof.publicOutput.initialTicketRoot,
     initialBankRoot: prevProof.publicOutput.initialBankRoot,
-    newTicketRoot,
-    newBankRoot,
+    newTicketRoot: prevProof.publicOutput.newTicketRoot,
+    newBankRoot: prevProof.publicOutput.newBankRoot,
+    processedActionList,
   });
 };
 
+/*
+  init: simple initializer, create empty proof
+  addTicket: process next ticket, updates roots of merkle tries. Add actions to processedActionList merkleList
+  cutActions: updates finalState by adding processedActionList to finalState merkle list
+*/
 export const TicketReduceProgram = ZkProgram({
   name: 'ticket-reduce-program',
   publicInput: TicketReduceProofPublicInput,
@@ -130,11 +198,19 @@ export const TicketReduceProgram = ZkProgram({
         return addTicket(input, prevProof);
       },
     },
+    cutActions: {
+      privateInputs: [SelfProof],
+      async method(
+        input: TicketReduceProofPublicInput,
+        prevProof: SelfProof<
+          TicketReduceProofPublicInput,
+          TicketReduceProofPublicOutput
+        >
+      ) {
+        return addTicket(input, prevProof);
+      },
+    },
   },
 });
 
 export class TicketReduceProof extends ZkProgram.Proof(TicketReduceProgram) {}
-
-function updateActionState(finalState: Field, action: LotteryAction): Field {
-  throw new Error('Function not implemented.');
-}
