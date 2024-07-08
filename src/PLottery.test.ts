@@ -170,7 +170,7 @@ describe('Add', () => {
     let reduceProof = await state.reduceTickets();
 
     let tx2_1 = await Mina.transaction(senderAccount, async () => {
-      await lottery.reduceTickets(reduceProof);
+      await lottery.reduceTickets(reduceProof, Field(1));
     });
 
     await tx2_1.prove();
@@ -256,7 +256,7 @@ describe('Add', () => {
       let reduceProof = await state.reduceTickets();
 
       let tx2_1 = await Mina.transaction(senderAccount, async () => {
-        await lottery.reduceTickets(reduceProof);
+        await lottery.reduceTickets(reduceProof, Field(round + 1));
       });
 
       await tx2_1.prove();

@@ -125,6 +125,8 @@ export class PLottery extends SmartContract {
 
   @state(Field) lastProcessedState = State<Field>();
 
+  @state(Field) lastReduceInRound = State<Field>();
+
   init() {
     super.init();
 
@@ -171,8 +173,11 @@ export class PLottery extends SmartContract {
     );
   }
 
-  @method async reduceTickets(reduceProof: TicketReduceProof) {
+  @method async reduceTickets(reduceProof: TicketReduceProof, round: Field) {
     reduceProof.verify();
+
+    this.checkCurrentRound(UInt32.fromFields([round]));
+
     let lastProcessedState = this.lastProcessedState.getAndRequireEquals();
     let actionState = this.account.actionState.getAndRequireEquals();
 
@@ -191,6 +196,7 @@ export class PLottery extends SmartContract {
     this.lastProcessedState.set(reduceProof.publicOutput.finalState);
     this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
     this.bankRoot.set(reduceProof.publicOutput.newBankRoot);
+    this.lastReduceInRound.set(round);
   }
 
   @method async produceResult(resultWiness: MerkleMap20Witness, result: Field) {
@@ -312,6 +318,11 @@ export class PLottery extends SmartContract {
       'Wrong winning numbers in dp'
     );
 
+    round.assertLessThan(
+      this.lastReduceInRound.getAndRequireEquals(),
+      'Actions was not reduced for this round yet. Call reduceTickets first'
+    );
+
     // Check result root info
     this.checkResult(resutWitness, round, winningNumbers);
 
@@ -365,6 +376,11 @@ export class PLottery extends SmartContract {
 
     // Check result for round is right
     const { key: round } = this.checkResult(resultWitness, null, result);
+
+    round.assertLessThan(
+      this.lastReduceInRound.getAndRequireEquals(),
+      'Actions was not reduced for this round yet. Call reduceTickets first'
+    );
 
     // Check bank value for round
     this.checkBank(bankWitness, round, bankValue);
