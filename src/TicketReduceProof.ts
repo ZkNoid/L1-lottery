@@ -32,7 +32,7 @@ export class ActionList extends MerkleList.create(
   emptyHashWithPrefix('MinaZkappActionsEmpty')
 ) {}
 
-const merkleActionsAdd = (hash: Field, actionsHash: Field): Field => {
+export const merkleActionsAdd = (hash: Field, actionsHash: Field): Field => {
   return Poseidon.hashWithPrefix('MinaZkappSeqEvents**', [hash, actionsHash]);
 };
 
@@ -90,7 +90,7 @@ export const addTicket = async (
     Field(0)
   );
 
-  //#TODO constrain ticketId
+  //#TODO constrain ticketId + ticketId > 0
 
   let [prevTicketRoot, round] =
     input.roundWitness.computeRootAndKey(prevRoundRoot);

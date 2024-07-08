@@ -291,6 +291,11 @@ export class Lottery extends SmartContract {
       'Wrong distribution proof'
     );
 
+    dp.publicInput.winningCombination.assertEquals(
+      winningNumbers,
+      'Wrong winning numbers in dp'
+    );
+
     // Check result root info
     this.checkResult(resutWitness, round, winningNumbers);
 
@@ -336,6 +341,11 @@ export class Lottery extends SmartContract {
 
     // Only treasury account can claim commision
     this.sender.getAndRequireSignature().assertEquals(treasury);
+
+    dp.publicInput.winningCombination.assertEquals(
+      result,
+      'Wrong winning numbers in dp'
+    );
 
     // Check result for round is right
     const { key: round } = this.checkResult(resultWitness, null, result);
