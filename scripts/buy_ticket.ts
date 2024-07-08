@@ -15,7 +15,7 @@
 import fs from 'fs/promises';
 import { Cache, Mina, NetworkId, PrivateKey, fetchAccount } from 'o1js';
 import { DistibutionProgram } from '../src/DistributionProof.js';
-import { StateManager } from '../src/StateManager.js';
+import { StateManager } from '../src/StateManager/StateManager.js';
 import { Ticket } from '../src/Ticket.js';
 import { Lottery } from '../src/Lottery.js';
 

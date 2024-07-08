@@ -18,6 +18,7 @@ import {
   Provable,
   Struct,
   PrivateKey,
+  Reducer,
 } from 'o1js';
 import { Ticket } from './Ticket.js';
 import {
@@ -36,6 +37,7 @@ import {
   getTotalScoreAndCommision,
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
+import { LotteryAction, TicketReduceProof } from './TicketReduceProof.js';
 
 export interface MerkleCheckResult {
   key: Field;
@@ -96,7 +98,10 @@ export class RefundEvent extends Struct({
   round: Field,
 }) {}
 
-export class Lottery extends SmartContract {
+// Parallel lottery
+export class PLottery extends SmartContract {
+  reducer = Reducer({ actionType: LotteryAction });
+
   events = {
     'buy-ticket': BuyTicketEvent,
     'produce-result': ProduceResultEvent,
@@ -118,6 +123,8 @@ export class Lottery extends SmartContract {
   // Stores block of deploy
   @state(UInt32) startBlock = State<UInt32>();
 
+  @state(Field) lastProcessedState = State<Field>();
+
   init() {
     super.init();
 
@@ -130,31 +137,17 @@ export class Lottery extends SmartContract {
       this.network.globalSlotSinceGenesis.getAndRequireEquals()
     );
 
+    this.lastProcessedState.set(this.account.actionState.getAndRequireEquals());
+
     // #TODO Permisions
   }
 
-  @method async buyTicket(
-    ticket: Ticket,
-    roundWitness: MerkleMap20Witness,
-    roundTicketWitness: MerkleMap20Witness,
-    prevBankValue: Field,
-    bankWitness: MerkleMap20Witness
-  ) {
+  @method async buyTicket(ticket: Ticket, round: Field) {
     ticket.owner.equals(this.sender.getAndRequireSignature()); // Do we need this check?
     // Ticket validity check
     ticket.check().assertTrue();
-    // Check that ticket is not bought previously and update ticket tree
-    const { ticketId, round } = this.checkAndUpdateTicketMap(
-      roundWitness,
-      null,
-      roundTicketWitness,
-      Field(0),
-      ticket.hash()
-    );
     this.checkCurrentRound(UInt32.fromFields([round]));
 
-    // Check that TicketId > 0. TicketId == 0 - ticket for commision
-    ticketId.assertGreaterThan(Field(0), 'Zero ticket - commision ticket');
     // Get ticket price from user
     let senderUpdate = AccountUpdate.createSigned(
       this.sender.getAndRequireSignature()
@@ -162,11 +155,12 @@ export class Lottery extends SmartContract {
 
     senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
 
-    // Update bank
-    const newBankValue = prevBankValue.add(
-      TICKET_PRICE.mul(ticket.amount).value
+    this.reducer.dispatch(
+      new LotteryAction({
+        ticket,
+        round,
+      })
     );
-    this.checkAndUpdateBank(bankWitness, round, prevBankValue, newBankValue);
 
     this.emitEvent(
       'buy-ticket',
@@ -175,6 +169,28 @@ export class Lottery extends SmartContract {
         round: round,
       })
     );
+  }
+
+  @method async reduceTickets(reduceProof: TicketReduceProof) {
+    reduceProof.verify();
+    let lastProcessedState = this.lastProcessedState.getAndRequireEquals();
+    let actionState = this.account.actionState.getAndRequireEquals();
+
+    // Check that state on contract is equal to state on proof
+    lastProcessedState.assertEquals(
+      reduceProof.publicOutput.initialState,
+      'Initial state is not match contract last processed state'
+    );
+
+    // Check that actionState is equal to actionState on proof
+    actionState.assertEquals(
+      reduceProof.publicOutput.finalState,
+      'Final state is not match contract actionState'
+    );
+
+    this.lastProcessedState.set(reduceProof.publicOutput.finalState);
+    this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
+    this.bankRoot.set(reduceProof.publicOutput.newBankRoot);
   }
 
   @method async produceResult(resultWiness: MerkleMap20Witness, result: Field) {
@@ -539,11 +555,5 @@ export class Lottery extends SmartContract {
       .assertEquals(firstLevelRoot, 'Wrong 2d witness');
 
     return { ticketId, round, roundRoot: secondLevelRoot };
-  }
-}
-
-export class MockLottery extends Lottery {
-  override getWiningNumbersForRound(): UInt32[] {
-    return mockWinningCombination.map((val) => UInt32.from(val));
   }
 }

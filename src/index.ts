@@ -8,7 +8,10 @@ import {
 import { Ticket } from './Ticket';
 import {
   DistibutionProgram,
+<<<<<<< HEAD
   DistributionProof,
+=======
+>>>>>>> fe723ea2e589930629bc89a1accca56cb9a75ead
   DistributionProofPublicInput,
 } from './DistributionProof.js';
 import {
@@ -19,7 +22,7 @@ import {
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants.js';
-import { StateManager } from './StateManager.js';
+import { StateManager } from './StateManager/StateManager.js';
 
 export {
   Ticket,
