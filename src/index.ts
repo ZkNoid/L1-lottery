@@ -1,9 +1,24 @@
-import { Lottery } from './Lottery.js';
+import {
+  BuyTicketEvent,
+  GetRewardEvent,
+  Lottery,
+  ProduceResultEvent,
+  RefundEvent,
+} from './Lottery.js';
 import { Ticket } from './Ticket';
-import { DistibutionProgram, DistributionProofPublicInput } from './DistributionProof.js';
-import { NumberPacked, comisionTicket, getEmpty2dMerkleMap, getNullifierId } from './util.js';
+import {
+  DistibutionProgram,
+  DistributionProof,
+  DistributionProofPublicInput,
+} from './DistributionProof.js';
+import {
+  NumberPacked,
+  comisionTicket,
+  getEmpty2dMerkleMap,
+  getNullifierId,
+} from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
-import { TICKET_PRICE } from './constants.js';
+import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants.js';
 import { StateManager } from './StateManager.js';
 
 export {
@@ -18,5 +33,11 @@ export {
   NumberPacked,
   DistributionProofPublicInput,
   comisionTicket,
-  StateManager
+  StateManager,
+  BLOCK_PER_ROUND,
+  BuyTicketEvent,
+  GetRewardEvent,
+  ProduceResultEvent,
+  RefundEvent,
+  DistributionProof
 };
