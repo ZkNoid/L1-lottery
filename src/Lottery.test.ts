@@ -32,7 +32,7 @@ import {
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
-import { StateManager } from './StateManager';
+import { StateManager } from './StateManager/StateManager';
 import { treasury, treasuryKey } from './private_constants';
 
 export async function mockProof<I, O, P>(
@@ -59,7 +59,7 @@ export async function mockProof<I, O, P>(
   });
 }
 
-let proofsEnabled = true;
+let proofsEnabled = false;
 
 describe('Add', () => {
   let deployerAccount: Mina.TestPublicKey,

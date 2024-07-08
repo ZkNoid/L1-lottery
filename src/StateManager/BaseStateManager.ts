@@ -11,28 +11,28 @@ import {
   UInt32,
   UInt64,
 } from 'o1js';
-import { Ticket } from './Ticket.js';
+import { Ticket } from '../Ticket.js';
 import {
   NumberPacked,
   getEmpty2dMerkleMap,
   comisionTicket,
   getNullifierId,
-} from './util.js';
+} from '../util.js';
 import {
   BLOCK_PER_ROUND,
   TICKET_PRICE,
   mockWinningCombination,
-} from './constants.js';
+} from '../constants.js';
 import {
   DistibutionProgram,
   DistributionProof,
   DistributionProofPublicInput,
   addTicket,
   init,
-} from './DistributionProof.js';
+} from '../DistributionProof.js';
 // import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 // import { Pickles } from 'o1js/dist/node/snarky';
-import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
+import { MerkleMap20, MerkleMap20Witness } from '../CustomMerkleMap.js';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -58,7 +58,7 @@ export async function mockProof<I, O, P>(
   });
 }
 
-export class StateManager {
+export class BaseStateManager {
   ticketMap: MerkleMap20;
   roundTicketMap: MerkleMap20[];
   roundTickets: Ticket[][];
@@ -113,22 +113,7 @@ export class StateManager {
     ticket: Ticket,
     round: number
   ): [MerkleMap20Witness, MerkleMap20Witness, MerkleMap20Witness, Field] {
-    const [roundWitness, ticketRoundWitness] = this.getNextTicketWitenss(round);
-    const [bankWitness, bankValue] = this.getBankWitness(round);
-    this.roundTicketMap[round].set(
-      Field.from(this.lastTicketInRound[round]),
-      ticket.hash()
-    );
-    this.roundTickets[round].push(ticket);
-    this.lastTicketInRound[round]++;
-    this.ticketMap.set(Field.from(round), this.roundTicketMap[round].getRoot());
-
-    this.bankMap.set(
-      Field.from(round),
-      bankValue.add(TICKET_PRICE.mul(ticket.amount).value)
-    );
-
-    return [roundWitness, ticketRoundWitness, bankWitness, bankValue];
+    throw Error('Add ticket is not implemented');
   }
 
   // Returns witness and value

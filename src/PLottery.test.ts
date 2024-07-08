@@ -33,7 +33,7 @@ import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
 import { treasury, treasuryKey } from './private_constants';
-import { PStateManager } from './PStateManager';
+import { PStateManager } from './StateManager/PStateManager';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
