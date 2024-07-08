@@ -11,8 +11,6 @@ import { UInt64 } from 'o1js';
 import { NumberPacked } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 
-// #TODO add processed tickets
-
 export class DistributionProofPublicInput extends Struct({
   winningCombination: Field,
   ticket: Ticket,

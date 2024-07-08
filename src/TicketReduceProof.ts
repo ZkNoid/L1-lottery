@@ -2,8 +2,10 @@ import {
   Field,
   MerkleList,
   Poseidon,
+  Provable,
   SelfProof,
   Struct,
+  UInt64,
   ZkProgram,
 } from 'o1js';
 import { Ticket } from './Ticket';
@@ -58,6 +60,8 @@ export class TicketReduceProofPublicOutput extends Struct({
   newTicketRoot: Field,
   newBankRoot: Field,
   processedActionList: Field,
+  lastProcessedRound: Field,
+  lastProcessedTicketId: Field,
 }) {}
 
 export const init = async (
@@ -74,6 +78,8 @@ export const init = async (
     newTicketRoot: initialTicketRoot,
     newBankRoot: initialBankRoot,
     processedActionList: ActionList.emptyHash,
+    lastProcessedRound: Field(0),
+    lastProcessedTicketId: Field(0),
   });
 };
 
@@ -90,10 +96,16 @@ export const addTicket = async (
     Field(0)
   );
 
-  //#TODO constrain ticketId + ticketId > 0
-
   let [prevTicketRoot, round] =
     input.roundWitness.computeRootAndKey(prevRoundRoot);
+
+  let expectedTicketId = Provable.if(
+    round.greaterThan(prevProof.publicOutput.lastProcessedRound),
+    Field(1),
+    prevProof.publicOutput.lastProcessedTicketId.add(1)
+  );
+
+  ticketId.assertEquals(expectedTicketId, 'Wrong id for ticket');
 
   prevTicketRoot.assertEquals(
     prevProof.publicOutput.newTicketRoot,
@@ -136,6 +148,8 @@ export const addTicket = async (
     newTicketRoot,
     newBankRoot,
     processedActionList,
+    lastProcessedRound: round,
+    lastProcessedTicketId: expectedTicketId,
   });
 };
 
@@ -162,6 +176,8 @@ export const cutActions = async (
     newTicketRoot: prevProof.publicOutput.newTicketRoot,
     newBankRoot: prevProof.publicOutput.newBankRoot,
     processedActionList,
+    lastProcessedRound: prevProof.publicOutput.lastProcessedRound,
+    lastProcessedTicketId: prevProof.publicOutput.lastProcessedTicketId,
   });
 };
 
