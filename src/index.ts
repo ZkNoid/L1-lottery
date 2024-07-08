@@ -8,10 +8,7 @@ import {
 import { Ticket } from './Ticket';
 import {
   DistibutionProgram,
-<<<<<<< HEAD
   DistributionProof,
-=======
->>>>>>> fe723ea2e589930629bc89a1accca56cb9a75ead
   DistributionProofPublicInput,
 } from './DistributionProof.js';
 import {
