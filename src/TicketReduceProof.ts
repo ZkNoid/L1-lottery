@@ -8,10 +8,39 @@ import {
   UInt64,
   ZkProgram,
 } from 'o1js';
-import { Ticket } from './Ticket';
-import { MerkleMap20Witness } from './CustomMerkleMap';
-import { TICKET_PRICE } from './constants';
-import { emptyHashWithPrefix } from 'o1js/dist/node/lib/provable/crypto/poseidon';
+import { Ticket } from './Ticket.js';
+import { MerkleMap20Witness } from './CustomMerkleMap.js';
+import { TICKET_PRICE } from './constants.js';
+
+function prefixToField(prefix: string) {
+  if (prefix.length * 8 >= 255) throw Error('prefix too long');
+  let bits = [...prefix]
+    .map((char) => {
+      // convert char to 8 bits
+      let bits = [];
+      for (let j = 0, c = char.charCodeAt(0); j < 8; j++, c >>= 1) {
+        bits.push(!!(c & 1));
+      }
+      return bits;
+    })
+    .flat();
+  return Field.fromBits(bits);
+}
+
+// hashing helpers
+function initialState() {
+  return [Field(0), Field(0), Field(0)] as [Field, Field, Field];
+}
+function salt(prefix: string) {
+  return Poseidon.update(initialState(), [prefixToField(prefix)]);
+}
+function hashWithPrefix(prefix: string, input: Field[]) {
+  let init = salt(prefix);
+  return Poseidon.update(init, input)[0];
+}
+function emptyHashWithPrefix(prefix: string) {
+  return salt(prefix)[0];
+}
 
 export class LotteryAction extends Struct({
   ticket: Ticket,

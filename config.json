@@ -52,7 +52,7 @@
       "feepayerKeyPath": "/Users/andrey/.cache/zkapp-cli/keys/zknoid-deployer.json",
       "feepayerAlias": "zknoid-deployer",
       "fee": "0.1",
-      "smartContract": "Lottery"
+      "smartContract": "PLottery"
     },
     "devnet_ready_2": {
       "networkId": "testnet",
