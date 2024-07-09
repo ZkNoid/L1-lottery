@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "0.6.2",
+  "version": "0.7.3",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -27,6 +27,7 @@
     "lint": "npx eslint src/* --fix",
     "analyze": "npm run build && node build/scripts/analyze.js",
     "cache": "npm run build && node build/scripts/generate_cache.js",
+    "fcache": "npm run build && node build/scripts/prepare_cache.js",
     "trees": "npm run build && node build/scripts/build_trees.js",
     "produce_result": "npm run build && node build/scripts/produce_result.js"
   },
