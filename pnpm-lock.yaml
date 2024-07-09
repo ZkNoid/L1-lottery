@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  zkapp-cli@0.21.5:
+    hash: 5tiuun3eimqbk3bjiohbq4x3ze
+    path: patches/zkapp-cli@0.21.5.patch
+
 dependencies:
   '@types/node':
     specifier: ^20.12.13
@@ -19,7 +24,7 @@ dependencies:
     version: 1.3.1
   zkapp-cli:
     specifier: ^0.21.5
-    version: 0.21.5
+    version: 0.21.5(patch_hash=5tiuun3eimqbk3bjiohbq4x3ze)
 
 devDependencies:
   '@babel/preset-env':
@@ -5030,7 +5035,7 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /zkapp-cli@0.21.5:
+  /zkapp-cli@0.21.5(patch_hash=5tiuun3eimqbk3bjiohbq4x3ze):
     resolution: {integrity: sha512-7rBJcHW75zodrd2w8jrskFY1ZF76ZxdUvmZi6VOvXkleHBzdbJaHiqpcaf9DYODxqW+oHXnO0k/Rfe86Ws+SgA==}
     engines: {node: '>=18.14.0'}
     hasBin: true
@@ -5057,3 +5062,4 @@ packages:
       - encoding
       - supports-color
     dev: false
+    patched: true

@@ -29,7 +29,6 @@
     "cache": "npm run build && node build/scripts/generate_cache.js",
     "trees": "npm run build && node build/scripts/build_trees.js",
     "produce_result": "npm run build && node build/scripts/produce_result.js"
-
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",
@@ -56,5 +55,10 @@
     "esbuild": "^0.21.5",
     "minimist": "^1.2.8",
     "zkapp-cli": "^0.21.5"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "zkapp-cli@0.21.5": "patches/zkapp-cli@0.21.5.patch"
+    }
   }
 }
