@@ -69,7 +69,7 @@
       "keyPath": "keys/plottery_1.json",
       "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "deployer",
-      "fee": "0.1",
+      "fee": "1",
       "smartContract": "PLottery"
     },
     "test_1": {
@@ -78,7 +78,7 @@
       "keyPath": "keys/test_1.json",
       "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
       "feepayerAlias": "deployer",
-      "fee": "0.1",
+      "fee": "1",
       "smartContract": "Lottery"
     }
   }
