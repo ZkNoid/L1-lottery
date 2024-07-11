@@ -252,7 +252,7 @@ export const TicketReduceProgram = ZkProgram({
           TicketReduceProofPublicOutput
         >
       ) {
-        return addTicket(input, prevProof);
+        return cutActions(input, prevProof);
       },
     },
   },

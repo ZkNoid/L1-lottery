@@ -37,7 +37,11 @@ import {
   getTotalScoreAndCommision,
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
-import { LotteryAction, TicketReduceProof } from './TicketReduceProof.js';
+import {
+  ActionList,
+  LotteryAction,
+  TicketReduceProof,
+} from './TicketReduceProof.js';
 
 export interface MerkleCheckResult {
   key: Field;
@@ -139,7 +143,7 @@ export class PLottery extends SmartContract {
       this.network.globalSlotSinceGenesis.getAndRequireEquals()
     );
 
-    this.lastProcessedState.set(this.account.actionState.getAndRequireEquals());
+    this.lastProcessedState.set(Reducer.initialActionState);
 
     // #TODO Permisions
   }
@@ -180,6 +184,11 @@ export class PLottery extends SmartContract {
 
     let lastProcessedState = this.lastProcessedState.getAndRequireEquals();
     let actionState = this.account.actionState.getAndRequireEquals();
+
+    reduceProof.publicOutput.processedActionList.assertEquals(
+      ActionList.emptyHash,
+      'Proof is not complete. Call cutActions first'
+    );
 
     // Check that state on contract is equal to state on proof
     lastProcessedState.assertEquals(

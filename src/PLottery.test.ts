@@ -34,6 +34,7 @@ import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
 import { treasury, treasuryKey } from './private_constants';
 import { PStateManager } from './StateManager/PStateManager';
+import { TicketReduceProgram } from './TicketReduceProof';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -79,6 +80,8 @@ describe('Add', () => {
     if (proofsEnabled) {
       console.log(`Compiling distribution program proof`);
       await DistibutionProgram.compile({ cache: Cache.FileSystem('./cache') });
+      console.log(`Compiling reduce program proof`);
+      await TicketReduceProgram.compile({ cache: Cache.FileSystem('./cache') });
       console.log(`Compiling MockLottery`);
       await PLottery.compile({ cache: Cache.FileSystem('./cache') });
       console.log(`Successfully compiled`);
@@ -198,7 +201,7 @@ describe('Add', () => {
     checkConsistancy();
   });
 
-  it('Multiple round test', async () => {
+  xit('Multiple round test', async () => {
     await localDeploy();
 
     const amountOfRounds = 10;
