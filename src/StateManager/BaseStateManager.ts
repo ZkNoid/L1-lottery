@@ -68,9 +68,14 @@ export class BaseStateManager {
   roundResultMap: MerkleMap20;
   startBlock: Field;
   isMock: boolean;
+  shouldUpdateState: boolean;
   dpProofs: { [key: number]: DistributionProof };
 
-  constructor(startBlock: Field, isMock: boolean = true) {
+  constructor(
+    startBlock: Field,
+    isMock: boolean = true,
+    shouldUpdateState: boolean = false
+  ) {
     this.ticketMap = getEmpty2dMerkleMap(20);
     this.roundTicketMap = [new MerkleMap20()];
     this.lastTicketInRound = [1];
@@ -81,6 +86,7 @@ export class BaseStateManager {
     this.dpProofs = {};
     this.startBlock = startBlock;
     this.isMock = isMock;
+    this.shouldUpdateState = shouldUpdateState;
   }
 
   syncWithCurBlock(curBlock: number) {
@@ -233,10 +239,12 @@ export class BaseStateManager {
       getNullifierId(Field.from(round), Field.from(ticketId))
     );
 
-    this.ticketNullifierMap.set(
-      getNullifierId(Field.from(round), Field.from(ticketId)),
-      Field(1)
-    );
+    if (this.shouldUpdateState) {
+      this.ticketNullifierMap.set(
+        getNullifierId(Field.from(round), Field.from(ticketId)),
+        Field(1)
+      );
+    }
 
     return {
       roundWitness,
@@ -275,10 +283,12 @@ export class BaseStateManager {
       getNullifierId(Field.from(round), Field.from(0))
     );
 
-    this.ticketNullifierMap.set(
-      getNullifierId(Field.from(round), Field.from(0)),
-      Field(1)
-    );
+    if (this.shouldUpdateState) {
+      this.ticketNullifierMap.set(
+        getNullifierId(Field.from(round), Field.from(0)),
+        Field(1)
+      );
+    }
 
     return {
       roundWitness,
@@ -334,15 +344,17 @@ export class BaseStateManager {
       getNullifierId(Field.from(round), Field.from(ticketId))
     );
 
-    this.ticketNullifierMap.set(
-      getNullifierId(Field.from(round), Field.from(ticketId)),
-      Field(1)
-    );
+    if (this.shouldUpdateState) {
+      this.ticketNullifierMap.set(
+        getNullifierId(Field.from(round), Field.from(ticketId)),
+        Field(1)
+      );
 
-    this.bankMap.set(
-      Field.from(round),
-      bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
-    );
+      this.bankMap.set(
+        Field.from(round),
+        bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
+      );
+    }
 
     return {
       roundWitness,

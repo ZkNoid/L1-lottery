@@ -45,8 +45,13 @@ export class PStateManager extends BaseStateManager {
     round: number;
   };
 
-  constructor(plottery: PLottery, startBlock: Field, isMock: boolean = true) {
-    super(startBlock, isMock);
+  constructor(
+    plottery: PLottery,
+    startBlock: Field,
+    isMock: boolean = true,
+    shouldUpadteState: boolean = false
+  ) {
+    super(startBlock, isMock, shouldUpadteState);
 
     this.contract = plottery;
     this.processedTicketData = {
@@ -61,18 +66,25 @@ export class PStateManager extends BaseStateManager {
   ): [MerkleMap20Witness, MerkleMap20Witness, MerkleMap20Witness, Field] {
     const [roundWitness, ticketRoundWitness] = this.getNextTicketWitenss(round);
     const [bankWitness, bankValue] = this.getBankWitness(round);
-    this.roundTicketMap[round].set(
-      Field.from(this.lastTicketInRound[round]),
-      ticket.hash()
-    );
+
+    if (this.shouldUpdateState) {
+      this.roundTicketMap[round].set(
+        Field.from(this.lastTicketInRound[round]),
+        ticket.hash()
+      );
+      this.ticketMap.set(
+        Field.from(round),
+        this.roundTicketMap[round].getRoot()
+      );
+
+      this.bankMap.set(
+        Field.from(round),
+        bankValue.add(TICKET_PRICE.mul(ticket.amount).value)
+      );
+    }
+
     this.roundTickets[round].push(ticket);
     this.lastTicketInRound[round]++;
-    this.ticketMap.set(Field.from(round), this.roundTicketMap[round].getRoot());
-
-    this.bankMap.set(
-      Field.from(round),
-      bankValue.add(TICKET_PRICE.mul(ticket.amount).value)
-    );
 
     return [roundWitness, ticketRoundWitness, bankWitness, bankValue];
   }

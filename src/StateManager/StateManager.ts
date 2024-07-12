@@ -11,18 +11,25 @@ export class StateManager extends BaseStateManager {
   ): [MerkleMap20Witness, MerkleMap20Witness, MerkleMap20Witness, Field] {
     const [roundWitness, ticketRoundWitness] = this.getNextTicketWitenss(round);
     const [bankWitness, bankValue] = this.getBankWitness(round);
-    this.roundTicketMap[round].set(
-      Field.from(this.lastTicketInRound[round]),
-      ticket.hash()
-    );
+
+    if (this.shouldUpdateState) {
+      this.roundTicketMap[round].set(
+        Field.from(this.lastTicketInRound[round]),
+        ticket.hash()
+      );
+      this.ticketMap.set(
+        Field.from(round),
+        this.roundTicketMap[round].getRoot()
+      );
+
+      this.bankMap.set(
+        Field.from(round),
+        bankValue.add(TICKET_PRICE.mul(ticket.amount).value)
+      );
+    }
+
     this.roundTickets[round].push(ticket);
     this.lastTicketInRound[round]++;
-    this.ticketMap.set(Field.from(round), this.roundTicketMap[round].getRoot());
-
-    this.bankMap.set(
-      Field.from(round),
-      bankValue.add(TICKET_PRICE.mul(ticket.amount).value)
-    );
 
     return [roundWitness, ticketRoundWitness, bankWitness, bankValue];
   }

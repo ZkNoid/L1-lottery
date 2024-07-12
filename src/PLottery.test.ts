@@ -103,7 +103,8 @@ describe('Add', () => {
     state = new PStateManager(
       lottery,
       Local.getNetworkState().blockchainLength.value,
-      !proofsEnabled
+      !proofsEnabled,
+      true
     );
 
     mineNBlocks = (n: number) => {

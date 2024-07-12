@@ -99,7 +99,8 @@ describe('Add', () => {
     lottery = new MockLottery(zkAppAddress);
     state = new StateManager(
       Local.getNetworkState().blockchainLength.value,
-      !proofsEnabled
+      !proofsEnabled,
+      true
     );
 
     mineNBlocks = (n: number) => {
