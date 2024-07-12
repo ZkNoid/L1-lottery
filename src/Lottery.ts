@@ -396,7 +396,7 @@ export class Lottery extends SmartContract {
   public checkRoundPass(round: UInt32) {
     const startBlock = this.startBlock.getAndRequireEquals();
     this.network.globalSlotSinceGenesis.requireBetween(
-      startBlock.add(round.mul(BLOCK_PER_ROUND)),
+      startBlock.add(round.add(1).mul(BLOCK_PER_ROUND)),
       UInt32.MAXINT()
     );
   }
