@@ -62,12 +62,13 @@ export class PStateManager extends BaseStateManager {
 
   override addTicket(
     ticket: Ticket,
-    round: number
+    round: number,
+    forceUpdate: boolean = false
   ): [MerkleMap20Witness, MerkleMap20Witness, MerkleMap20Witness, Field] {
     const [roundWitness, ticketRoundWitness] = this.getNextTicketWitenss(round);
     const [bankWitness, bankValue] = this.getBankWitness(round);
 
-    if (this.shouldUpdateState) {
+    if (this.shouldUpdateState || forceUpdate) {
       this.roundTicketMap[round].set(
         Field.from(this.lastTicketInRound[round]),
         ticket.hash()
