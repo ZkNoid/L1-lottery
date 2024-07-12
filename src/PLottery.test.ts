@@ -202,7 +202,7 @@ describe('Add', () => {
     checkConsistancy();
   });
 
-  xit('Multiple round test', async () => {
+  it('Multiple round test', async () => {
     await localDeploy();
 
     const amountOfRounds = 10;

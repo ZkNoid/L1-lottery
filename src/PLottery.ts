@@ -102,6 +102,11 @@ export class RefundEvent extends Struct({
   round: Field,
 }) {}
 
+export class ReduceEvent extends Struct({
+  startActionState: Field,
+  endActionState: Field,
+}) {}
+
 // Parallel lottery
 export class PLottery extends SmartContract {
   reducer = Reducer({ actionType: LotteryAction });
@@ -111,6 +116,7 @@ export class PLottery extends SmartContract {
     'produce-result': ProduceResultEvent,
     'get-reward': GetRewardEvent,
     'get-refund': RefundEvent,
+    reduce: ReduceEvent,
   };
   // Stores merkle map with all tickets, that user have bought. Each leaf of this tree is a root of tree for corresponding round
   @state(Field) ticketRoot = State<Field>();
@@ -206,6 +212,14 @@ export class PLottery extends SmartContract {
     this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
     this.bankRoot.set(reduceProof.publicOutput.newBankRoot);
     this.lastReduceInRound.set(round);
+
+    this.emitEvent(
+      'reduce',
+      new ReduceEvent({
+        startActionState: reduceProof.publicOutput.initialState,
+        endActionState: reduceProof.publicOutput.finalState,
+      })
+    );
   }
 
   @method async produceResult(resultWiness: MerkleMap20Witness, result: Field) {
