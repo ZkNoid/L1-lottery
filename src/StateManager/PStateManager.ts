@@ -151,7 +151,7 @@ export class PStateManager extends BaseStateManager {
             )
           : await TicketReduceProgram.addTicket(input, curProof);
 
-        this.addTicket(action.ticket, +action.round);
+        this.addTicket(action.ticket, +action.round, true);
       }
 
       // Again here we do not need specific input, as it is not using here
