@@ -13,7 +13,15 @@
  * Run with node:     `$ node build/scripts/buy_ticket.js <deployAlias>`.
  */
 import fs from 'fs/promises';
-import { Cache, Mina, NetworkId, PrivateKey, UInt32, fetchAccount } from 'o1js';
+import {
+  Cache,
+  Mina,
+  NetworkId,
+  PrivateKey,
+  UInt32,
+  fetchAccount,
+  fetchLastBlock,
+} from 'o1js';
 import { DistibutionProgram } from '../src/DistributionProof.js';
 import { PLottery } from '../src/PLottery.js';
 import { TicketReduceProgram } from '../src/TicketReduceProof.js';
