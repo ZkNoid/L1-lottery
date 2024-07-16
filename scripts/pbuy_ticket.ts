@@ -13,20 +13,12 @@
  * Run with node:     `$ node build/scripts/buy_ticket.js <deployAlias>`.
  */
 import fs from 'fs/promises';
-import {
-  Cache,
-  Mina,
-  NetworkId,
-  PrivateKey,
-  UInt32,
-  fetchAccount,
-  fetchLastBlock,
-} from 'o1js';
+import { Cache, Field, Mina, NetworkId, PrivateKey, fetchAccount } from 'o1js';
 import { DistibutionProgram } from '../src/DistributionProof.js';
+import { Ticket } from '../src/Ticket.js';
 import { PLottery } from '../src/PLottery.js';
 import { TicketReduceProgram } from '../src/TicketReduceProof.js';
 import { PStateManager } from '../src/StateManager/PStateManager.js';
-import { BLOCK_PER_ROUND } from '../src/constants.js';
 
 // check command line arg
 let deployAlias = process.argv[2];
@@ -71,8 +63,6 @@ const Network = Mina.Network({
   // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
   // This is to ensure the backward compatibility.
   networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
-  // graphql: 'https://api.minascan.io/node/devnet/v1/graphql',
-  archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
   mina: config.url,
 });
 // const Network = Mina.Network(config.url);
@@ -89,7 +79,6 @@ console.log('compile reduce proof');
 await TicketReduceProgram.compile();
 console.log('compile the Lottery');
 let lotteryCompileResult = await PLottery.compile();
-
 // let mockLotteryCompileResult = await MockLottery.compile({
 //   cache: Cache.FileSystem('../cache'),
 // });
@@ -113,25 +102,14 @@ console.log(lottery.bankRoot.get().toString());
 
 console.log(lottery.ticketRoot.get().toString());
 
-const startSlot = lottery.startBlock.get();
+const state = new PStateManager(lottery, lottery.startBlock.get().value);
 
-const state = new PStateManager(lottery, startSlot.value, false);
-
-// const curSlot = lottery.network.globalSlotSinceGenesis.get();
-
-// const curRound = curSlot.sub(startSlot).div(BLOCK_PER_ROUND);
-
-const curRound = UInt32.from(8);
-
-console.log('Generate reduce proof');
-const reduceProof = await state.reduceTickets();
+const ticket = Ticket.from([1, 1, 1, 1, 1, 1], feepayerAddress, 1);
 
 // console.log(`Digest: `, await MockLottery.digest());
 
-console.log('Send reduce transaction');
-
 let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-  await lottery.reduceTickets(reduceProof);
+  await lottery.buyTicket(ticket, Field(0));
 });
 await tx.prove();
 let txResult = await tx.sign([feepayerKey]).send();

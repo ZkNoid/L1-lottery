@@ -75,7 +75,7 @@ export class RandomManager extends SmartContract {
 
     this.hashCommitRoot.set(newBlockCommitRoot);
   }
-
+  /*
   @method async produceValue(
     commitWitness: MerkleMapWitness,
     commitValue: Field,
@@ -119,6 +119,8 @@ export class RandomManager extends SmartContract {
 
     // Call lottery contract
   }
+
+  */
 
   private permissionCheck() {
     this.sender.getAndRequireSignature().assertEquals(treasury);
