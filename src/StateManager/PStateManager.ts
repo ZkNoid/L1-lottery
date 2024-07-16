@@ -55,7 +55,7 @@ export class PStateManager extends BaseStateManager {
 
     this.contract = plottery;
     this.processedTicketData = {
-      ticketId: 1,
+      ticketId: 0,
       round: 0,
     };
   }
@@ -114,7 +114,14 @@ export class PStateManager extends BaseStateManager {
 
     let curProof = this.isMock
       ? await mockProof(
-          await TRinit(input, initialState, initialTicketRoot, initialBankRoot),
+          await TRinit(
+            input,
+            initialState,
+            initialTicketRoot,
+            initialBankRoot,
+            Field.from(this.processedTicketData.round),
+            Field.from(this.processedTicketData.ticketId)
+          ),
           TicketReduceProof,
           input
         )
@@ -122,7 +129,9 @@ export class PStateManager extends BaseStateManager {
           input,
           initialState,
           initialTicketRoot,
-          initialBankRoot
+          initialBankRoot,
+          Field.from(this.processedTicketData.round),
+          Field.from(this.processedTicketData.ticketId)
         );
 
     for (let actionList of actionLists) {
@@ -130,7 +139,16 @@ export class PStateManager extends BaseStateManager {
         if (+action.round != this.processedTicketData.round) {
           this.processedTicketData.round = +action.round;
           this.processedTicketData.ticketId = 1;
+        } else {
+          this.processedTicketData.ticketId++;
         }
+
+        console.log(
+          `Process ticket: <${+action.round}> <${
+            this.processedTicketData.ticketId
+          }>`
+        );
+
         input = new TicketReduceProofPublicInput({
           action: action,
           roundWitness: this.ticketMap.getWitness(action.round),
@@ -140,8 +158,6 @@ export class PStateManager extends BaseStateManager {
           bankWitness: this.bankMap.getWitness(action.round),
           bankValue: this.bankMap.get(action.round),
         });
-
-        this.processedTicketData.ticketId++;
 
         curProof = this.isMock
           ? await mockProof(

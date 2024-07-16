@@ -86,6 +86,7 @@ export class TicketReduceProofPublicOutput extends Struct({
   finalState: Field,
   initialTicketRoot: Field,
   initialBankRoot: Field,
+  initialTicketId: Field,
   newTicketRoot: Field,
   newBankRoot: Field,
   processedActionList: Field,
@@ -97,18 +98,21 @@ export const init = async (
   input: TicketReduceProofPublicInput,
   initialState: Field,
   initialTicketRoot: Field,
-  initialBankRoot: Field
+  initialBankRoot: Field,
+  initialRound: Field,
+  initialTicketId: Field
 ): Promise<TicketReduceProofPublicOutput> => {
   return new TicketReduceProofPublicOutput({
     initialState,
     finalState: initialState,
     initialTicketRoot,
     initialBankRoot,
+    initialTicketId,
     newTicketRoot: initialTicketRoot,
     newBankRoot: initialBankRoot,
     processedActionList: ActionList.emptyHash,
-    lastProcessedRound: Field(0),
-    lastProcessedTicketId: Field(0),
+    lastProcessedRound: initialRound,
+    lastProcessedTicketId: initialTicketId,
   });
 };
 
@@ -174,6 +178,7 @@ export const addTicket = async (
     finalState: prevProof.publicOutput.finalState,
     initialTicketRoot: prevProof.publicOutput.initialTicketRoot,
     initialBankRoot: prevProof.publicOutput.initialBankRoot,
+    initialTicketId: prevProof.publicOutput.initialTicketId,
     newTicketRoot,
     newBankRoot,
     processedActionList,
@@ -202,6 +207,7 @@ export const cutActions = async (
     finalState,
     initialTicketRoot: prevProof.publicOutput.initialTicketRoot,
     initialBankRoot: prevProof.publicOutput.initialBankRoot,
+    initialTicketId: prevProof.publicOutput.initialTicketId,
     newTicketRoot: prevProof.publicOutput.newTicketRoot,
     newBankRoot: prevProof.publicOutput.newBankRoot,
     processedActionList,
@@ -221,14 +227,23 @@ export const TicketReduceProgram = ZkProgram({
   publicOutput: TicketReduceProofPublicOutput,
   methods: {
     init: {
-      privateInputs: [Field, Field, Field],
+      privateInputs: [Field, Field, Field, Field, Field],
       async method(
         input: TicketReduceProofPublicInput,
         initialState: Field,
         initialTicketRoot: Field,
-        initialBankRoot: Field
+        initialBankRoot: Field,
+        initialRound: Field,
+        initialTicketId: Field
       ): Promise<TicketReduceProofPublicOutput> {
-        return init(input, initialState, initialTicketRoot, initialBankRoot);
+        return init(
+          input,
+          initialState,
+          initialTicketRoot,
+          initialBankRoot,
+          initialRound,
+          initialTicketId
+        );
       },
     },
     addTicket: {

@@ -137,6 +137,8 @@ export class PLottery extends SmartContract {
 
   @state(Field) lastReduceInRound = State<Field>();
 
+  @state(Field) lastProcessedTicketId = State<Field>();
+
   init() {
     super.init();
 
@@ -183,12 +185,12 @@ export class PLottery extends SmartContract {
     );
   }
 
-  @method async reduceTickets(reduceProof: TicketReduceProof, round: Field) {
+  @method async reduceTickets(reduceProof: TicketReduceProof) {
     reduceProof.verify();
 
-    this.checkCurrentRound(UInt32.fromFields([round]));
-
     let lastProcessedState = this.lastProcessedState.getAndRequireEquals();
+    let lastProcessedTicketId =
+      this.lastProcessedTicketId.getAndRequireEquals();
     let actionState = this.account.actionState.getAndRequireEquals();
 
     reduceProof.publicOutput.processedActionList.assertEquals(
@@ -208,10 +210,19 @@ export class PLottery extends SmartContract {
       'Final state is not match contract actionState'
     );
 
+    // Check inital ticket id
+    lastProcessedTicketId.assertEquals(
+      reduceProof.publicOutput.initialTicketId,
+      'Initial ticket id don not match contract last processed ticket id'
+    );
+
     this.lastProcessedState.set(reduceProof.publicOutput.finalState);
     this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
     this.bankRoot.set(reduceProof.publicOutput.newBankRoot);
-    this.lastReduceInRound.set(round);
+    this.lastReduceInRound.set(reduceProof.publicOutput.lastProcessedRound);
+    this.lastProcessedTicketId.set(
+      reduceProof.publicOutput.lastProcessedTicketId
+    );
 
     this.emitEvent(
       'reduce',

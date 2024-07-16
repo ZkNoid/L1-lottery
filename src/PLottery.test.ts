@@ -170,11 +170,23 @@ describe('Add', () => {
     await tx2.sign([senderKey]).send();
     checkConsistancy();
 
+    // Buy dummy ticket in next round, so reudcer works as expected
+    state.syncWithCurBlock(
+      +Mina.activeInstance.getNetworkState().globalSlotSinceGenesis
+    );
+    let dummy_ticket = Ticket.random(senderAccount);
+    dummy_ticket.amount = UInt64.zero;
+    let tx_1 = await Mina.transaction(senderAccount, async () => {
+      await lottery.buyTicket(dummy_ticket, Field.from(curRound + 1));
+    });
+    await tx_1.prove();
+    await tx_1.sign([senderKey]).send();
+
     // Reduce tickets
     let reduceProof = await state.reduceTickets();
 
     let tx2_1 = await Mina.transaction(senderAccount, async () => {
-      await lottery.reduceTickets(reduceProof, Field(1));
+      await lottery.reduceTickets(reduceProof);
     });
 
     await tx2_1.prove();
@@ -257,10 +269,23 @@ describe('Add', () => {
       checkConsistancy();
 
       // Reduce tickets
+
+      // Buy dummy ticket in next round, so reudcer works as expected
+      state.syncWithCurBlock(
+        +Mina.activeInstance.getNetworkState().globalSlotSinceGenesis
+      );
+      let dummy_ticket = Ticket.random(senderAccount);
+      dummy_ticket.amount = UInt64.zero;
+      let tx_1 = await Mina.transaction(senderAccount, async () => {
+        await lottery.buyTicket(dummy_ticket, Field.from(round + 1));
+      });
+      await tx_1.prove();
+      await tx_1.sign([senderKey]).send();
+
       let reduceProof = await state.reduceTickets();
 
       let tx2_1 = await Mina.transaction(senderAccount, async () => {
-        await lottery.reduceTickets(reduceProof, Field(round + 1));
+        await lottery.reduceTickets(reduceProof);
       });
 
       await tx2_1.prove();
