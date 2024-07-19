@@ -4,6 +4,7 @@ import {
   PLottery,
   ProduceResultEvent,
   RefundEvent,
+  ReduceEvent,
 } from './PLottery.js';
 
 import { Ticket } from './Ticket';
@@ -44,5 +45,6 @@ export {
   GetRewardEvent,
   ProduceResultEvent,
   RefundEvent,
-  DistributionProof
+  ReduceEvent,
+  DistributionProof,
 };
