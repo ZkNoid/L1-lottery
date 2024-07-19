@@ -31,6 +31,8 @@ import {
 import { DistributionProof } from './DistributionProof.js';
 import {
   NumberPacked,
+  convertToUInt32,
+  convertToUInt64,
   getEmpty2dMerkleMap,
   getNullifierId,
   getTotalScoreAndCommision,
@@ -59,7 +61,7 @@ const generateNumbersSeed = (seed: Field): UInt32[] => {
       const masked = Gadgets.and(seed, Field.from(mask), (i + 1) * 4);
       return Gadgets.rightShift64(masked, i * 4);
     })
-    .map((val) => UInt32.fromFields([val])); // #TODO can we use fromFields here?
+    .map((val) => convertToUInt32(val));
 
   return numbers;
 };
@@ -151,7 +153,7 @@ export class Lottery extends SmartContract {
       Field(0),
       ticket.hash()
     );
-    this.checkCurrentRound(UInt32.fromFields([round]));
+    this.checkCurrentRound(convertToUInt32(round));
 
     // Check that TicketId > 0. TicketId == 0 - ticket for commision
     ticketId.assertGreaterThan(Field(0), 'Zero ticket - commision ticket');
@@ -187,7 +189,7 @@ export class Lottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(initialResultRoot, 'Wrong resultWitness or value');
 
-    this.checkRoundPass(UInt32.fromFields([round]));
+    this.checkRoundPass(convertToUInt32(round));
 
     // Generate new ticket using value from blockchain
     let winningNumbers = this.getWiningNumbersForRound();
@@ -233,7 +235,7 @@ export class Lottery extends SmartContract {
     this.checkResult(resultWitness, round, Field(0));
 
     // Can call refund after ~ 2 days after round finished
-    this.checkRoundPass(UInt32.fromFields([round.add(2)]));
+    this.checkRoundPass(convertToUInt32(round.add(2)));
 
     // Check and update bank witness
     const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
@@ -308,7 +310,7 @@ export class Lottery extends SmartContract {
 
     this.send({
       to: ticket.owner,
-      amount: UInt64.fromFields([bankValue]).mul(score).div(totalScore),
+      amount: convertToUInt64(bankValue).mul(score).div(totalScore),
     });
 
     // Add ticket to nullifier
