@@ -14,6 +14,7 @@ import { PLottery, mockResult } from './PLottery';
 import { Ticket } from './Ticket';
 import {
   NumberPacked,
+  convertToUInt64,
   getEmpty2dMerkleMap,
   getTotalScoreAndCommision,
 } from './util';
@@ -160,16 +161,6 @@ describe('Add', () => {
     // Wait next round
     mineNBlocks(BLOCK_PER_ROUND);
 
-    // Produce result
-    const resultWitness = state.updateResult(curRound);
-    let tx2 = await Mina.transaction(senderAccount, async () => {
-      await lottery.produceResult(resultWitness, mockResult);
-    });
-
-    await tx2.prove();
-    await tx2.sign([senderKey]).send();
-    checkConsistancy();
-
     // Buy dummy ticket in next round, so reudcer works as expected
     state.syncWithCurBlock(
       +Mina.activeInstance.getNetworkState().globalSlotSinceGenesis
@@ -191,6 +182,22 @@ describe('Add', () => {
 
     await tx2_1.prove();
     await tx2_1.sign([senderKey]).send();
+    checkConsistancy();
+
+    // Produce result
+    const { resultWitness, bankValue, bankWitness } =
+      state.updateResult(curRound);
+    let tx2 = await Mina.transaction(senderAccount, async () => {
+      await lottery.produceResult(
+        resultWitness,
+        mockResult,
+        bankValue,
+        bankWitness
+      );
+    });
+
+    await tx2.prove();
+    await tx2.sign([senderKey]).send();
     checkConsistancy();
 
     // Get reward
@@ -253,20 +260,8 @@ describe('Add', () => {
         checkConsistancy();
       }
 
-      const bank = TICKET_PRICE.mul(amountOfTickets);
-
       // Wait for the end of round
       mineNBlocks(BLOCK_PER_ROUND);
-
-      // Produce result
-      const resultWitness = state.updateResult(round);
-      let tx2 = await Mina.transaction(senderAccount, async () => {
-        await lottery.produceResult(resultWitness, mockResult);
-      });
-
-      await tx2.prove();
-      await tx2.sign([senderKey]).send();
-      checkConsistancy();
 
       // Reduce tickets
 
@@ -291,6 +286,24 @@ describe('Add', () => {
       await tx2_1.prove();
       await tx2_1.sign([senderKey]).send();
       checkConsistancy();
+
+      // Produce result
+      const { resultWitness, bankValue, bankWitness } =
+        state.updateResult(round);
+      let tx2 = await Mina.transaction(senderAccount, async () => {
+        await lottery.produceResult(
+          resultWitness,
+          mockResult,
+          bankValue,
+          bankWitness
+        );
+      });
+
+      await tx2.prove();
+      await tx2.sign([senderKey]).send();
+      checkConsistancy();
+
+      const bank = convertToUInt64(state.bankMap.get(Field(round)));
 
       // Get rewards
       for (let j = 0; j < amountOfTickets; j++) {
@@ -324,9 +337,7 @@ describe('Add', () => {
         const balanceAfter = Mina.getBalance(ticketInfo.owner);
 
         expect(balanceAfter.sub(balanceBefore)).toEqual(
-          bank
-            .mul(score)
-            .div(getTotalScoreAndCommision(rp.dp.publicOutput.total))
+          bank.mul(score).div(rp.dp.publicOutput.total)
         );
       }
 

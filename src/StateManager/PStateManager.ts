@@ -55,7 +55,7 @@ export class PStateManager extends BaseStateManager {
 
     this.contract = plottery;
     this.processedTicketData = {
-      ticketId: 0,
+      ticketId: -1,
       round: 0,
     };
   }
@@ -138,7 +138,7 @@ export class PStateManager extends BaseStateManager {
       for (let action of actionList) {
         if (+action.round != this.processedTicketData.round) {
           this.processedTicketData.round = +action.round;
-          this.processedTicketData.ticketId = 1;
+          this.processedTicketData.ticketId = 0;
         } else {
           this.processedTicketData.ticketId++;
         }
