@@ -194,7 +194,6 @@ export class PLottery extends SmartContract {
     let lastProcessedState = this.lastProcessedState.getAndRequireEquals();
     let lastProcessedTicketId =
       this.lastProcessedTicketId.getAndRequireEquals();
-    let actionState = this.account.actionState.getAndRequireEquals();
 
     reduceProof.publicOutput.processedActionList.assertEquals(
       ActionList.emptyHash,
@@ -208,10 +207,7 @@ export class PLottery extends SmartContract {
     );
 
     // Check that actionState is equal to actionState on proof
-    actionState.assertEquals(
-      reduceProof.publicOutput.finalState,
-      'Final state is not match contract actionState'
-    );
+    this.account.actionState.requireEquals(reduceProof.publicOutput.finalState);
 
     // Check inital ticket id
     lastProcessedTicketId.assertEquals(
