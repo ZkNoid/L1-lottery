@@ -90,6 +90,22 @@ export class PStateManager extends BaseStateManager {
     return [roundWitness, ticketRoundWitness, bankWitness, bankValue];
   }
 
+  async removeLastTicket(round: number) {
+    const ticket = this.roundTickets[round].pop()!;
+    this.lastTicketInRound[round]--;
+    const bankValue = this.bankMap.get(Field.from(round));
+    this.roundTicketMap[round].set(
+      Field.from(this.lastTicketInRound[round] - 1),
+      Field(0)
+    );
+    this.ticketMap.set(Field.from(round), this.roundTicketMap[round].getRoot());
+
+    this.bankMap.set(
+      Field.from(round),
+      bankValue.sub(TICKET_PRICE.mul(ticket.amount).value)
+    );
+  }
+
   async reduceTickets(): Promise<TicketReduceProof> {
     const initialState = this.contract.lastProcessedState.get();
 
