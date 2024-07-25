@@ -134,7 +134,7 @@ export const addTicket = async (
 
   let expectedTicketId = Provable.if(
     round.greaterThan(prevProof.publicOutput.lastProcessedRound),
-    Field(1),
+    Field(0),
     prevProof.publicOutput.lastProcessedTicketId.add(1)
   );
 

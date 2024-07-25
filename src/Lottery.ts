@@ -35,7 +35,6 @@ import {
   convertToUInt64,
   getEmpty2dMerkleMap,
   getNullifierId,
-  getTotalScoreAndCommision,
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 
@@ -155,8 +154,6 @@ export class Lottery extends SmartContract {
     );
     this.checkCurrentRound(convertToUInt32(round));
 
-    // Check that TicketId > 0. TicketId == 0 - ticket for commision
-    ticketId.assertGreaterThan(Field(0), 'Zero ticket - commision ticket');
     // Get ticket price from user
     let senderUpdate = AccountUpdate.createSigned(
       this.sender.getAndRequireSignature()
@@ -179,7 +176,12 @@ export class Lottery extends SmartContract {
     );
   }
 
-  @method async produceResult(resultWiness: MerkleMap20Witness, result: Field) {
+  @method async produceResult(
+    resultWiness: MerkleMap20Witness,
+    result: Field,
+    bankValue: Field,
+    bankWitness: MerkleMap20Witness
+  ) {
     // Check that result for this round is not computed yet, and that witness it is valid
     const [initialResultRoot, round] = resultWiness.computeRootAndKey(
       Field.from(0)
@@ -201,6 +203,19 @@ export class Lottery extends SmartContract {
     const [newResultRoot] = resultWiness.computeRootAndKey(newLeafValue);
 
     this.roundResultRoot.set(newResultRoot);
+
+    // Update bank and pay fee
+    this.checkAndUpdateBank(
+      bankWitness,
+      round,
+      bankValue,
+      bankValue.mul(PRESICION - COMMISION).div(PRESICION)
+    );
+
+    this.send({
+      to: treasury,
+      amount: convertToUInt64(bankValue.mul(COMMISION).div(PRESICION)),
+    });
 
     this.emitEvent(
       'produce-result',
@@ -303,7 +318,7 @@ export class Lottery extends SmartContract {
 
     // Compute score using winnging ticket
     const score = ticket.getScore(NumberPacked.unpack(winningNumbers));
-    const totalScore = getTotalScoreAndCommision(dp.publicOutput.total);
+    const totalScore = dp.publicOutput.total;
 
     // Pay user
     this.checkBank(bankWitness, round, bankValue);
@@ -328,57 +343,6 @@ export class Lottery extends SmartContract {
         round,
       })
     );
-  }
-
-  @method async getCommisionForRound(
-    ticketWitness: MerkleMap20Witness,
-    result: Field,
-    resultWitness: MerkleMap20Witness,
-    dp: DistributionProof,
-    bankValue: Field,
-    bankWitness: MerkleMap20Witness,
-    nullifierWitness: MerkleMapWitness
-  ): Promise<void> {
-    dp.verify();
-
-    // Only treasury account can claim commision
-    this.sender.getAndRequireSignature().assertEquals(treasury);
-
-    dp.publicInput.winningCombination.assertEquals(
-      result,
-      'Wrong winning numbers in dp'
-    );
-
-    // Check result for round is right
-    const { key: round } = this.checkResult(resultWitness, null, result);
-
-    // Check bank value for round
-    this.checkBank(bankWitness, round, bankValue);
-
-    // Update nullifier for ticket
-    this.checkAndUpdateNullifier(
-      nullifierWitness,
-      getNullifierId(round, Field(0)),
-      Field(0),
-      Field.from(1)
-    );
-
-    // Check ticket
-    const [ticketRoot, ticketKey] = ticketWitness.computeRootAndKey(
-      dp.publicOutput.root
-    );
-    this.ticketRoot
-      .getAndRequireEquals()
-      .assertEquals(ticketRoot, 'Wrong ticket root');
-    ticketKey.assertEquals(round, 'Wrong ticket round');
-
-    // Send commision to treasury
-    const totalScore = getTotalScoreAndCommision(dp.publicOutput.total);
-
-    this.send({
-      to: treasury,
-      amount: totalScore.sub(dp.publicOutput.total),
-    });
   }
 
   // public getCurrentRound(): UInt32 {

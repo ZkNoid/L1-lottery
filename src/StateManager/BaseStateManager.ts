@@ -20,6 +20,8 @@ import {
 } from '../util.js';
 import {
   BLOCK_PER_ROUND,
+  COMMISION,
+  PRESICION,
   TICKET_PRICE,
   mockWinningCombination,
 } from '../constants.js';
@@ -78,8 +80,8 @@ export class BaseStateManager {
   ) {
     this.ticketMap = getEmpty2dMerkleMap(20);
     this.roundTicketMap = [new MerkleMap20()];
-    this.lastTicketInRound = [1];
-    this.roundTickets = [[comisionTicket]];
+    this.lastTicketInRound = [0];
+    this.roundTickets = [[]];
     this.ticketNullifierMap = new MerkleMap();
     this.bankMap = new MerkleMap20();
     this.roundResultMap = new MerkleMap20();
@@ -99,8 +101,8 @@ export class BaseStateManager {
   startNextRound(amount: number = 1) {
     for (let i = 0; i < amount; i++) {
       this.roundTicketMap.push(new MerkleMap20());
-      this.lastTicketInRound.push(1);
-      this.roundTickets.push([comisionTicket]);
+      this.lastTicketInRound.push(0);
+      this.roundTickets.push([]);
     }
   }
 
@@ -130,14 +132,33 @@ export class BaseStateManager {
     return [bankWitness, value];
   }
 
-  updateResult(round: number): MerkleMap20Witness {
-    const witness = this.roundResultMap.getWitness(Field.from(round));
+  updateResult(round: number | Field): {
+    resultWitness: MerkleMap20Witness;
+    bankValue: Field;
+    bankWitness: MerkleMap20Witness;
+  } {
+    round = Field(round);
+    const resultWitness = this.roundResultMap.getWitness(round);
     const packedNumbers = NumberPacked.pack(
       mockWinningCombination.map((val) => UInt32.from(val))
     );
-    this.roundResultMap.set(Field.from(round), packedNumbers);
 
-    return witness;
+    const bankValue = this.bankMap.get(round);
+    const bankWitness = this.bankMap.getWitness(round);
+
+    if (this.shouldUpdateState) {
+      this.roundResultMap.set(round, packedNumbers);
+      this.bankMap.set(
+        round,
+        bankValue.mul(PRESICION - COMMISION).div(PRESICION)
+      );
+    }
+
+    return {
+      resultWitness,
+      bankValue,
+      bankWitness,
+    };
   }
 
   async getDP(round: number): Promise<DistributionProof> {
@@ -159,7 +180,7 @@ export class BaseStateManager {
       ? await mockProof(await init(input), DistributionProof, input)
       : await DistibutionProgram.init(input);
 
-    for (let i = 1; i < ticketsInRound; i++) {
+    for (let i = 0; i < ticketsInRound; i++) {
       const ticket = this.roundTickets[round][i];
 
       const input = new DistributionProofPublicInput({
@@ -249,49 +270,6 @@ export class BaseStateManager {
     return {
       roundWitness,
       roundTicketWitness,
-      dp,
-      winningNumbers,
-      resultWitness,
-      bankValue,
-      bankWitness,
-      nullifierWitness,
-    };
-  }
-
-  async getCommision(round: number): Promise<{
-    roundWitness: MerkleMap20Witness;
-    dp: DistributionProof;
-    winningNumbers: Field;
-    resultWitness: MerkleMap20Witness;
-    bankValue: Field;
-    bankWitness: MerkleMap20Witness;
-    nullifierWitness: MerkleMapWitness;
-  }> {
-    const roundWitness = this.ticketMap.getWitness(Field.from(round));
-
-    const dp = await this.getDP(round);
-    const winningNumbers = this.roundResultMap.get(Field.from(round));
-    if (winningNumbers.equals(Field(0)).toBoolean()) {
-      throw Error('Do not have a result for this round');
-    }
-    const resultWitness = this.roundResultMap.getWitness(Field.from(round));
-
-    const bankValue = this.bankMap.get(Field.from(round));
-    const bankWitness = this.bankMap.getWitness(Field.from(round));
-
-    const nullifierWitness = this.ticketNullifierMap.getWitness(
-      getNullifierId(Field.from(round), Field.from(0))
-    );
-
-    if (this.shouldUpdateState) {
-      this.ticketNullifierMap.set(
-        getNullifierId(Field.from(round), Field.from(0)),
-        Field(1)
-      );
-    }
-
-    return {
-      roundWitness,
       dp,
       winningNumbers,
       resultWitness,
