@@ -21,7 +21,6 @@ import {
 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants.js';
-import { StateManager } from './StateManager/StateManager.js';
 import { PStateManager } from './StateManager/PStateManager.js';
 import { TicketReduceProgram } from './TicketReduceProof.js';
 
@@ -37,7 +36,6 @@ export {
   NumberPacked,
   DistributionProofPublicInput,
   comisionTicket,
-  StateManager,
   PStateManager,
   TicketReduceProgram,
   BLOCK_PER_ROUND,
