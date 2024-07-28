@@ -210,7 +210,8 @@ export class BaseStateManager {
   async getReward(
     round: number,
     ticket: Ticket,
-    roundDP: JsonProof | undefined = undefined
+    roundDP: JsonProof | undefined = undefined,
+    ticketIndex: number = 1 // If two or more same tickets presented
   ): Promise<{
     roundWitness: MerkleMap20Witness;
     roundTicketWitness: MerkleMap20Witness;
@@ -234,10 +235,13 @@ export class BaseStateManager {
           .equals(ticketHash)
           .toBoolean()
       ) {
-        roundTicketWitness = this.roundTicketMap[round].getWitness(
-          Field.from(ticketId)
-        );
-        break;
+        ticketIndex--;
+        if (ticketIndex == 0) {
+          roundTicketWitness = this.roundTicketMap[round].getWitness(
+            Field.from(ticketId)
+          );
+          break;
+        }
       }
     }
     if (!roundTicketWitness) {
@@ -286,8 +290,8 @@ export class BaseStateManager {
     roundWitness: MerkleMap20Witness;
     roundTicketWitness: MerkleMap20Witness;
     resultWitness: MerkleMap20Witness;
-    bankValue: Field;
-    bankWitness: MerkleMap20Witness;
+    // bankValue: Field;
+    // bankWitness: MerkleMap20Witness;
     nullifierWitness: MerkleMapWitness;
   }> {
     const roundWitness = this.ticketMap.getWitness(Field.from(round));
@@ -315,8 +319,8 @@ export class BaseStateManager {
 
     const resultWitness = this.roundResultMap.getWitness(Field.from(round));
 
-    const bankValue = this.bankMap.get(Field.from(round));
-    const bankWitness = this.bankMap.getWitness(Field.from(round));
+    // const bankValue = this.bankMap.get(Field.from(round));
+    // const bankWitness = this.bankMap.getWitness(Field.from(round));
 
     const nullifierWitness = this.ticketNullifierMap.getWitness(
       getNullifierId(Field.from(round), Field.from(ticketId))
@@ -328,18 +332,18 @@ export class BaseStateManager {
         Field(1)
       );
 
-      this.bankMap.set(
-        Field.from(round),
-        bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
-      );
+      // this.bankMap.set(
+      //   Field.from(round),
+      //   bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
+      // );
     }
 
     return {
       roundWitness,
       roundTicketWitness,
       resultWitness,
-      bankValue,
-      bankWitness,
+      // bankValue,
+      // bankWitness,
       nullifierWitness,
     };
   }

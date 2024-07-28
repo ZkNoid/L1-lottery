@@ -289,8 +289,6 @@ export class PLottery extends SmartContract {
     roundWitness: MerkleMap20Witness,
     roundTicketWitness: MerkleMap20Witness,
     resultWitness: MerkleMap20Witness,
-    bankValue: Field,
-    bankWitness: MerkleMap20Witness,
     nullifierWitness: MerkleMapWitness
   ) {
     // Check taht owner trying to claim
@@ -312,8 +310,11 @@ export class PLottery extends SmartContract {
 
     // Check and update bank witness
     const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
-    const newBankValue = bankValue.sub(totalTicketPrice.value);
-    this.checkAndUpdateBank(bankWitness, round, bankValue, newBankValue);
+    const priceWithoutCommision = totalTicketPrice
+      .mul(PRESICION - COMMISION)
+      .div(PRESICION);
+    // const newBankValue = bankValue.sub(totalTicketPrice.value);
+    // this.checkAndUpdateBank(bankWitness, round, bankValue, newBankValue);
 
     // Check and update nullifier
     this.checkAndUpdateNullifier(
@@ -326,7 +327,7 @@ export class PLottery extends SmartContract {
     // Send ticket price back to user
     this.send({
       to: ticket.owner,
-      amount: totalTicketPrice,
+      amount: priceWithoutCommision,
     });
 
     this.emitEvent(
@@ -500,20 +501,20 @@ export class PLottery extends SmartContract {
     return this.checkMap(this.roundResultRoot, witness, round, curValue);
   }
 
-  private checkAndUpdateResult(
-    witness: MerkleMap20Witness,
-    round: Field,
-    curValue: Field,
-    newValue: Field
-  ): MerkleCheckResult {
-    return this.checkAndUpdateMap(
-      this.roundResultRoot,
-      witness,
-      round,
-      curValue,
-      newValue
-    );
-  }
+  // private checkAndUpdateResult(
+  //   witness: MerkleMap20Witness,
+  //   round: Field,
+  //   curValue: Field,
+  //   newValue: Field
+  // ): MerkleCheckResult {
+  //   return this.checkAndUpdateMap(
+  //     this.roundResultRoot,
+  //     witness,
+  //     round,
+  //     curValue,
+  //     newValue
+  //   );
+  // }
 
   private checkBank(
     witness: MerkleMap20Witness,
@@ -587,22 +588,22 @@ export class PLottery extends SmartContract {
     };
   }
 
-  private checkAndUpdateTicketMap(
-    firstWitness: MerkleMap20Witness | MerkleMapWitness,
-    key1: Field | null,
-    secondWitness: MerkleMap20Witness | MerkleMapWitness,
-    // key2: Field, For know second level key is not checked as later it would transform to merkle map
-    prevValue: Field,
-    newValue: Field
-  ): { ticketId: Field; round: Field } {
-    const res = this.checkTicket(firstWitness, key1, secondWitness, prevValue);
+  // private checkAndUpdateTicketMap(
+  //   firstWitness: MerkleMap20Witness | MerkleMapWitness,
+  //   key1: Field | null,
+  //   secondWitness: MerkleMap20Witness | MerkleMapWitness,
+  //   // key2: Field, For know second level key is not checked as later it would transform to merkle map
+  //   prevValue: Field,
+  //   newValue: Field
+  // ): { ticketId: Field; round: Field } {
+  //   const res = this.checkTicket(firstWitness, key1, secondWitness, prevValue);
 
-    const [newRoot2] = secondWitness.computeRootAndKey(newValue);
-    const [newRoot1] = firstWitness.computeRootAndKey(newRoot2);
-    this.ticketRoot.set(newRoot1);
+  //   const [newRoot2] = secondWitness.computeRootAndKey(newValue);
+  //   const [newRoot1] = firstWitness.computeRootAndKey(newRoot2);
+  //   this.ticketRoot.set(newRoot1);
 
-    return res;
-  }
+  //   return res;
+  // }
 
   private checkTicket(
     firstWitness: MerkleMap20Witness | MerkleMapWitness,
