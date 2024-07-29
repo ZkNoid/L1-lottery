@@ -23,6 +23,7 @@ import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
 import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants.js';
 import { PStateManager } from './StateManager/PStateManager.js';
 import { TicketReduceProgram } from './TicketReduceProof.js';
+import { COMMISION, PRESICION } from './constants';
 
 export {
   Ticket,
@@ -45,4 +46,6 @@ export {
   RefundEvent,
   ReduceEvent,
   DistributionProof,
+  COMMISION,
+  PRESICION,
 };
