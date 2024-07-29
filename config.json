@@ -152,6 +152,15 @@
       "feepayerAlias": "deployer",
       "fee": "0.1",
       "smartContract": "PLottery"
+    },
+    "plottery_7_60bpr": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "keyPath": "keys/plottery_7_60bpr.json",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
+      "feepayerAlias": "deployer",
+      "fee": "0.1",
+      "smartContract": "PLottery"
     }
   }
 }
