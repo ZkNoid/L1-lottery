@@ -38,6 +38,7 @@
     "@types/jest": "^27.0.3",
     "@typescript-eslint/eslint-plugin": "^5.5.0",
     "@typescript-eslint/parser": "^5.5.0",
+    "zkon-zkapp": "git://github.com/ZKON-Network/zkapp.git#devnet",
     "eslint": "^8.7.0",
     "eslint-plugin-o1js": "^0.4.0",
     "jest": "^28.1.3",

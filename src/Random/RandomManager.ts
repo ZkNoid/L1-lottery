@@ -6,121 +6,167 @@ import {
   PublicKey,
   SmartContract,
   State,
+  Struct,
   UInt32,
+  ZkProgram,
   method,
   state,
 } from 'o1js';
 import { treasury } from '../private_constants';
 import { BLOCK_PER_ROUND } from '../constants';
+import { convertToUInt32 } from '../util';
+
+import {
+  ZkonZkProgram,
+  ZkonRequestCoordinator,
+  ExternalRequestEvent,
+} from 'zkon-zkapp';
 
 const emptyMapRoot = new MerkleMap().getRoot();
 
+export let ZkonProof_ = ZkProgram.Proof(ZkonZkProgram);
+export class ZkonProof extends ZkonProof_ {}
+
+export class CommitValue extends Struct({
+  value: Field,
+  salt: Field,
+}) {
+  hash(): Field {
+    return Poseidon.hash([this.value, this.salt]);
+  }
+}
+
+export const hashPart1 = Field(0);
+export const hashPart2 = Field(1);
+
+// Add events
+
 export class RandomManager extends SmartContract {
   @state(Field) commitRoot = State<Field>();
-
-  @state(Field) hashCommitRoot = State<Field>();
-
   @state(Field) resultRoot = State<Field>();
 
+  @state(Field) curRandomValue = State<Field>();
   @state(UInt32) startSlot = State<UInt32>();
+
+  @state(PublicKey) coordinator = State<PublicKey>();
+
+  events = {
+    requested: ExternalRequestEvent,
+  };
 
   init() {
     super.init();
 
     this.commitRoot.set(emptyMapRoot);
-    this.hashCommitRoot.set(emptyMapRoot);
     this.resultRoot.set(emptyMapRoot);
 
+    // Change with startSlot from PLottery
     this.startSlot.set(
       this.network.globalSlotSinceGenesis.getAndRequireEquals()
     );
   }
 
-  /*
-   * Can we update value
-   * What we will do if value is wrong?
-   */
-  @method async commitValue(witness: MerkleMapWitness, value: Field) {
+  @method async commit(
+    commitValue: CommitValue,
+    commitWitness: MerkleMapWitness
+  ) {
     this.permissionCheck();
 
-    const [prevCommitRoot, round] = witness.computeRootAndKey(Field(0));
+    const [prevCommitRoot, round] = commitWitness.computeRootAndKey(Field(0));
 
-    prevCommitRoot.assertEquals(
-      this.commitRoot.getAndRequireEquals(),
-      'Wrong commit witness'
-    );
+    this.checkRoundDoNotEnd(convertToUInt32(round));
 
-    this.checkRoundDoNotEnd(UInt32.fromFields([round]));
+    this.commitRoot
+      .getAndRequireEquals()
+      .assertEquals(prevCommitRoot, 'commit: Wrong commit witness');
 
-    const [newCommitRoot] = witness.computeRootAndKey(value);
-
+    const [newCommitRoot] = commitWitness.computeRootAndKey(commitValue.hash());
     this.commitRoot.set(newCommitRoot);
   }
 
-  @method async commitBlockHash(witness: MerkleMapWitness) {
-    const [prevBlockCommitRoot, key] = witness.computeRootAndKey(Field(0));
-
-    prevBlockCommitRoot.assertEquals(
-      this.hashCommitRoot.getAndRequireEquals(),
-      'Wrong witness for hashCommits'
-    );
-
-    this.checkRoundPass(UInt32.fromFields([key]));
-
-    const newValue = Poseidon.hash([
-      this.network.snarkedLedgerHash.get(),
-      this.network.globalSlotSinceGenesis.getAndRequireEquals().value,
-    ]);
-    const [newBlockCommitRoot] = witness.computeRootAndKey(newValue);
-
-    this.hashCommitRoot.set(newBlockCommitRoot);
-  }
-  /*
-  @method async produceValue(
+  @method async reveal(
+    commitValue: CommitValue,
     commitWitness: MerkleMapWitness,
-    commitValue: Field,
-    revealValue: Field,
-    salt: Field,
-    blockHashCommitWitness: MerkleMapWitness,
-    blockHashValue: Field,
-    blockHashProof: BlockHashProof
+    resultWitness: MerkleMapWitness
   ) {
-    const [commitRoot, commitKey] =
-      commitWitness.computeRootAndKey(commitValue);
+    this.permissionCheck();
 
-    commitRoot.assertEquals(
-      this.commitRoot.getAndRequireEquals(),
-      'Wrong commit witness'
+    // Check VRF computed
+    const curRandomValue = this.curRandomValue.getAndRequireEquals();
+    curRandomValue.assertGreaterThan(
+      Field(0),
+      'reveal: No random value in stash'
     );
 
-    Poseidon.hash([revealValue, salt]).assertEquals(
-      commitValue,
-      'Wrong reveal'
+    // Check commit witness
+    const [prevCommitRoot, round] = commitWitness.computeRootAndKey(
+      commitValue.hash()
     );
 
-    const [blockHashCommitRoot, blockHashCommitKey] =
-      blockHashCommitWitness.computeRootAndKey(blockHashValue);
+    this.commitRoot
+      .getAndRequireEquals()
+      .assertEquals(prevCommitRoot, 'reveal: Wrong commit witness');
 
-    blockHashCommitRoot.assertEquals(
-      this.hashCommitRoot.getAndRequireEquals(),
-      'Wrong hash commit witness'
+    // Check result witness
+    const [prevResultRoot, resultRound] = resultWitness.computeRootAndKey(
+      Field(0)
     );
 
-    commitKey.assertEquals(
-      blockHashCommitKey,
-      'Different rounds for commit and hash commit'
+    this.resultRoot
+      .getAndRequireEquals()
+      .assertEquals(prevResultRoot, 'reveal: wrong result witness');
+
+    round.assertEquals(
+      resultRound,
+      'reveal: Round for commit and result should be equal'
     );
 
-    blockHashProof.verify();
+    // Check round is over
+    this.checkRoundPass(convertToUInt32(round));
 
-    // Check blockHashProof initialHash to equal blockHashValue
+    // Compute result
+    const resultValue = Poseidon.hash([commitValue.value, curRandomValue]);
 
-    // Check that blockHashProof final block is right slot
+    // Update result
+    const [newResultRoot] = resultWitness.computeRootAndKey(resultValue);
+    this.resultRoot.set(newResultRoot);
 
-    // Call lottery contract
+    // Consume random value
+    this.curRandomValue.set(Field(0));
   }
 
-  */
+  @method async callZkon() {
+    const coordinatorAddress = this.coordinator.getAndRequireEquals();
+    const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
+
+    const requestId = await coordinator.sendRequest(
+      this.address,
+      hashPart1,
+      hashPart2
+    );
+
+    const event = new ExternalRequestEvent({
+      id: requestId,
+      hash1: hashPart1,
+      hash2: hashPart2,
+    });
+
+    this.emitEvent('requested', event);
+  }
+
+  @method
+  async receiveZkonResponse(requestId: Field, proof: ZkonProof) {
+    let curRandomValue = this.curRandomValue.getAndRequireEquals();
+    curRandomValue.assertEquals(
+      Field(0),
+      'receiveZkonResponse: prev random value was not consumed. Call reveal first'
+    );
+
+    const coordinatorAddress = this.coordinator.getAndRequireEquals();
+    const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
+    await coordinator.recordRequestFullfillment(requestId, proof);
+    this.curRandomValue.set(proof.publicInput.dataField);
+  }
 
   private permissionCheck() {
     this.sender.getAndRequireSignature().assertEquals(treasury);
