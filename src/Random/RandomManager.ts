@@ -190,3 +190,9 @@ export class RandomManager extends SmartContract {
     );
   }
 }
+
+export class MockedRandomManager extends RandomManager {
+  @method async mockReceiveZkonResponse(newValue: Field) {
+    this.curRandomValue.set(newValue);
+  }
+}
