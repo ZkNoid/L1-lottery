@@ -59,11 +59,13 @@ export class RandomManager extends SmartContract {
 
     this.commitRoot.set(emptyMapRoot);
     this.resultRoot.set(emptyMapRoot);
+  }
 
-    // Change with startSlot from PLottery
-    this.startSlot.set(
-      this.network.globalSlotSinceGenesis.getAndRequireEquals()
-    );
+  @method async setStartSlot(startSlot: UInt32) {
+    this.permissionCheck();
+
+    this.startSlot.getAndRequireEquals().assertEquals(UInt32.from(0));
+    this.startSlot.set(startSlot);
   }
 
   @method async commit(

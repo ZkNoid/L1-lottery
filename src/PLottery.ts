@@ -43,6 +43,7 @@ import {
   LotteryAction,
   TicketReduceProof,
 } from './TicketReduceProof.js';
+import { RandomManager } from './Random/RandomManager.js';
 
 export interface MerkleCheckResult {
   key: Field;
@@ -236,7 +237,9 @@ export class PLottery extends SmartContract {
     resultWiness: MerkleMap20Witness,
     result: Field,
     bankValue: Field,
-    bankWitness: MerkleMap20Witness
+    bankWitness: MerkleMap20Witness,
+    rmWitness: MerkleMapWitness,
+    rmValue: Field
   ) {
     // Check that result for this round is not computed yet, and that witness it is valid
     const [initialResultRoot, round] = resultWiness.computeRootAndKey(
@@ -251,11 +254,13 @@ export class PLottery extends SmartContract {
       .getAndRequireEquals()
       .assertGreaterThan(round, 'Call reduce for this round first');
 
-    // Generate new ticket using value from blockchain
-    let winningNumbers = this.getWiningNumbersForRound();
+    this.checkRandomResultValue(rmWitness, rmValue, round);
 
-    // let newLeafValue = NumberPacked.pack(winningNumbers);
-    let newLeafValue = result; // For test purpose
+    // Generate new ticket using value from blockchain
+    let winningNumbers = generateNumbersSeed(rmValue);
+
+    let newLeafValue = NumberPacked.pack(winningNumbers);
+    // let newLeafValue = result; // For test purpose
 
     // Update result tree
     const [newResultRoot] = resultWiness.computeRootAndKey(newLeafValue);
@@ -470,6 +475,25 @@ export class PLottery extends SmartContract {
   //   const blockNum = this.network.globalSlotSinceGenesis.getAndRequireEquals();
   //   return blockNum.sub(startBlock).div(BLOCK_PER_ROUND);
   // }
+
+  public checkRandomResultValue(
+    roundResultWitness: MerkleMapWitness,
+    roundResulValue: Field,
+    round: Field
+  ) {
+    roundResulValue.assertGreaterThan(Field(0));
+    const rm = new RandomManager(PublicKey.empty());
+    const resultRoot = rm.resultRoot.getAndRequireEquals();
+
+    const [prevResultRoot, prevRound] =
+      roundResultWitness.computeRootAndKey(roundResulValue);
+    prevResultRoot.assertEquals(
+      resultRoot,
+      'checkResultValue: wrong result witness'
+    );
+
+    prevRound.assertEquals(round, 'checkResultValue: wrong round');
+  }
 
   public checkCurrentRound(round: UInt32) {
     const startBlock = this.startBlock.getAndRequireEquals();
