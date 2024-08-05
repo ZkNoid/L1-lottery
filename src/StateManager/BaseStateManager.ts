@@ -132,22 +132,22 @@ export class BaseStateManager {
     return [bankWitness, value];
   }
 
-  updateResult(round: number | Field): {
+  updateResult(
+    round: number | Field,
+    result: Field
+  ): {
     resultWitness: MerkleMap20Witness;
     bankValue: Field;
     bankWitness: MerkleMap20Witness;
   } {
     round = Field(round);
     const resultWitness = this.roundResultMap.getWitness(round);
-    const packedNumbers = NumberPacked.pack(
-      mockWinningCombination.map((val) => UInt32.from(val))
-    );
 
     const bankValue = this.bankMap.get(round);
     const bankWitness = this.bankMap.getWitness(round);
 
     if (this.shouldUpdateState) {
-      this.roundResultMap.set(round, packedNumbers);
+      this.roundResultMap.set(round, result);
       this.bankMap.set(
         round,
         bankValue.mul(PRESICION - COMMISION).div(PRESICION)

@@ -12,6 +12,7 @@ import { PackedUInt32Factory } from './o1js-pack/Packed.js';
 import { MerkleMap20 } from './CustomMerkleMap.js';
 import { Ticket } from './Ticket.js';
 import { COMMISION, PRESICION } from './constants.js';
+import { getPLottery } from './PLottery.js';
 
 export const getEmpty2dMerkleMap = (height?: number): MerkleMap => {
   let emptyMapRoot;

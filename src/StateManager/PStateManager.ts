@@ -2,7 +2,6 @@ import { Field } from 'o1js';
 import { Ticket } from '../Ticket.js';
 import { TICKET_PRICE } from '../constants.js';
 import { MerkleMap20Witness } from '../CustomMerkleMap.js';
-import { PLottery } from '../PLottery.js';
 import {
   addTicket as TRaddTicket,
   LotteryAction,
@@ -13,6 +12,7 @@ import {
   cutActions,
 } from '../TicketReduceProof.js';
 import { BaseStateManager } from './BaseStateManager.js';
+import { PLotteryType } from '../PLottery.js';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -39,14 +39,14 @@ export async function mockProof<I, O, P>(
 }
 
 export class PStateManager extends BaseStateManager {
-  contract: PLottery;
+  contract: PLotteryType;
   processedTicketData: {
     ticketId: number;
     round: number;
   };
 
   constructor(
-    plottery: PLottery,
+    plottery: PLotteryType,
     startBlock: Field,
     isMock: boolean = true,
     shouldUpadteState: boolean = false

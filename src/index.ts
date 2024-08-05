@@ -1,7 +1,6 @@
 import {
   BuyTicketEvent,
   GetRewardEvent,
-  PLottery,
   ProduceResultEvent,
   RefundEvent,
   ReduceEvent,
@@ -27,7 +26,6 @@ import { COMMISION, PRESICION } from './constants';
 
 export {
   Ticket,
-  PLottery,
   DistibutionProgram,
   getEmpty2dMerkleMap,
   getNullifierId,
