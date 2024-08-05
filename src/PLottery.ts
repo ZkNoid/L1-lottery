@@ -67,7 +67,8 @@ export const generateNumbersSeed = (seed: Field): UInt32[] => {
       const masked = Gadgets.and(seed, Field.from(mask), 254);
       return Gadgets.rightShift64(masked, i * 4);
     })
-    .map((val) => convertToUInt32(val));
+    .map((val) => convertToUInt32(val))
+    .map((val) => val.mod(9).add(1));
 
   return numbers;
 };

@@ -23,7 +23,11 @@ export class Ticket extends Struct({
   owner: PublicKey,
   amount: UInt64,
 }) {
-  static from(numbers: number[], owner: PublicKey, amount: number): Ticket {
+  static from(
+    numbers: number[] | UInt32[],
+    owner: PublicKey,
+    amount: number
+  ): Ticket {
     if (numbers.length != NUMBERS_IN_TICKET) {
       throw new Error(
         `Wrong amount of numbers. Got: ${numbers.length}, expect: ${NUMBERS_IN_TICKET}`
