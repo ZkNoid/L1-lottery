@@ -30,8 +30,8 @@ import {
   addTicket,
   init,
 } from './DistributionProof';
-import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
-import { Pickles } from 'o1js/dist/node/snarky';
+// import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
+// import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
 import { treasury, treasuryKey } from './private_constants';
 import { PStateManager } from './StateManager/PStateManager';
@@ -52,9 +52,9 @@ export async function mockProof<I, O, P>(
   }) => P,
   publicInput: I
 ): Promise<P> {
-  const [, proof] = Pickles.proofOfBase64(await dummyBase64Proof(), 2);
+  // const [, proof] = Pickles.proofOfBase64(await dummyBase64Proof(), 2);
   return new ProofType({
-    proof: proof,
+    proof: null as any,
     maxProofsVerified: 2,
     publicInput,
     publicOutput,
