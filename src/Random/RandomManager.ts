@@ -23,7 +23,8 @@ import {
 
 const emptyMapRoot = new MerkleMap().getRoot();
 
-// export let ZkonProof = ZkProgram.Proof(ZkonZkProgram);
+export let ZkonProof_ = ZkProgram.Proof(ZkonZkProgram);
+export class ZkonProof extends ZkonProof_ {}
 
 export class CommitValue extends Struct({
   value: Field,
@@ -140,36 +141,36 @@ export function getRandomManager(owner: PublicKey) {
 
     @method async callZkon() {
       const coordinatorAddress = this.coordinator.getAndRequireEquals();
-      // const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
+      const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
 
-      // const requestId = await coordinator.sendRequest(
-      //   this.address,
-      //   hashPart1,
-      //   hashPart2
-      // );
+      const requestId = await coordinator.sendRequest(
+        this.address,
+        hashPart1,
+        hashPart2
+      );
 
-      // const event = new ExternalRequestEvent({
-      //   id: requestId,
-      //   hash1: hashPart1,
-      //   hash2: hashPart2,
-      // });
+      const event = new ExternalRequestEvent({
+        id: requestId,
+        hash1: hashPart1,
+        hash2: hashPart2,
+      });
 
-      // this.emitEvent('requested', event);
+      this.emitEvent('requested', event);
     }
 
-    // @method
-    // async receiveZkonResponse(requestId: Field, proof: ZkonProof) {
-    //   let curRandomValue = this.curRandomValue.getAndRequireEquals();
-    //   curRandomValue.assertEquals(
-    //     Field(0),
-    //     'receiveZkonResponse: prev random value was not consumed. Call reveal first'
-    //   );
+    @method
+    async receiveZkonResponse(requestId: Field, proof: ZkonProof) {
+      let curRandomValue = this.curRandomValue.getAndRequireEquals();
+      curRandomValue.assertEquals(
+        Field(0),
+        'receiveZkonResponse: prev random value was not consumed. Call reveal first'
+      );
 
-    //   const coordinatorAddress = this.coordinator.getAndRequireEquals();
-    //   const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
-    //   await coordinator.recordRequestFullfillment(requestId, proof);
-    //   this.curRandomValue.set(proof.publicInput.dataField);
-    // }
+      const coordinatorAddress = this.coordinator.getAndRequireEquals();
+      const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
+      await coordinator.recordRequestFullfillment(requestId, proof);
+      this.curRandomValue.set(proof.publicInput.dataField);
+    }
 
     public permissionCheck() {
       this.sender.getAndRequireSignature().assertEquals(owner);
