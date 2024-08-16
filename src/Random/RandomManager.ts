@@ -50,9 +50,9 @@ export function getRandomManager(owner: PublicKey) {
 
     @state(PublicKey) coordinator = State<PublicKey>();
 
-    // events = {
-    //   requested: ExternalRequestEvent,
-    // };
+    events = {
+      requested: ExternalRequestEvent,
+    };
 
     init() {
       super.init();

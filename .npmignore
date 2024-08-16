@@ -14,3 +14,7 @@ keys
 cache
 
 cache_frontend
+
+.env
+
+commits

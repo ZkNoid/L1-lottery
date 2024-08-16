@@ -17,3 +17,7 @@ cache
 src/private_constants.ts
 
 cache_frontend
+
+.env
+
+commits
