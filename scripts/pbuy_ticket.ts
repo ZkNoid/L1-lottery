@@ -16,9 +16,9 @@ import fs from 'fs/promises';
 import { Cache, Field, Mina, NetworkId, PrivateKey, fetchAccount } from 'o1js';
 import { DistibutionProgram } from '../src/DistributionProof.js';
 import { Ticket } from '../src/Ticket.js';
-import { PLottery } from '../src/PLottery.js';
 import { TicketReduceProgram } from '../src/TicketReduceProof.js';
 import { PStateManager } from '../src/StateManager/PStateManager.js';
+import { findPlottery } from './utils.js';
 
 // check command line arg
 let deployAlias = process.argv[2];
@@ -70,7 +70,8 @@ const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
 Mina.setActiveInstance(Network);
 let feepayerAddress = feepayerKey.toPublicKey();
 let zkAppAddress = zkAppKey.toPublicKey();
-let lottery = new PLottery(zkAppAddress);
+
+let { plottery: lottery, PLottery } = findPlottery();
 
 // compile the contract to create prover keys
 console.log('compile the DP');
@@ -115,44 +116,3 @@ await tx.prove();
 let txResult = await tx.sign([feepayerKey]).send();
 
 console.log(`Tx successful. Hash: `, txResult.hash);
-
-/*
-try {
-  // call update() and send transaction
-  console.log('build transaction and create proof...');
-  let tx = await Mina.transaction(
-    { sender: feepayerAddress, fee },
-    async () => {
-      await zkApp.update();
-    }
-  );
-  await tx.prove();
-
-  console.log('send transaction...');
-  const sentTx = await tx.sign([feepayerKey]).send();
-  if (sentTx.status === 'pending') {
-    console.log(
-      '\nSuccess! Update transaction sent.\n' +
-        '\nYour smart contract state will be updated' +
-        '\nas soon as the transaction is included in a block:' +
-        `\n${getTxnUrl(config.url, sentTx.hash)}`
-    );
-  }
-} catch (err) {
-  console.log(err);
-}
-
-function getTxnUrl(graphQlUrl: string, txnHash: string | undefined) {
-  const hostName = new URL(graphQlUrl).hostname;
-  const txnBroadcastServiceName = hostName
-    .split('.')
-    .filter((item) => item === 'minascan')?.[0];
-  const networkName = graphQlUrl
-    .split('/')
-    .filter((item) => item === 'mainnet' || item === 'devnet')?.[0];
-  if (txnBroadcastServiceName && networkName) {
-    return `https://minascan.io/${networkName}/tx/${txnHash}?type=zk-tx`;
-  }
-  return `Transaction hash: ${txnHash}`;
-}
-*/

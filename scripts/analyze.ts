@@ -1,6 +1,10 @@
-import { PLottery } from '../src/PLottery.js';
+import { getPLottery } from '../src/PLottery.js';
 import { DistibutionProgram } from '../src/DistributionProof.js';
 import { writeFileSync } from 'fs';
+import { PublicKey } from 'o1js';
+import { findPlottery } from './utils.js';
+
+let { PLottery } = findPlottery();
 
 const lotteryResult = await PLottery.analyzeMethods();
 const distributionResult = await DistibutionProgram.analyzeMethods();
