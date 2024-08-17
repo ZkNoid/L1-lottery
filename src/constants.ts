@@ -1,4 +1,4 @@
-import { UInt64 } from 'o1js';
+import { PublicKey, UInt64 } from 'o1js';
 
 export const NUMBERS_IN_TICKET = 6;
 
@@ -11,3 +11,8 @@ export const PRESICION = 1000;
 export const COMMISION = 30; // 3% comission
 
 export const mockWinningCombination = [1, 1, 1, 1, 1, 1];
+
+/// xxQ was compomised previously. Use it for test purpose only
+export const treasury = PublicKey.fromBase58(
+  'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ'
+);

@@ -21,6 +21,7 @@ import {
   PRESICION,
   TICKET_PRICE,
   mockWinningCombination,
+  treasury,
 } from './constants.js';
 import { DistributionProof } from './DistributionProof.js';
 import {
@@ -46,9 +47,6 @@ export const mockResult = NumberPacked.pack(
   mockWinningCombination.map((v) => UInt32.from(v))
 );
 
-const treasury = PublicKey.fromBase58(
-  'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ'
-);
 export const generateNumbersSeed = (seed: Field): UInt32[] => {
   const initMask = 0b1111;
   const masks = [...Array(NUMBERS_IN_TICKET)].map(

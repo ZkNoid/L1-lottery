@@ -26,7 +26,7 @@ import {
   getEmpty2dMerkleMap,
   getTotalScoreAndCommision,
 } from './util';
-import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants';
+import { BLOCK_PER_ROUND, TICKET_PRICE, treasury } from './constants';
 import {
   DistibutionProgram,
   DistributionProof,
@@ -37,7 +37,6 @@ import {
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
-import { treasury, treasuryKey } from './private_constants';
 import { PStateManager } from './StateManager/PStateManager';
 import { TicketReduceProgram } from './TicketReduceProof';
 import {
@@ -254,7 +253,6 @@ describe('Add', () => {
     let tx2 = await Mina.transaction(senderAccount, async () => {
       await lottery.produceResult(
         resultWitness,
-        mockResult,
         bankValue,
         bankWitness,
         resultWV.witness,
@@ -367,7 +365,6 @@ describe('Add', () => {
     let tx4 = await Mina.transaction(senderAccount, async () => {
       await lottery.produceResult(
         resultWitness,
-        mockResult,
         bankValue,
         bankWitness,
         resultWV.witness,
@@ -466,7 +463,6 @@ describe('Add', () => {
       let tx2 = await Mina.transaction(senderAccount, async () => {
         await lottery.produceResult(
           resultWitness,
-          mockResult,
           bankValue,
           bankWitness,
           resultWV.witness,
