@@ -165,25 +165,27 @@ export function getPLottery(
      * @event buy-ticket Emitted when a ticket is successfully purchased.
      */
     @method async buyTicket(ticket: Ticket, round: Field) {
-      ticket.owner.equals(this.sender.getAndRequireSignature());
       // Ticket validity check
+      ticket.owner.equals(this.sender.getAndRequireSignature());
       ticket.check().assertTrue();
+
+      // Round check
       this.checkCurrentRound(convertToUInt32(round));
 
-      // Get ticket price from user
+      // Take ticket price from user
       let senderUpdate = AccountUpdate.createSigned(
         this.sender.getAndRequireSignature()
       );
 
       senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
 
+      // Dispatch action and emmit event
       this.reducer.dispatch(
         new LotteryAction({
           ticket,
           round,
         })
       );
-
       this.emitEvent(
         'buy-ticket',
         new BuyTicketEvent({
@@ -209,12 +211,16 @@ export function getPLottery(
      * @event reduce Emitted when the tickets are successfully reduced and the contract state is updated.
      */
     @method async reduceTickets(reduceProof: TicketReduceProof) {
+      // Check proof validity
       reduceProof.verify();
 
       let lastProcessedState = this.lastProcessedState.getAndRequireEquals();
       let lastProcessedTicketId =
         this.lastProcessedTicketId.getAndRequireEquals();
 
+      // Check math of proof data and onchain values.
+
+      // Check that all actions was processed.
       reduceProof.publicOutput.processedActionList.assertEquals(
         ActionList.emptyHash,
         'Proof is not complete. Call cutActions first'
@@ -237,6 +243,7 @@ export function getPLottery(
         'Initial ticket id don not match contract last processed ticket id'
       );
 
+      // Update onchain values
       this.lastProcessedState.set(reduceProof.publicOutput.finalState);
       this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
       this.bankRoot.set(reduceProof.publicOutput.newBankRoot);
@@ -245,6 +252,7 @@ export function getPLottery(
         reduceProof.publicOutput.lastProcessedTicketId
       );
 
+      // Emit event
       this.emitEvent(
         'reduce',
         new ReduceEvent({
@@ -279,7 +287,7 @@ export function getPLottery(
       rmWitness: MerkleMapWitness,
       rmValue: Field
     ) {
-      // Check that result for this round is not computed yet, and that witness it is valid
+      // Check that result for this round is not computed yet, and that witness is valid
       const [initialResultRoot, round] = resultWiness.computeRootAndKey(
         Field.from(0)
       );
@@ -294,9 +302,8 @@ export function getPLottery(
 
       this.checkRandomResultValue(rmWitness, rmValue, round);
 
-      // Generate new ticket using value from blockchain
+      // Generate new winning combination using random number from NumberManager
       let winningNumbers = generateNumbersSeed(rmValue);
-
       let newLeafValue = NumberPacked.pack(winningNumbers);
 
       // Update result tree
@@ -304,7 +311,7 @@ export function getPLottery(
 
       this.roundResultRoot.set(newResultRoot);
 
-      // Update bank and pay fee
+      // Send fee to treasury
       this.checkAndUpdateBank(
         bankWitness,
         round,

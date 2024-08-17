@@ -61,6 +61,13 @@ export function getRandomManager(owner: PublicKey) {
       this.resultRoot.set(emptyMapRoot);
     }
 
+    /**
+     * @notice Inital set of start slot.
+     * @dev It should be equal to startBlock on PLottery. Called only once.
+     *
+     * @param startSlot start slot value.
+     *
+     */
     @method async setStartSlot(startSlot: UInt32) {
       this.permissionCheck();
 
@@ -68,6 +75,14 @@ export function getRandomManager(owner: PublicKey) {
       this.startSlot.set(startSlot);
     }
 
+    /**
+     * @notice Commit hidden value.
+     * @dev Only hash o value and salt is stored. So value is hidden.
+     *
+     * @param commitValue Commit value = value + slot.
+     * @param commitWitness Witness of commit tree.
+     *
+     */
     @method async commit(
       commitValue: CommitValue,
       commitWitness: MerkleMapWitness
@@ -88,6 +103,15 @@ export function getRandomManager(owner: PublicKey) {
       this.commitRoot.set(newCommitRoot);
     }
 
+    /**
+     * @notice Reveal number commited previously.
+     * @dev This function can be called only after oracle provided its random value
+     *
+     * @param commitValue Commit value = value + slot.
+     * @param commitWitness Witness of commit tree.
+     * @param resultWitness Witness of result tree.
+     *
+     */
     @method async reveal(
       commitValue: CommitValue,
       commitWitness: MerkleMapWitness,
@@ -139,7 +163,18 @@ export function getRandomManager(owner: PublicKey) {
       this.curRandomValue.set(Field(0));
     }
 
+    /**
+     * @notice Sends request to ZKOn oracle.
+     * @dev Request body is stored on IPFS.
+     *
+     */
     @method async callZkon() {
+      let curRandomValue = this.curRandomValue.getAndRequireEquals();
+      curRandomValue.assertEquals(
+        Field(0),
+        'receiveZkonResponse: prev random value was not consumed. Call reveal first'
+      );
+
       const coordinatorAddress = this.coordinator.getAndRequireEquals();
       const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
 
@@ -158,6 +193,10 @@ export function getRandomManager(owner: PublicKey) {
       this.emitEvent('requested', event);
     }
 
+    /**
+     * @notice Callback function for ZKOn response
+     *
+     */
     @method
     async receiveZkonResponse(requestId: Field, proof: ZkonProof) {
       let curRandomValue = this.curRandomValue.getAndRequireEquals();
@@ -172,10 +211,19 @@ export function getRandomManager(owner: PublicKey) {
       this.curRandomValue.set(proof.publicInput.dataField);
     }
 
+    /**
+     * @notice Checks that sender is the owner of the contract.
+     *
+     */
     public permissionCheck() {
       this.sender.getAndRequireSignature().assertEquals(owner);
     }
 
+    /**
+     * @notice Checks that specified round have already passed.
+     *
+     * @param round Round to check
+     */
     public checkRoundPass(round: UInt32) {
       const startBlock = this.startSlot.getAndRequireEquals();
       this.network.globalSlotSinceGenesis.requireBetween(
@@ -184,6 +232,11 @@ export function getRandomManager(owner: PublicKey) {
       );
     }
 
+    /**
+     * @notice Checks that round have not ended yet
+     *
+     * @param round Round to check
+     */
     public checkRoundDoNotEnd(round: UInt32) {
       const startBlock = this.startSlot.getAndRequireEquals();
       this.network.globalSlotSinceGenesis.requireBetween(
