@@ -2,11 +2,9 @@ import {
   Field,
   Struct,
   Provable,
-  UInt8,
   UInt32,
   Poseidon,
   Bool,
-  Gadgets,
   PublicKey,
   UInt64,
 } from 'o1js';
@@ -16,8 +14,6 @@ function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
 }
 
-// #TODO add user address to ticket
-// technically we can remove round from ticket
 export class Ticket extends Struct({
   numbers: Provable.Array(UInt32, NUMBERS_IN_TICKET),
   owner: PublicKey,
@@ -50,25 +46,6 @@ export class Ticket extends Struct({
     });
   }
 
-  // static generateFromSeed(seed: Field, round: UInt32): Ticket {
-  //   const initMask = 0b1111;
-  //   const masks = [...Array(NUMBERS_IN_TICKET)].map(
-  //     (val, i) => initMask << (i * 4)
-  //   );
-
-  //   const numbers = masks
-  //     .map((mask, i) => {
-  //       const masked = Gadgets.and(seed, Field.from(mask), (i + 1) * 4);
-  //       return Gadgets.rightShift64(masked, i * 4);
-  //     })
-  //     .map((val) => UInt8.from(val));
-
-  //   return new Ticket({
-  //     numbers,
-  //     round,
-  //   });
-  // }
-
   check(): Bool {
     return this.numbers.reduce(
       (acc, val) => acc.and(val.lessThan(UInt32.from(10))),
@@ -84,16 +61,6 @@ export class Ticket extends Struct({
         .concat(this.amount.value)
     );
   }
-
-  // nullifierHash(round: Field): Field {
-  //   return Poseidon.hash(
-  //     this.numbers
-  //       .map((number) => number.value)
-  //       .concat(this.owner.toFields())
-  //       .concat(this.amount.value)
-  //       .concat(round)
-  //   );
-  // }
 
   getScore(winningCombination: UInt32[]): UInt64 {
     let result = UInt64.from(0);
