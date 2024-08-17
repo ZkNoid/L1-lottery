@@ -30,7 +30,9 @@
     "fcache": "npm run build && node build/scripts/prepare_cache.js",
     "trees": "npm run build && node build/scripts/build_trees.js",
     "produce_result": "npm run build && node build/scripts/produce_result.js",
-    "bug_poc": "npm run build && node build/scripts/bug_poc.js"
+    "bug_poc": "npm run build && node build/scripts/bug_poc.js",
+    "token_prepare": "node build-mina-fungible-token.js && cd node_modules/mina-fungible-token && npm run build",
+    "deploy": "npm run build && node build/scripts/deploy.js"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",
