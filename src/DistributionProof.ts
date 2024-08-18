@@ -25,6 +25,7 @@ export class DistributionProofPublicOutput extends Struct({
 const emptyMap = new MerkleMap20();
 const emptyMapRoot = emptyMap.getRoot();
 
+// Initializer for proof
 export const init = async (
   input: DistributionProofPublicInput
 ): Promise<DistributionProofPublicOutput> => {

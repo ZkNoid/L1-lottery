@@ -364,7 +364,7 @@ export function getPLottery(
       // Check ticket in merkle map
       const { ticketId, round } = this.checkTicket(
         roundWitness,
-        null,
+        // null,
         roundTicketWitness,
         ticket.hash()
       );
@@ -453,7 +453,7 @@ export function getPLottery(
         round,
       } = this.checkTicket(
         roundWitness,
-        null,
+        // null,
         roundTicketWitness,
         ticket.hash()
       );
@@ -757,7 +757,7 @@ export function getPLottery(
      */
     public checkTicket(
       firstWitness: MerkleMap20Witness | MerkleMapWitness,
-      key1: Field | null,
+      // key1: Field | null,
       secondWitness: MerkleMap20Witness | MerkleMapWitness,
       // key2: Field, For know second level key is not checked as later it would transform to merkle map
       value: Field
@@ -768,9 +768,9 @@ export function getPLottery(
       const [firstLevelRoot, round] =
         firstWitness.computeRootAndKey(secondLevelRoot);
 
-      if (key1) {
-        round.assertEquals(key1, 'Wrong round');
-      }
+      // if (key1) {
+      //   round.assertEquals(key1, 'Wrong round');
+      // }
       this.ticketRoot
         .getAndRequireEquals()
         .assertEquals(firstLevelRoot, 'Wrong 2d witness');

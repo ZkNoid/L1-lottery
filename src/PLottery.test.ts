@@ -262,8 +262,47 @@ describe('Add', () => {
     await tx2.prove();
     await tx2.sign([senderKey]).send();
     checkConsistancy();
+
     // Get reward
     const rp = await state.getReward(curRound, ticket);
+
+    // Try to get reward with wrong account
+    await expect(
+      Mina.transaction(restAccs[0], async () => {
+        await lottery.getReward(
+          ticket,
+          rp.roundWitness,
+          rp.roundTicketWitness,
+          rp.dp,
+          rp.winningNumbers,
+          rp.resultWitness,
+          rp.bankValue,
+          rp.bankWitness,
+          rp.nullifierWitness
+        );
+      })
+    ).rejects.toThrow('Field.assertEquals()');
+
+    let faultTicket = Ticket.fromFields(Ticket.toFields(ticket)) as Ticket;
+    faultTicket.owner = restAccs[0];
+    await expect(
+      Mina.transaction(restAccs[0], async () => {
+        await lottery.getReward(
+          faultTicket,
+          rp.roundWitness,
+          rp.roundTicketWitness,
+          rp.dp,
+          rp.winningNumbers,
+          rp.resultWitness,
+          rp.bankValue,
+          rp.bankWitness,
+          rp.nullifierWitness
+        );
+      })
+    ).rejects.toThrow('Field.assertEquals()');
+
+    // Valid transaction
+
     let tx3 = await Mina.transaction(senderAccount, async () => {
       await lottery.getReward(
         ticket,
