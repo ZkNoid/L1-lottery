@@ -369,9 +369,9 @@ describe('Add', () => {
       roundWitness,
       roundTicketWitness,
       resultWitness: resultWitness1,
-      // bankValue,
-      // bankWitness,
-      nullifierWitness,
+      bankValue: bankValue1,
+      bankWitness: bankWitness1,
+      // nullifierWitness,
     } = await state.getRefund(0, ticket);
     const balanceBefore2 = Mina.getBalance(senderAccount);
     let tx3 = await Mina.transaction(senderAccount, async () => {
@@ -380,18 +380,16 @@ describe('Add', () => {
         roundWitness,
         roundTicketWitness,
         resultWitness1,
-        // bankValue,
-        // bankWitness,
-        nullifierWitness
+        bankValue1,
+        bankWitness1
+        // nullifierWitness
       );
     });
     await tx3.prove();
     await tx3.sign([senderKey]).send();
     checkConsistancy();
     const balanceAfter2 = Mina.getBalance(senderAccount);
-    expect(balanceAfter2.sub(balanceBefore2)).toEqual(
-      TICKET_PRICE.mul(97).div(100)
-    );
+    expect(balanceAfter2.sub(balanceBefore2)).toEqual(TICKET_PRICE);
     // Produce random value
     await produceResultInRM(curRound);
 
@@ -415,7 +413,7 @@ describe('Add', () => {
     checkConsistancy();
     const balanceBefore3 = Mina.getBalance(senderAccount);
     // Get reward for second transaction
-    const rp = await state.getReward(curRound, ticket, undefined, 2);
+    const rp = await state.getReward(curRound, ticket);
     let tx5 = await Mina.transaction(senderAccount, async () => {
       await lottery.getReward(
         ticket,

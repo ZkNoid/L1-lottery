@@ -63,7 +63,7 @@ export async function mockProof<I, O, P>(
 export class BaseStateManager {
   ticketMap: MerkleMap20;
   roundTicketMap: MerkleMap20[];
-  roundTickets: Ticket[][];
+  roundTickets: (Ticket | undefined)[][]; // Refunded ticket will be undefined
   lastTicketInRound: number[];
   ticketNullifierMap: MerkleMap;
   bankMap: MerkleMap20;
@@ -182,6 +182,10 @@ export class BaseStateManager {
 
     for (let i = 0; i < ticketsInRound; i++) {
       const ticket = this.roundTickets[round][i];
+      if (!ticket) {
+        // Skip refunded tickets
+        continue;
+      }
 
       const input = new DistributionProofPublicInput({
         winningCombination,
@@ -290,9 +294,9 @@ export class BaseStateManager {
     roundWitness: MerkleMap20Witness;
     roundTicketWitness: MerkleMap20Witness;
     resultWitness: MerkleMap20Witness;
-    // bankValue: Field;
-    // bankWitness: MerkleMap20Witness;
-    nullifierWitness: MerkleMapWitness;
+    bankValue: Field;
+    bankWitness: MerkleMap20Witness;
+    // nullifierWitness: MerkleMapWitness;
   }> {
     const roundWitness = this.ticketMap.getWitness(Field.from(round));
 
@@ -319,32 +323,35 @@ export class BaseStateManager {
 
     const resultWitness = this.roundResultMap.getWitness(Field.from(round));
 
-    // const bankValue = this.bankMap.get(Field.from(round));
-    // const bankWitness = this.bankMap.getWitness(Field.from(round));
+    const bankValue = this.bankMap.get(Field.from(round));
+    const bankWitness = this.bankMap.getWitness(Field.from(round));
 
-    const nullifierWitness = this.ticketNullifierMap.getWitness(
-      getNullifierId(Field.from(round), Field.from(ticketId))
-    );
+    // const nullifierWitness = this.ticketNullifierMap.getWitness(
+    //   getNullifierId(Field.from(round), Field.from(ticketId))
+    // );
 
     if (this.shouldUpdateState) {
-      this.ticketNullifierMap.set(
-        getNullifierId(Field.from(round), Field.from(ticketId)),
-        Field(1)
-      );
+      this.roundTicketMap[round].set(Field(ticketId), Field(0));
+      this.ticketMap.set(Field(round), this.roundTicketMap[round].getRoot());
 
-      // this.bankMap.set(
-      //   Field.from(round),
-      //   bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
+      this.roundTickets[round][ticketId] = undefined;
+      // this.ticketNullifierMap.set(
+      //   getNullifierId(Field.from(round), Field.from(ticketId)),
+      //   Field(1)
       // );
+      this.bankMap.set(
+        Field.from(round),
+        bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
+      );
     }
 
     return {
       roundWitness,
       roundTicketWitness,
       resultWitness,
-      // bankValue,
-      // bankWitness,
-      nullifierWitness,
+      bankValue,
+      bankWitness,
+      // nullifierWitness,
     };
   }
 }

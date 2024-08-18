@@ -12,6 +12,7 @@ import {
   MerkleMap,
   Struct,
   Reducer,
+  Provable,
 } from 'o1js';
 import { Ticket } from './Ticket.js';
 import {
@@ -215,8 +216,15 @@ export function getPLottery(
       let lastProcessedState = this.lastProcessedState.getAndRequireEquals();
       let lastProcessedTicketId =
         this.lastProcessedTicketId.getAndRequireEquals();
+      let initialRoot = this.ticketRoot.getAndRequireEquals();
 
-      // Check math of proof data and onchain values.
+      // Check match of proof data and onchain values.
+
+      // Check initial root equal
+      reduceProof.publicOutput.initialTicketRoot.assertEquals(
+        initialRoot,
+        'Wrong initial root'
+      );
 
       // Check that all actions was processed.
       reduceProof.publicOutput.processedActionList.assertEquals(
@@ -331,7 +339,7 @@ export function getPLottery(
       );
     }
 
-    // Update refund
+    // Update refund natspec
     /**
      * @notice Processes a refund for a lottery ticket if the result for the round was not generated within 2 days.
      * @dev This function ensures that the ticket owner is the one requesting the refund, verifies the ticket's validity
@@ -342,7 +350,8 @@ export function getPLottery(
      * @param roundWitness The 1st level Merkle proof witness for the tickets tree.
      * @param roundTicketWitness The 2nd level Merkle proof witness for the round's ticket tree.
      * @param resultWitness The Merkle proof witness for the result tree.
-     * @param nullifierWitness The Merkle proof witness for the nullifier tree.
+     * @param bankValue The value of bank for that round.
+     * @param bankWitness The Merkle proof witness for bank tree.
      *
      * @require The sender must be the owner of the ticket.
      * @require The ticket must exist in the Merkle map as verified by the round and ticket witnesses.
@@ -356,17 +365,20 @@ export function getPLottery(
       roundWitness: MerkleMap20Witness,
       roundTicketWitness: MerkleMap20Witness,
       resultWitness: MerkleMap20Witness,
-      nullifierWitness: MerkleMapWitness
+      bankValue: Field,
+      bankWitness: MerkleMap20Witness
+      // nullifierWitness: MerkleMapWitness
     ) {
       // Check taht owner trying to claim
       ticket.owner.assertEquals(this.sender.getAndRequireSignature());
 
-      // Check ticket in merkle map
-      const { ticketId, round } = this.checkTicket(
+      // Check ticket in merkle map and set ticket to zero
+      const { ticketId, round } = this.checkAndUpdateTicket(
         roundWitness,
         // null,
         roundTicketWitness,
-        ticket.hash()
+        ticket.hash(),
+        Field(0)
       );
 
       // Check that result is zero for this round
@@ -377,24 +389,24 @@ export function getPLottery(
 
       // Check and update bank witness
       const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
-      const priceWithoutCommision = totalTicketPrice
-        .mul(PRESICION - COMMISION)
-        .div(PRESICION);
-      // const newBankValue = bankValue.sub(totalTicketPrice.value);
-      // this.checkAndUpdateBank(bankWitness, round, bankValue, newBankValue);
+      // const priceWithoutCommision = totalTicketPrice
+      //   .mul(PRESICION - COMMISION)
+      //   .div(PRESICION);
+      const newBankValue = bankValue.sub(totalTicketPrice.value);
+      this.checkAndUpdateBank(bankWitness, round, bankValue, newBankValue);
 
       // Check and update nullifier
-      this.checkAndUpdateNullifier(
-        nullifierWitness,
-        getNullifierId(round, ticketId),
-        Field(0),
-        Field.from(1)
-      );
+      // this.checkAndUpdateNullifier(
+      //   nullifierWitness,
+      //   getNullifierId(round, ticketId),
+      //   Field(0),
+      //   Field.from(1)
+      // );
 
       // Send ticket price back to user
       this.send({
         to: ticket.owner,
-        amount: priceWithoutCommision,
+        amount: totalTicketPrice,
       });
 
       this.emitEvent(
@@ -480,12 +492,13 @@ export function getPLottery(
       const score = ticket.getScore(NumberPacked.unpack(winningNumbers));
       const totalScore = dp.publicOutput.total;
 
+      const payAmount = convertToUInt64(bankValue).mul(score).div(totalScore);
       // Pay user
       this.checkBank(bankWitness, round, bankValue);
 
       this.send({
         to: ticket.owner,
-        amount: convertToUInt64(bankValue).mul(score).div(totalScore),
+        amount: payAmount,
       });
 
       // Add ticket to nullifier
@@ -727,22 +740,27 @@ export function getPLottery(
       };
     }
 
-    // private checkAndUpdateTicketMap(
-    //   firstWitness: MerkleMap20Witness | MerkleMapWitness,
-    //   key1: Field | null,
-    //   secondWitness: MerkleMap20Witness | MerkleMapWitness,
-    //   // key2: Field, For know second level key is not checked as later it would transform to merkle map
-    //   prevValue: Field,
-    //   newValue: Field
-    // ): { ticketId: Field; round: Field } {
-    //   const res = this.checkTicket(firstWitness, key1, secondWitness, prevValue);
+    public checkAndUpdateTicket(
+      firstWitness: MerkleMap20Witness | MerkleMapWitness,
+      // key1: Field | null,
+      secondWitness: MerkleMap20Witness | MerkleMapWitness,
+      // key2: Field, For know second level key is not checked as later it would transform to merkle map
+      prevValue: Field,
+      newValue: Field
+    ): { ticketId: Field; round: Field } {
+      const res = this.checkTicket(
+        firstWitness,
+        // key1,
+        secondWitness,
+        prevValue
+      );
 
-    //   const [newRoot2] = secondWitness.computeRootAndKey(newValue);
-    //   const [newRoot1] = firstWitness.computeRootAndKey(newRoot2);
-    //   this.ticketRoot.set(newRoot1);
+      const [newRoot2] = secondWitness.computeRootAndKey(newValue);
+      const [newRoot1] = firstWitness.computeRootAndKey(newRoot2);
+      this.ticketRoot.set(newRoot1);
 
-    //   return res;
-    // }
+      return res;
+    }
 
     /**
      * @notice Methods to check if ticket lies on ticket merkle tree.
