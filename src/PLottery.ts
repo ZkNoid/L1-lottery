@@ -98,9 +98,13 @@ export class ReduceEvent extends Struct({
 
 export function getPLottery(
   randomManagerAddress: PublicKey,
-  randomManagerOwner: PublicKey
+  randomManagerOwner: PublicKey,
+  coordiantorAddress: PublicKey
 ) {
-  class RandomManager extends getRandomManager(randomManagerOwner) {}
+  class RandomManager extends getRandomManager(
+    randomManagerOwner,
+    coordiantorAddress
+  ) {}
 
   class PLottery extends SmartContract {
     reducer = Reducer({ actionType: LotteryAction });

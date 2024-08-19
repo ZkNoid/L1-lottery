@@ -12,6 +12,7 @@ import {
   ZkonZkProgram,
 } from 'zkon-zkapp';
 import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { ZkOnCoordinatorAddress } from '../src/constants.js';
 
 export const configDefaultInstance = (): { transactionFee: number } => {
   const transactionFee = 100_000_000;
@@ -44,7 +45,11 @@ export const findPlottery = (epoch: string = 'current') => {
   let lotteryAddress = PublicKey.fromBase58(addresses.lotteryAddress);
   let randomManagerOwner = PublicKey.fromBase58(addresses.randomManagerOwner);
 
-  let PLottery = getPLottery(randomManagerAddress, randomManagerOwner);
+  let PLottery = getPLottery(
+    randomManagerAddress,
+    randomManagerOwner,
+    ZkOnCoordinatorAddress
+  );
   let plottery = new PLottery(lotteryAddress);
 
   return {
@@ -65,7 +70,10 @@ export const findRandomManager = (epoch: string = 'current') => {
   let randomManagerAddress = PublicKey.fromBase58(
     addresses.randomManagerAddress
   );
-  let RandomManager = getRandomManager(randomManagerOwner);
+  let RandomManager = getRandomManager(
+    randomManagerOwner,
+    ZkOnCoordinatorAddress
+  );
   let randomManager = new RandomManager(randomManagerAddress);
 
   return {

@@ -9,21 +9,26 @@ import {
   UInt32,
   UInt64,
 } from 'o1js';
-import { PLotteryType, generateNumbersSeed, getPLottery } from './PLottery';
-import { Ticket } from './Ticket';
-import { NumberPacked, convertToUInt64 } from './util';
-import { BLOCK_PER_ROUND, TICKET_PRICE, treasury } from './constants';
-import { DistibutionProgram } from './Proofs/DistributionProof';
+import { PLotteryType, generateNumbersSeed, getPLottery } from '../PLottery';
+import { Ticket } from '../Ticket';
+import { NumberPacked, convertToUInt64 } from '../util';
+import {
+  BLOCK_PER_ROUND,
+  TICKET_PRICE,
+  ZkOnCoordinatorAddress,
+  treasury,
+} from '../constants';
+import { DistibutionProgram } from '../Proofs/DistributionProof';
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
-import { PStateManager } from './StateManager/PStateManager';
-import { TicketReduceProgram } from './Proofs/TicketReduceProof';
+import { PStateManager } from '../StateManager/PStateManager';
+import { TicketReduceProgram } from '../Proofs/TicketReduceProof';
 import {
   CommitValue,
   MockedRandomManagerType,
   getMockedRandomManager,
-} from './Random/RandomManager';
-import { RandomManagerManager } from './StateManager/RandomManagerManager';
+} from '../Random/RandomManager';
+import { RandomManagerManager } from '../StateManager/RandomManagerManager';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -111,7 +116,11 @@ describe('Add', () => {
     randomManagerAddress = randomManagerPrivateKey.toPublicKey();
     let MockedRandomManager = getMockedRandomManager(deployerAccount);
     randomManager = new MockedRandomManager(randomManagerAddress);
-    let PLottery = getPLottery(randomManagerAddress, deployerAccount);
+    let PLottery = getPLottery(
+      randomManagerAddress,
+      deployerAccount,
+      PublicKey.empty()
+    );
 
     lottery = new PLottery(plotteryAddress);
     state = new PStateManager(

@@ -40,15 +40,16 @@ const { hashPart1, hashPart2 } = getIPFSCID();
 
 // Add events
 
-export function getRandomManager(owner: PublicKey) {
+export function getRandomManager(
+  owner: PublicKey,
+  coordinatorAddress: PublicKey
+) {
   class RandomManager extends SmartContract {
     @state(Field) commitRoot = State<Field>();
     @state(Field) resultRoot = State<Field>();
 
     @state(Field) curRandomValue = State<Field>();
     @state(UInt32) startSlot = State<UInt32>();
-
-    @state(PublicKey) coordinator = State<PublicKey>();
 
     events = {
       requested: ExternalRequestEvent,
@@ -175,7 +176,6 @@ export function getRandomManager(owner: PublicKey) {
         'receiveZkonResponse: prev random value was not consumed. Call reveal first'
       );
 
-      const coordinatorAddress = this.coordinator.getAndRequireEquals();
       const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
 
       const requestId = await coordinator.sendRequest(
@@ -205,7 +205,6 @@ export function getRandomManager(owner: PublicKey) {
         'receiveZkonResponse: prev random value was not consumed. Call reveal first'
       );
 
-      const coordinatorAddress = this.coordinator.getAndRequireEquals();
       const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
       await coordinator.recordRequestFullfillment(requestId, proof);
       this.curRandomValue.set(proof.publicInput.dataField);
@@ -250,7 +249,7 @@ export function getRandomManager(owner: PublicKey) {
 }
 
 export function getMockedRandomManager(owner: PublicKey) {
-  class MockedRandomManager extends getRandomManager(owner) {
+  class MockedRandomManager extends getRandomManager(owner, PublicKey.empty()) {
     @method async mockReceiveZkonResponse(newValue: Field) {
       this.curRandomValue.set(newValue);
     }

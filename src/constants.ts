@@ -16,3 +16,7 @@ export const mockWinningCombination = [1, 1, 1, 1, 1, 1];
 export const treasury = PublicKey.fromBase58(
   'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ'
 );
+
+export const ZkOnCoordinatorAddress = PublicKey.fromBase58(
+  'B62qnmsn4Bm4MzPujKeN1faxedz4p1cCAwA9mKAWzDjfb4c1ysVvWeK'
+);
