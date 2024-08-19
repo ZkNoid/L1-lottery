@@ -14,7 +14,7 @@ import {
   Reducer,
   Provable,
 } from 'o1js';
-import { Ticket } from './Ticket.js';
+import { Ticket } from './Structs/Ticket.js';
 import {
   BLOCK_PER_ROUND,
   COMMISION,
@@ -32,7 +32,7 @@ import {
   getEmpty2dMerkleMap,
   getNullifierId,
 } from './util.js';
-import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
+import { MerkleMap20, MerkleMap20Witness } from './Structs/CustomMerkleMap.js';
 import {
   ActionList,
   LotteryAction,

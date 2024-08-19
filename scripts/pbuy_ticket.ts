@@ -15,7 +15,7 @@
 import fs from 'fs/promises';
 import { Cache, Field, Mina, NetworkId, PrivateKey, fetchAccount } from 'o1js';
 import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
-import { Ticket } from '../src/Ticket.js';
+import { Ticket } from '../src/Structs/Ticket.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { PStateManager } from '../src/StateManager/PStateManager.js';
 import { findPlottery } from './utils.js';

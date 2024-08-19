@@ -8,7 +8,7 @@ import {
   PublicKey,
   UInt64,
 } from 'o1js';
-import { NUMBERS_IN_TICKET, SCORE_COEFFICIENTS } from './constants.js';
+import { NUMBERS_IN_TICKET, SCORE_COEFFICIENTS } from '../constants.js';
 
 function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);

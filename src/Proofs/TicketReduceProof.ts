@@ -8,8 +8,8 @@ import {
   UInt64,
   ZkProgram,
 } from 'o1js';
-import { Ticket } from '../Ticket.js';
-import { MerkleMap20Witness } from '../CustomMerkleMap.js';
+import { Ticket } from '../Structs/Ticket.js';
+import { MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
 import { TICKET_PRICE } from '../constants.js';
 
 // https://github.com/o1-labs/o1js-bindings/blob/71f2e698dadcdfc62c76a72248c0df71cfd39d4c/lib/binable.ts#L317

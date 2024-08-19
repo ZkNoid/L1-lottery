@@ -1,7 +1,7 @@
 import { Field } from 'o1js';
-import { Ticket } from '../Ticket.js';
+import { Ticket } from '../Structs/Ticket.js';
 import { TICKET_PRICE } from '../constants.js';
-import { MerkleMap20Witness } from '../CustomMerkleMap.js';
+import { MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
 import {
   addTicket as TRaddTicket,
   LotteryAction,

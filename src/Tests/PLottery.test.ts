@@ -10,7 +10,7 @@ import {
   UInt64,
 } from 'o1js';
 import { PLotteryType, generateNumbersSeed, getPLottery } from '../PLottery';
-import { Ticket } from '../Ticket';
+import { Ticket } from '../Structs/Ticket';
 import { NumberPacked, convertToUInt64 } from '../util';
 import {
   BLOCK_PER_ROUND,

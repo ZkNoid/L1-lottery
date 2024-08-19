@@ -1,5 +1,5 @@
 import { Field, JsonProof, MerkleMap, MerkleMapWitness, PublicKey } from 'o1js';
-import { Ticket } from '../Ticket.js';
+import { Ticket } from '../Structs/Ticket.js';
 import { getEmpty2dMerkleMap, getNullifierId } from '../util.js';
 import {
   BLOCK_PER_ROUND,
@@ -17,7 +17,7 @@ import {
 } from '../Proofs/DistributionProof.js';
 // import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 // import { Pickles } from 'o1js/dist/node/snarky';
-import { MerkleMap20, MerkleMap20Witness } from '../CustomMerkleMap.js';
+import { MerkleMap20, MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
