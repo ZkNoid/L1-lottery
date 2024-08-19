@@ -12,6 +12,7 @@ import { Ticket } from '../Ticket.js';
 import { MerkleMap20Witness } from '../CustomMerkleMap.js';
 import { TICKET_PRICE } from '../constants.js';
 
+// https://github.com/o1-labs/o1js-bindings/blob/71f2e698dadcdfc62c76a72248c0df71cfd39d4c/lib/binable.ts#L317
 function prefixToField(prefix: string) {
   if (prefix.length * 8 >= 255) throw Error('prefix too long');
   let bits = [...prefix]
@@ -27,7 +28,7 @@ function prefixToField(prefix: string) {
   return Field.fromBits(bits);
 }
 
-// hashing helpers
+// hashing helpers taken from https://github.com/o1-labs/o1js/blob/72a2779c6728e80e0c9d1462020347c954a0ffb5/src/lib/mina/events.ts#L28
 function initialState() {
   return [Field(0), Field(0), Field(0)] as [Field, Field, Field];
 }

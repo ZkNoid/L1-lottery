@@ -2,9 +2,6 @@ import {
   AccountUpdate,
   Cache,
   Field,
-  Gadgets,
-  MerkleMap,
-  MerkleMapWitness,
   Mina,
   Poseidon,
   PrivateKey,
@@ -12,31 +9,13 @@ import {
   UInt32,
   UInt64,
 } from 'o1js';
-import {
-  PLotteryType,
-  generateNumbersSeed,
-  getPLottery,
-  mockResult,
-} from './PLottery';
+import { PLotteryType, generateNumbersSeed, getPLottery } from './PLottery';
 import { Ticket } from './Ticket';
-import {
-  NumberPacked,
-  convertToUInt32,
-  convertToUInt64,
-  getEmpty2dMerkleMap,
-  getTotalScoreAndCommision,
-} from './util';
+import { NumberPacked, convertToUInt64 } from './util';
 import { BLOCK_PER_ROUND, TICKET_PRICE, treasury } from './constants';
-import {
-  DistibutionProgram,
-  DistributionProof,
-  DistributionProofPublicInput,
-  addTicket,
-  init,
-} from './Proofs/DistributionProof';
+import { DistibutionProgram } from './Proofs/DistributionProof';
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
-import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
 import { PStateManager } from './StateManager/PStateManager';
 import { TicketReduceProgram } from './Proofs/TicketReduceProof';
 import {
@@ -203,6 +182,12 @@ describe('Add', () => {
     await txn
       .sign([deployerKey, plotteryPrivateKey, randomManagerPrivateKey])
       .send();
+
+    const initTx = Mina.transaction(deployerAccount, async () => {
+      await randomManager.setStartSlot(lottery.startBlock.get());
+    });
+    await initTx.prove();
+    await initTx.sign([deployerKey]).send();
   }
   it('one user case', async () => {
     await localDeploy();

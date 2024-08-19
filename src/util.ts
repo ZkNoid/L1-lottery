@@ -30,10 +30,6 @@ export const getEmpty2dMerkleMap = (height?: number): MerkleMap => {
 
 export class NumberPacked extends PackedUInt32Factory() {}
 
-export function getTotalScoreAndCommision(value: UInt64) {
-  return value.add(value.mul(COMMISION).div(PRESICION));
-}
-
 export function getNullifierId(round: Field, ticketId: Field): Field {
   Gadgets.rangeCheck64(round);
   Gadgets.rangeCheck64(ticketId);
