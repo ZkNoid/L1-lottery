@@ -22,8 +22,8 @@ import {
   fetchAccount,
   fetchLastBlock,
 } from 'o1js';
-import { DistibutionProgram } from '../src/DistributionProof.js';
-import { TicketReduceProgram } from '../src/TicketReduceProof.js';
+import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { PStateManager } from '../src/StateManager/PStateManager.js';
 import { BLOCK_PER_ROUND } from '../src/constants.js';
 import { findPlottery } from './utils.js';

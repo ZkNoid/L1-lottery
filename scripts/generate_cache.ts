@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { Cache, PublicKey } from 'o1js';
-import { DistibutionProgram } from '../src/DistributionProof.js';
-import { TicketReduceProgram } from '../src/TicketReduceProof.js';
+import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { getPLottery } from '../src/PLottery.js';
 import { getRandomManager } from '../src/Random/RandomManager.js';
 

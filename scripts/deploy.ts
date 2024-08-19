@@ -6,8 +6,8 @@ import { getRandomManager } from '../src/Random/RandomManager.js';
 import { getPLottery } from '../src/PLottery.js';
 
 import * as fs from 'fs';
-import { DistibutionProgram } from '../src/DistributionProof.js';
-import { TicketReduceProgram } from '../src/TicketReduceProof.js';
+import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { configDefaultInstance } from './utils.js';
 
 const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));

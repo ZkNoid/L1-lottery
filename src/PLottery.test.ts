@@ -33,12 +33,12 @@ import {
   DistributionProofPublicInput,
   addTicket,
   init,
-} from './DistributionProof';
+} from './Proofs/DistributionProof';
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap';
 import { PStateManager } from './StateManager/PStateManager';
-import { TicketReduceProgram } from './TicketReduceProof';
+import { TicketReduceProgram } from './Proofs/TicketReduceProof';
 import {
   CommitValue,
   MockedRandomManagerType,

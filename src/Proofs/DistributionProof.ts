@@ -6,10 +6,10 @@ import {
   MerkleMap,
   SelfProof,
 } from 'o1js';
-import { Ticket } from './Ticket.js';
+import { Ticket } from '../Ticket.js';
 import { UInt64 } from 'o1js';
-import { NumberPacked } from './util.js';
-import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
+import { NumberPacked } from '../util.js';
+import { MerkleMap20, MerkleMap20Witness } from '../CustomMerkleMap.js';
 
 export class DistributionProofPublicInput extends Struct({
   winningCombination: Field,

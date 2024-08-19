@@ -5,9 +5,9 @@ import { getRandomManager } from '../src/Random/RandomManager.js';
 import {
   LotteryAction,
   TicketReduceProgram,
-} from '../src/TicketReduceProof.js';
+} from '../src/Proofs/TicketReduceProof.js';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
-import { DistibutionProgram } from '../src/DistributionProof.js';
+import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
 
 export const configDefaultInstance = (): { transactionFee: number } => {
   const transactionFee = 100_000_000;

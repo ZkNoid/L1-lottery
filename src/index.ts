@@ -11,13 +11,13 @@ import {
   DistributionProofPublicOutput,
   DistibutionProgram,
   DistributionProof,
-} from './DistributionProof';
+} from './Proofs/DistributionProof.js';
 import {
   TicketReduceProofPublicInput,
   TicketReduceProofPublicOutput,
   TicketReduceProgram,
   TicketReduceProof,
-} from './TicketReduceProof';
+} from './Proofs/TicketReduceProof.js';
 
 export {
   DistributionProofPublicInput,

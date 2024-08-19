@@ -1,5 +1,5 @@
 import { getPLottery } from '../src/PLottery.js';
-import { DistibutionProgram } from '../src/DistributionProof.js';
+import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
 import { writeFileSync } from 'fs';
 import { PublicKey } from 'o1js';
 import { findPlottery } from './utils.js';

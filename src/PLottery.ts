@@ -24,7 +24,7 @@ import {
   mockWinningCombination,
   treasury,
 } from './constants.js';
-import { DistributionProof } from './DistributionProof.js';
+import { DistributionProof } from './Proofs/DistributionProof.js';
 import {
   NumberPacked,
   convertToUInt32,
@@ -37,7 +37,7 @@ import {
   ActionList,
   LotteryAction,
   TicketReduceProof,
-} from './TicketReduceProof.js';
+} from './Proofs/TicketReduceProof.js';
 import { getRandomManager } from './Random/RandomManager.js';
 
 export interface MerkleCheckResult {

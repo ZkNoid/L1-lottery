@@ -1,23 +1,6 @@
-import {
-  AccountUpdate,
-  Cache,
-  Field,
-  JsonProof,
-  MerkleMap,
-  MerkleMapWitness,
-  Mina,
-  PrivateKey,
-  PublicKey,
-  UInt32,
-  UInt64,
-} from 'o1js';
+import { Field, JsonProof, MerkleMap, MerkleMapWitness, PublicKey } from 'o1js';
 import { Ticket } from '../Ticket.js';
-import {
-  NumberPacked,
-  getEmpty2dMerkleMap,
-  comisionTicket,
-  getNullifierId,
-} from '../util.js';
+import { getEmpty2dMerkleMap, getNullifierId } from '../util.js';
 import {
   BLOCK_PER_ROUND,
   COMMISION,
@@ -31,7 +14,7 @@ import {
   DistributionProofPublicInput,
   addTicket,
   init,
-} from '../DistributionProof.js';
+} from '../Proofs/DistributionProof.js';
 // import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 // import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from '../CustomMerkleMap.js';

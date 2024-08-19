@@ -1,17 +1,6 @@
-import {
-  Field,
-  Gadgets,
-  MerkleMap,
-  Poseidon,
-  PublicKey,
-  UInt32,
-  UInt64,
-  UInt8,
-} from 'o1js';
+import { Field, Gadgets, MerkleMap, Poseidon, UInt32, UInt64 } from 'o1js';
 import { MerkleMap20 } from './CustomMerkleMap.js';
-import { Ticket } from './Ticket.js';
 import { COMMISION, PRESICION } from './constants.js';
-import { getPLottery } from './PLottery.js';
 import { PackedUInt32Factory } from 'o1js-pack';
 
 export const getEmpty2dMerkleMap = (height?: number): MerkleMap => {
@@ -40,12 +29,6 @@ export const getEmpty2dMerkleMap = (height?: number): MerkleMap => {
 };
 
 export class NumberPacked extends PackedUInt32Factory() {}
-
-export const comisionTicket = Ticket.from(
-  Array(6).fill(0),
-  PublicKey.empty(),
-  1
-);
 
 export function getTotalScoreAndCommision(value: UInt64) {
   return value.add(value.mul(COMMISION).div(PRESICION));

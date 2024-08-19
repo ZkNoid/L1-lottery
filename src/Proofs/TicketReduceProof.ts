@@ -8,9 +8,9 @@ import {
   UInt64,
   ZkProgram,
 } from 'o1js';
-import { Ticket } from './Ticket.js';
-import { MerkleMap20Witness } from './CustomMerkleMap.js';
-import { TICKET_PRICE } from './constants.js';
+import { Ticket } from '../Ticket.js';
+import { MerkleMap20Witness } from '../CustomMerkleMap.js';
+import { TICKET_PRICE } from '../constants.js';
 
 function prefixToField(prefix: string) {
   if (prefix.length * 8 >= 255) throw Error('prefix too long');

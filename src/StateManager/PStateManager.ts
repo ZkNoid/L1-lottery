@@ -10,7 +10,7 @@ import {
   TicketReduceProofPublicInput,
   init as TRinit,
   cutActions,
-} from '../TicketReduceProof.js';
+} from '../Proofs/TicketReduceProof.js';
 import { BaseStateManager } from './BaseStateManager.js';
 import { PLotteryType } from '../PLottery.js';
 
