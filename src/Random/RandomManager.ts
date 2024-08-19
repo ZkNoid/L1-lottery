@@ -20,6 +20,7 @@ import {
   ZkonRequestCoordinator,
   ExternalRequestEvent,
 } from 'zkon-zkapp';
+import { getIPFSCID } from '../../scripts/utils.js';
 
 const emptyMapRoot = new MerkleMap().getRoot();
 
@@ -35,8 +36,7 @@ export class CommitValue extends Struct({
   }
 }
 
-export const hashPart1 = Field(0);
-export const hashPart2 = Field(1);
+const { hashPart1, hashPart2 } = getIPFSCID();
 
 // Add events
 

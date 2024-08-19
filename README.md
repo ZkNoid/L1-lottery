@@ -99,7 +99,7 @@ First we commit our hidden value:
     }
 ```
 
-Then send request for ZkOn oracle, with request that lies on IPFS<bafkreifmsypu6h46aucsk7ouwq2mvxpich2zs6lv2puhqr5t5w3hsl6dl4>. It sends request on quantum-random.com to get random number.
+Then send request for ZkOn oracle, with request that lies on IPFS(cid can be found [here](./random_request_cid)). It sends request on quantum-random.com to get random number.
 
 ```ts
 @method async callZkon() {

@@ -1,4 +1,4 @@
-import { Cache, Mina, PublicKey } from 'o1js';
+import { Cache, Field, Mina, PublicKey } from 'o1js';
 import * as fs from 'fs';
 import { PLotteryType, getPLottery } from '../src/PLottery.js';
 import { getRandomManager } from '../src/Random/RandomManager.js';
@@ -6,7 +6,11 @@ import {
   LotteryAction,
   TicketReduceProgram,
 } from '../src/Proofs/TicketReduceProof.js';
-import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
+import {
+  StringCircuitValue,
+  ZkonRequestCoordinator,
+  ZkonZkProgram,
+} from 'zkon-zkapp';
 import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
 
 export const configDefaultInstance = (): { transactionFee: number } => {
@@ -93,4 +97,21 @@ export const compilePlottery = async (epoch: string = 'current') => {
   await PLottery.compile({
     cache: Cache.FileSystem(`./cache/PLottery/${plottery.address.toBase58()}`),
   });
+};
+
+export const getIPFSCID = (): { hashPart1: Field; hashPart2: Field } => {
+  function segmentHash(ipfsHashFile: string) {
+    const ipfsHash0 = ipfsHashFile.slice(0, 30); // first part of the ipfsHash
+    const ipfsHash1 = ipfsHashFile.slice(30); // second part of the ipfsHash
+
+    const hashPart1 = new StringCircuitValue(ipfsHash0).toField();
+
+    const hashPart2 = new StringCircuitValue(ipfsHash1).toField();
+
+    return { hashPart1, hashPart2 };
+  }
+
+  let cidBuffer = fs.readFileSync('./random_request_cid');
+
+  return segmentHash(cidBuffer.toString());
 };
