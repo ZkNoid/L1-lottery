@@ -1,49 +1,31 @@
-import {
-  BuyTicketEvent,
-  GetRewardEvent,
-  ProduceResultEvent,
-  RefundEvent,
-  ReduceEvent,
-} from './PLottery.js';
+export * from './PLottery.js';
+export * from './Ticket.js';
+export * from './util.js';
+export * from './CustomMerkleMap.js';
+export * from './constants.js';
+export * from './StateManager/PStateManager.js';
+export * from './constants';
 
-import { Ticket } from './Ticket';
 import {
+  DistributionProofPublicInput,
+  DistributionProofPublicOutput,
   DistibutionProgram,
   DistributionProof,
-  DistributionProofPublicInput,
-} from './DistributionProof.js';
+} from './DistributionProof';
 import {
-  NumberPacked,
-  comisionTicket,
-  getEmpty2dMerkleMap,
-  getNullifierId,
-} from './util.js';
-import { MerkleMap20, MerkleMap20Witness } from './CustomMerkleMap.js';
-import { BLOCK_PER_ROUND, TICKET_PRICE } from './constants.js';
-import { PStateManager } from './StateManager/PStateManager.js';
-import { TicketReduceProgram } from './TicketReduceProof.js';
-import { COMMISION, PRESICION } from './constants';
+  TicketReduceProofPublicInput,
+  TicketReduceProofPublicOutput,
+  TicketReduceProgram,
+  TicketReduceProof,
+} from './TicketReduceProof';
 
 export {
-  Ticket,
-  DistibutionProgram,
-  getEmpty2dMerkleMap,
-  getNullifierId,
-  MerkleMap20,
-  MerkleMap20Witness,
-  TICKET_PRICE,
-  NumberPacked,
   DistributionProofPublicInput,
-  comisionTicket,
-  PStateManager,
-  TicketReduceProgram,
-  BLOCK_PER_ROUND,
-  BuyTicketEvent,
-  GetRewardEvent,
-  ProduceResultEvent,
-  RefundEvent,
-  ReduceEvent,
+  DistributionProofPublicOutput,
+  DistibutionProgram,
   DistributionProof,
-  COMMISION,
-  PRESICION,
+  TicketReduceProofPublicInput,
+  TicketReduceProofPublicOutput,
+  TicketReduceProgram,
+  TicketReduceProof,
 };
