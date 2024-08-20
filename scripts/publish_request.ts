@@ -1,14 +1,18 @@
-import { createHelia } from 'helia';
-import { unixfs } from '@helia/unixfs';
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { readFileSync, writeFileSync } from 'fs';
+import { PinataSDK } from 'pinata';
+
+// bafkreif2ett25ddjcevhnmaxmimkjdoigtsaj6bfyfil5gu65l2r6luxqm
+
+const pinata = new PinataSDK({
+  pinataJwt: process.env.PINATA_JWT!,
+  pinataGateway: process.env.PINATA_GATEWAY,
+});
 
 const contractCode = readFileSync('./build/src/Random/RandomManager.js');
 
-// create a Helia node
-const helia = await createHelia();
-const ipfs = unixfs(helia);
-
-const encoder = new TextEncoder();
 const json = {
   method: 'GET',
   baseURL: 'https://quantum-random.com/quantum',
@@ -16,14 +20,9 @@ const json = {
   zkapp: contractCode.toString(),
 };
 
-console.log(json);
+let response = await pinata.upload.json(json);
 
-const bytes = encoder.encode(JSON.stringify(json));
-
-// add the bytes to your node and receive a unique content identifier
-const cid = await ipfs.addBytes(bytes);
-
-console.log(cid);
-writeFileSync('./random_request_cid', cid.toString());
+console.log(response.IpfsHash);
+writeFileSync('./random_request_cid', response.IpfsHash.toString());
 
 writeFileSync('./random_request_file', JSON.stringify(json, null, 2));
