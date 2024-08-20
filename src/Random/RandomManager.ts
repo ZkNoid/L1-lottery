@@ -12,7 +12,7 @@ import {
   method,
   state,
 } from 'o1js';
-import { BLOCK_PER_ROUND } from '../constants.js';
+import { BLOCK_PER_ROUND, ZkOnCoordinatorAddress } from '../constants.js';
 import { convertToUInt32 } from '../util.js';
 
 import {
@@ -42,7 +42,7 @@ const { hashPart1, hashPart2 } = getIPFSCID();
 
 export function getRandomManager(
   owner: PublicKey,
-  coordinatorAddress: PublicKey
+  coordinatorAddress: PublicKey = ZkOnCoordinatorAddress
 ) {
   class RandomManager extends SmartContract {
     @state(Field) commitRoot = State<Field>();

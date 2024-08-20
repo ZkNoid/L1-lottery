@@ -21,6 +21,7 @@ import {
   NUMBERS_IN_TICKET,
   PRESICION,
   TICKET_PRICE,
+  ZkOnCoordinatorAddress,
   mockWinningCombination,
   treasury,
 } from './constants.js';
@@ -99,7 +100,7 @@ export class ReduceEvent extends Struct({
 export function getPLottery(
   randomManagerAddress: PublicKey,
   randomManagerOwner: PublicKey,
-  coordiantorAddress: PublicKey
+  coordiantorAddress: PublicKey = ZkOnCoordinatorAddress
 ) {
   class RandomManager extends getRandomManager(
     randomManagerOwner,

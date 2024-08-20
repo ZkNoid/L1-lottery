@@ -25,3 +25,5 @@ const cid = await ipfs.addBytes(bytes);
 
 console.log(cid);
 writeFileSync('./random_request_cid', cid.toString());
+
+writeFileSync('./random_request_file', JSON.stringify(json, null, 2));
