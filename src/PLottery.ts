@@ -50,19 +50,13 @@ export const mockResult = NumberPacked.pack(
 );
 
 export const generateNumbersSeed = (seed: Field): UInt32[] => {
-  const initMask = 0b1111;
-  const masks = [...Array(NUMBERS_IN_TICKET)].map(
-    (val, i) => initMask << (i * 4)
-  );
-
-  const numbers = masks
-    .map((mask, i) => {
-      const masked = Gadgets.and(seed, Field.from(mask), 254);
-      return Gadgets.rightShift64(masked, i * 4);
-    })
-    .map((val) => convertToUInt32(val))
-    .map((val) => val.mod(9).add(1));
-
+  let bits = seed.toBits();
+  const numbers = [...Array(6)].map((_, i) => {
+    let res = UInt32.from(0);
+    res.value = Field.fromBits(bits.slice(32 * i, 32 * (i + 1)));
+    res = res.mod(9).add(1);
+    return res;
+  });
   return numbers;
 };
 
