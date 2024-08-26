@@ -1,22 +1,47 @@
+import { Field, Mina } from 'o1js';
+import { RandomManagerManager } from '../src/StateManager/RandomManagerManager';
 import {
   compileRandomManager,
   configDefaultInstance,
   findPlottery,
   findRandomManager,
+  getDeployer,
+  getRMStoreManager,
+  storeRMStoreManager,
 } from './utils';
+import { CommitValue } from '../src/Random/RandomManager';
 
-// const restoreCommitTree = () => {
-//   let addressesBuffer = fs.readFileSync(`./deploy/addresses/${epoch}.json`);
-// }
+configDefaultInstance();
 
-// configDefaultInstance();
+let round = process.argv[2];
 
-// let deploy_epoch = process.argv[2] ? process.argv[2] : 'current';
+if (!round) {
+  throw Error(`You should specify round`);
+}
 
-// let { randomManager } = findRandomManager(deploy_epoch);
+let deploy_epoch = process.argv[3] ? process.argv[3] : 'current';
 
-// await compileRandomManager(deploy_epoch);
+let { deployer, deployerKey } = getDeployer();
 
-// Restore commit tree
+let { randomManager } = findRandomManager(deploy_epoch);
 
-// Send transaction
+await compileRandomManager(deploy_epoch);
+
+let rmStoreManager: RandomManagerManager = getRMStoreManager(deploy_epoch);
+
+let value = Field.random();
+let salt = Field.random();
+let commitValue = new CommitValue({ value, salt });
+
+const { witness: commitRoundWitness } = rmStoreManager.getCommitWitness(+round);
+
+let tx = await Mina.transaction(deployer, async () => {
+  await randomManager.commit(commitValue, commitRoundWitness);
+});
+
+await tx.prove();
+await tx.sign([deployerKey]).send();
+
+rmStoreManager.addCommit(+round, commitValue);
+
+storeRMStoreManager(rmStoreManager, deploy_epoch);

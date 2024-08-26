@@ -1,4 +1,6 @@
-import { Cache, Field, Mina, PublicKey } from 'o1js';
+import dotenv from 'dotenv';
+dotenv.config();
+import { Cache, Field, Mina, PrivateKey, PublicKey } from 'o1js';
 import * as fs from 'fs';
 import { PLotteryType, getPLottery } from '../src/PLottery.js';
 import { getRandomManager } from '../src/Random/RandomManager.js';
@@ -13,6 +15,7 @@ import {
 } from 'zkon-zkapp';
 import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
 import { ZkOnCoordinatorAddress } from '../src/constants.js';
+import { RandomManagerManager } from '../src/StateManager/RandomManagerManager.js';
 
 export const configDefaultInstance = (): { transactionFee: number } => {
   const transactionFee = 100_000_000;
@@ -82,6 +85,46 @@ export const findRandomManager = (epoch: string = 'current') => {
   };
 };
 
+export const getRMStoreManager = (
+  epoch: string = 'current'
+): RandomManagerManager => {
+  let addressesBuffer = fs.readFileSync(`./deploy/addresses/${epoch}.json`);
+  let addresses: {
+    randomManagerAddress: string;
+    lotteryAddress: string;
+    randomManagerOwner: string;
+  } = JSON.parse(addressesBuffer.toString());
+
+  const rmPath = `./store/RM/${addresses.randomManagerAddress}.json`;
+
+  if (!fs.existsSync(rmPath)) {
+    return new RandomManagerManager();
+  }
+
+  let rmBuffer = fs.readFileSync(rmPath);
+  return RandomManagerManager.fromJSON(rmBuffer.toString());
+};
+
+export const storeRMStoreManager = (
+  rmStoreManager: RandomManagerManager,
+  epoch: string = 'current'
+) => {
+  let addressesBuffer = fs.readFileSync(`./deploy/addresses/${epoch}.json`);
+  let addresses: {
+    randomManagerAddress: string;
+    lotteryAddress: string;
+    randomManagerOwner: string;
+  } = JSON.parse(addressesBuffer.toString());
+
+  const rmPath = `./store/RM/${addresses.randomManagerAddress}.json`;
+
+  if (!fs.existsSync(`./store/RM/`)) {
+    fs.mkdirSync('./store/RM/');
+  }
+
+  fs.writeFileSync(rmPath, rmStoreManager.toJSON());
+};
+
 export const compileRandomManager = async (epoch: string = 'current') => {
   let { RandomManager, randomManager } = findRandomManager(epoch);
 
@@ -122,4 +165,17 @@ export const getIPFSCID = (): { hashPart1: Field; hashPart2: Field } => {
   let cidBuffer = fs.readFileSync('./random_request_cid');
 
   return segmentHash(cidBuffer.toString());
+};
+
+export const getDeployer = (): {
+  deployer: PublicKey;
+  deployerKey: PrivateKey;
+} => {
+  let deployerKey = PrivateKey.fromBase58(process.env.DEPLOYER_KEY!);
+  let deployer = deployerKey.toPublicKey();
+
+  return {
+    deployer,
+    deployerKey,
+  };
 };

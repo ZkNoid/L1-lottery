@@ -6,6 +6,7 @@ import {
   Poseidon,
   PrivateKey,
   PublicKey,
+  Struct,
   UInt32,
   UInt64,
 } from 'o1js';
@@ -94,7 +95,7 @@ describe('Add', () => {
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
-      rmStateManager.updateCommitMap(round, commitValue.hash());
+      rmStateManager.addCommit(round, commitValue);
     };
     produceResultInRM = async (
       round: number,
@@ -113,7 +114,7 @@ describe('Add', () => {
       });
       await tx2.prove();
       await tx2.sign([deployerKey]).send();
-      rmStateManager.updateResultMap(
+      rmStateManager.addResultValue(
         round,
         Poseidon.hash([commitValue.value, vrfValue])
       );
@@ -157,6 +158,30 @@ describe('Add', () => {
       expect(rmStateManager.resultMap.getRoot()).toEqual(
         randomManager.resultRoot.get()
       );
+    }
+  });
+
+  it.only('JSON works', async () => {
+    for (let i = 0; i < testCommitValues.length; i++) {
+      rmStateManager.addCommit(i, testCommitValues[i]);
+      rmStateManager.addResultValue(i, testVRFValues[i]);
+    }
+
+    let json = rmStateManager.toJSON();
+
+    let copy = RandomManagerManager.fromJSON(json);
+
+    expect(rmStateManager.commitMap.getRoot()).toEqual(
+      copy.commitMap.getRoot()
+    );
+
+    expect(rmStateManager.resultMap.getRoot()).toEqual(
+      copy.resultMap.getRoot()
+    );
+
+    for (let i = 0; i < testCommitValues.length; i++) {
+      expect(rmStateManager.commits[i].hash()).toEqual(copy.commits[i].hash());
+      expect(rmStateManager.results[i]).toEqual(copy.results[i]);
     }
   });
 });
