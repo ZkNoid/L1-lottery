@@ -153,7 +153,7 @@ describe('Add', () => {
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
-      rmStateManager.updateCommitMap(round, testCommitValue.hash());
+      rmStateManager.addCommit(round, testCommitValue);
     };
     produceResultInRM = async (round: number) => {
       let tx = Mina.transaction(deployerAccount, async () => {
@@ -172,7 +172,7 @@ describe('Add', () => {
       });
       await tx2.prove();
       await tx2.sign([deployerKey]).send();
-      rmStateManager.updateResultMap(
+      rmStateManager.addResultValue(
         round,
         Poseidon.hash([testCommitValue.value, testVRFValue])
       );
