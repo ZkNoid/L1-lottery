@@ -106,12 +106,25 @@ export class PStateManager extends BaseStateManager {
     );
   }
 
-  async reduceTickets(): Promise<TicketReduceProof> {
-    const initialState = this.contract.lastProcessedState.get();
+  async reduceTickets(
+    initialState?: Field,
+    actionLists?: LotteryAction[][],
+    updateState: boolean = true
+  ): Promise<TicketReduceProof> {
+    let addedTicketInfo = [];
 
-    const actionLists = await this.contract.reducer.fetchActions({
-      fromActionState: initialState,
-    });
+    if (!initialState) {
+      initialState = this.contract.lastProcessedState.get();
+    }
+
+    if (!actionLists) {
+      actionLists = await this.contract.reducer.fetchActions({
+        fromActionState: initialState,
+      });
+    }
+    // const actionLists = await this.contract.reducer.fetchActions({
+    //   fromActionState: initialState,
+    // });
 
     // All this params can be random for init function, because init do not use them
     let input = new TicketReduceProofPublicInput({
@@ -184,6 +197,9 @@ export class PStateManager extends BaseStateManager {
           : await TicketReduceProgram.addTicket(input, curProof);
 
         this.addTicket(action.ticket, +action.round, true);
+        addedTicketInfo.push({
+          round: action.round,
+        });
       }
 
       // Again here we do not need specific input, as it is not using here
@@ -194,6 +210,10 @@ export class PStateManager extends BaseStateManager {
             input
           )
         : await TicketReduceProgram.cutActions(input, curProof);
+    }
+
+    if (!updateState) {
+      addedTicketInfo.forEach((v) => this.removeLastTicket(+v.round));
     }
 
     return curProof;
