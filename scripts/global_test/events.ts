@@ -19,11 +19,19 @@ const generatePlayers = () => {
 
 const players = generatePlayers();
 
+interface TicketInfo {
+  ticket: Ticket;
+  round: Field;
+}
+
 class Context {
   lottery: PLotteryType;
   randomManager: RandomManagerType;
   lotterySM: PStateManager;
   randomManagerSM: RandomManagerManager;
+
+  boughtTickets: TicketInfo[];
+  usedTickets: TicketInfo[];
 }
 
 class Deviation {
@@ -68,6 +76,24 @@ abstract class TestEvent {
     }
   }
   abstract invoke(): Promise<void>;
+
+  async checkedInoke() {
+    let shouldFail = this.activeDeviations.length > 0;
+    try {
+      await this.invoke();
+    } catch (e) {
+      if (shouldFail) {
+        console.log(`Expected error ${e} occured`);
+        return;
+      }
+      throw Error(`Unexpected error ${e} occured`);
+    }
+
+    if (shouldFail) {
+      throw Error(`Expected error, but nothing heppen`);
+      return;
+    }
+  }
 }
 
 class BuyTicketEvent extends TestEvent {
@@ -140,7 +166,67 @@ class BuyTicketEvent extends TestEvent {
 
 // class RefundTicketEvent extends TestEvent {}
 
-// class RedeemTicketEvent extends TestEvent {}
+class RedeemTicketEvent extends TestEvent {
+  round: Field;
+  ticket: Ticket;
+
+  constructor(context: Context, round: Field, ticket: Ticket) {
+    super(context, players[randomInt(players.length)]);
+    this.round = round;
+    this.ticket = ticket;
+  }
+
+  static override async randomValid(
+    context: Context
+  ): Promise<RedeemTicketEvent> {
+    const { ticket, round } =
+      context.boughtTickets[randomInt(context.boughtTickets.length)];
+
+    return new RedeemTicketEvent(context, round, ticket);
+  }
+
+  getDeviations(): Deviation[] {
+    return [
+      {
+        name: 'used ticket',
+        field: 'ticket',
+        probability: 0.1,
+        apply: async () => {
+          const { ticket, round } =
+            this.context.boughtTickets[
+              randomInt(this.context.boughtTickets.length)
+            ];
+
+          this.round = round;
+          this.ticket = ticket;
+        },
+        expectedError: '????',
+      },
+    ];
+  }
+
+  async invoke() {
+    const rp = await this.context.lotterySM.getReward(+this.round, this.ticket);
+    let tx = await Mina.transaction(this.sender.publicKey, async () => {
+      await this.context.lottery.getReward(
+        this.ticket,
+        rp.roundWitness,
+        rp.roundTicketWitness,
+        rp.dp,
+        rp.winningNumbers,
+        rp.resultWitness,
+        rp.bankValue,
+        rp.bankWitness,
+        rp.nullifierWitness
+      );
+    });
+
+    await tx.prove();
+    await tx.sign([this.sender.privateKey]).send();
+
+    // Change bought ticket to used one
+  }
+}
 
 // class RandomValueGenerationEvent extends TestEvent {}
 
@@ -201,8 +287,6 @@ class ProduceResultEvent extends TestEvent {
   }
 
   async invoke() {
-    const shouldFail = this.addDeviation.length > 0;
-
     const resultWV = this.context.randomManagerSM.getResultWitness(
       this.randomRound
     );
@@ -213,31 +297,18 @@ class ProduceResultEvent extends TestEvent {
         NumberPacked.pack(generateNumbersSeed(resultWV.value))
       );
 
-    try {
-      let tx = Mina.transaction(this.sender.publicKey, async () => {
-        await this.context.lottery.produceResult(
-          resultWitness,
-          bankValue,
-          bankWitness,
-          resultWV.witness,
-          resultWV.value
-        );
-      });
+    let tx = Mina.transaction(this.sender.publicKey, async () => {
+      await this.context.lottery.produceResult(
+        resultWitness,
+        bankValue,
+        bankWitness,
+        resultWV.witness,
+        resultWV.value
+      );
+    });
 
-      await tx.prove();
-      await tx.sign([this.sender.privateKey]).send();
-    } catch (e) {
-      if (shouldFail) {
-        console.log(`Expected error on produce result: ${e}`);
-        return;
-      }
-
-      throw new Error(`Unexpected error on produce result: ${e}`);
-    }
-
-    if (shouldFail) {
-      console.log(`Expected error, but nothing happened on produce result`);
-    }
+    await tx.prove();
+    await tx.sign([this.sender.privateKey]).send();
   }
 }
 
@@ -322,25 +393,12 @@ class ReduceTicketsEvent extends TestEvent {
       !shouldFail
     );
 
-    try {
-      let tx = Mina.transaction(this.sender.publicKey, async () => {
-        await this.context.lottery.reduceTickets(reduceProof);
-      });
+    let tx = Mina.transaction(this.sender.publicKey, async () => {
+      await this.context.lottery.reduceTickets(reduceProof);
+    });
 
-      await tx.prove();
-      await tx.sign([this.sender.privateKey]).send();
-    } catch (e) {
-      if (shouldFail) {
-        console.log(`Found expected error: ${e}`);
-        return;
-      } else {
-        throw `Found unexpected error: ${e} on reduceTickets`;
-      }
-    }
-
-    if (shouldFail) {
-      throw `Expected error on reduceTickets reduce`;
-    }
+    await tx.prove();
+    await tx.sign([this.sender.privateKey]).send();
   }
 }
 
