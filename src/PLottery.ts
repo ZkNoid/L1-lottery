@@ -216,6 +216,7 @@ export function getPLottery(
       let lastProcessedTicketId =
         this.lastProcessedTicketId.getAndRequireEquals();
       let initialRoot = this.ticketRoot.getAndRequireEquals();
+      let initialBankRoot = this.bankRoot.getAndRequireEquals();
 
       // Check match of proof data and onchain values.
 
@@ -223,6 +224,11 @@ export function getPLottery(
       reduceProof.publicOutput.initialTicketRoot.assertEquals(
         initialRoot,
         'Wrong initial root'
+      );
+
+      reduceProof.publicOutput.initialBankRoot.assertEquals(
+        initialBankRoot,
+        'Wrong bank root'
       );
 
       // Check that all actions was processed.
