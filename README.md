@@ -4,6 +4,40 @@ This repo contains smart contracts and related scripts for ZkNoid L1 Lottery pro
 
 ## Technical overview
 
+**Pre-Round Phase**
+
+- Before a round begins, the only action permitted is committing a value for randomness.
+
+**Active Round**
+
+- A round is considered active if the current chain slot falls within the `[roundStartBlock, roundEndBlock]` range.
+
+**During the Round**
+
+- Users are allowed to `buyTickets`.
+
+**Post-Round Actions**
+
+- Once the round concludes, the following steps must be completed before users can claim rewards for their tickets:
+  1. **Ticket Reduction**:
+
+     - `ticketReduce` must be invoked on the `PLottery` contract. This function will reduce all tickets from the target round and at least one from the subsequent round.
+
+  2. **Randomness Reveal**:
+
+     - `reveal` should be called on the `RandomManager` for the target round. This will generate the seed required for winning ticket generation.
+
+  3. **Result Production**:
+     - `produceResult` must be executed on the `PLottery` contract to determine the winning ticket for the round.
+
+**Reward Collection**
+
+- After the above steps are completed, users can call `getReward` to claim their rewards for the tickets.
+
+**Fallback for Result Generation**
+
+- If the result is not produced within the next two rounds, users will be eligible to request a refund for their tickets.
+
 ### Storage usage
 
 ```ts
