@@ -161,7 +161,7 @@ describe('Add', () => {
     }
   });
 
-  it.only('JSON works', async () => {
+  it('JSON works', async () => {
     for (let i = 0; i < testCommitValues.length; i++) {
       rmStateManager.addCommit(i, testCommitValues[i]);
       rmStateManager.addResultValue(i, testVRFValues[i]);
