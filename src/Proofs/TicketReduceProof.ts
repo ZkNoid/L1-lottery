@@ -13,19 +13,23 @@ import { MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
 import { TICKET_PRICE } from '../constants.js';
 
 // https://github.com/o1-labs/o1js-bindings/blob/71f2e698dadcdfc62c76a72248c0df71cfd39d4c/lib/binable.ts#L317
-function prefixToField(prefix: string) {
-  if (prefix.length * 8 >= 255) throw Error('prefix too long');
-  let bits = [...prefix]
-    .map((char) => {
-      // convert char to 8 bits
-      let bits = [];
-      for (let j = 0, c = char.charCodeAt(0); j < 8; j++, c >>= 1) {
-        bits.push(!!(c & 1));
-      }
-      return bits;
-    })
-    .flat();
-  return Field.fromBits(bits);
+let encoder = new TextEncoder();
+
+function stringToBytes(s: string) {
+  return [...encoder.encode(s)];
+}
+
+function prefixToField<Field>(
+  // Field: GenericSignableField<Field>,
+  Field: any,
+  prefix: string
+) {
+  let fieldSize = Field.sizeInBytes;
+  if (prefix.length >= fieldSize) throw Error('prefix too long');
+  let stringBytes = stringToBytes(prefix);
+  return Field.fromBytes(
+    stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0))
+  );
 }
 
 // hashing helpers taken from https://github.com/o1-labs/o1js/blob/72a2779c6728e80e0c9d1462020347c954a0ffb5/src/lib/mina/events.ts#L28
@@ -33,7 +37,7 @@ function initialState() {
   return [Field(0), Field(0), Field(0)] as [Field, Field, Field];
 }
 function salt(prefix: string) {
-  return Poseidon.update(initialState(), [prefixToField(prefix)]);
+  return Poseidon.update(initialState(), [prefixToField(Field, prefix)]);
 }
 function hashWithPrefix(prefix: string, input: Field[]) {
   let init = salt(prefix);
