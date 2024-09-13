@@ -130,12 +130,12 @@ export const addTicket = async (
 ): Promise<TicketReduceProofPublicOutput> => {
   prevProof.verify();
 
-  let [prevRoundRoot, ticketId] = input.roundTicketWitness.computeRootAndKey(
+  let [prevRoundRoot, ticketId] = input.roundTicketWitness.computeRootAndKeyV2(
     Field(0)
   );
 
   let [prevTicketRoot, round] =
-    input.roundWitness.computeRootAndKey(prevRoundRoot);
+    input.roundWitness.computeRootAndKeyV2(prevRoundRoot);
 
   let expectedTicketId = Provable.if(
     round.greaterThan(prevProof.publicOutput.lastProcessedRound),
@@ -152,14 +152,14 @@ export const addTicket = async (
   round.assertEquals(input.action.round, 'Wrong round in witness');
 
   // Update root
-  let [newTicketRoundRoot] = input.roundTicketWitness.computeRootAndKey(
+  let [newTicketRoundRoot] = input.roundTicketWitness.computeRootAndKeyV2(
     input.action.ticket.hash()
   );
 
   let [newTicketRoot] =
-    input.roundWitness.computeRootAndKey(newTicketRoundRoot);
+    input.roundWitness.computeRootAndKeyV2(newTicketRoundRoot);
 
-  let [prevBankRoot, bankKey] = input.bankWitness.computeRootAndKey(
+  let [prevBankRoot, bankKey] = input.bankWitness.computeRootAndKeyV2(
     input.bankValue
   );
   bankKey.assertEquals(round, 'Wrong bankKey');
@@ -169,7 +169,7 @@ export const addTicket = async (
     'Wrong bank root'
   );
 
-  let [newBankRoot] = input.bankWitness.computeRootAndKey(
+  let [newBankRoot] = input.bankWitness.computeRootAndKeyV2(
     input.bankValue.add(TICKET_PRICE.mul(input.action.ticket.amount).value)
   );
 

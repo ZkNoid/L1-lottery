@@ -90,7 +90,7 @@ export function getRandomManager(
     ) {
       this.permissionCheck();
 
-      const [prevCommitRoot, round] = commitWitness.computeRootAndKey(Field(0));
+      const [prevCommitRoot, round] = commitWitness.computeRootAndKeyV2(Field(0));
 
       this.checkRoundDoNotEnd(convertToUInt32(round));
 
@@ -98,7 +98,7 @@ export function getRandomManager(
         .getAndRequireEquals()
         .assertEquals(prevCommitRoot, 'commit: Wrong commit witness');
 
-      const [newCommitRoot] = commitWitness.computeRootAndKey(
+      const [newCommitRoot] = commitWitness.computeRootAndKeyV2(
         commitValue.hash()
       );
       this.commitRoot.set(newCommitRoot);
@@ -128,7 +128,7 @@ export function getRandomManager(
       );
 
       // Check commit witness
-      const [prevCommitRoot, round] = commitWitness.computeRootAndKey(
+      const [prevCommitRoot, round] = commitWitness.computeRootAndKeyV2(
         commitValue.hash()
       );
 
@@ -137,7 +137,7 @@ export function getRandomManager(
         .assertEquals(prevCommitRoot, 'reveal: Wrong commit witness');
 
       // Check result witness
-      const [prevResultRoot, resultRound] = resultWitness.computeRootAndKey(
+      const [prevResultRoot, resultRound] = resultWitness.computeRootAndKeyV2(
         Field(0)
       );
 
@@ -157,7 +157,7 @@ export function getRandomManager(
       const resultValue = Poseidon.hash([commitValue.value, curRandomValue]);
 
       // Update result
-      const [newResultRoot] = resultWitness.computeRootAndKey(resultValue);
+      const [newResultRoot] = resultWitness.computeRootAndKeyV2(resultValue);
       this.resultRoot.set(newResultRoot);
 
       // Consume random value

@@ -44,13 +44,13 @@ export const addTicket = async (
 ): Promise<DistributionProofPublicOutput> => {
   prevProof.verify();
 
-  const [initialRoot, key] = input.valueWitness.computeRootAndKey(Field(0));
+  const [initialRoot, key] = input.valueWitness.computeRootAndKeyV2(Field(0));
   // key.assertEquals(input.ticket.hash(), 'Wrong key for that ticket');
   initialRoot.assertEquals(prevProof.publicOutput.root);
 
   const newValue = input.ticket.hash();
 
-  const [newRoot] = input.valueWitness.computeRootAndKey(newValue);
+  const [newRoot] = input.valueWitness.computeRootAndKeyV2(newValue);
   const ticketScore = input.ticket.getScore(
     NumberPacked.unpack(input.winningCombination)
   );

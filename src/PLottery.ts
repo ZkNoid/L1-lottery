@@ -308,7 +308,7 @@ export function getPLottery(
       rmValue: Field
     ) {
       // Check that result for this round is not computed yet, and that witness is valid
-      const [initialResultRoot, round] = resultWiness.computeRootAndKey(
+      const [initialResultRoot, round] = resultWiness.computeRootAndKeyV2(
         Field.from(0)
       );
 
@@ -327,7 +327,7 @@ export function getPLottery(
       let newLeafValue = NumberPacked.pack(winningNumbers);
 
       // Update result tree
-      const [newResultRoot] = resultWiness.computeRootAndKey(newLeafValue);
+      const [newResultRoot] = resultWiness.computeRootAndKeyV2(newLeafValue);
 
       this.roundResultRoot.set(newResultRoot);
 
@@ -555,7 +555,7 @@ export function getPLottery(
       const resultRoot = rm.resultRoot.getAndRequireEquals();
 
       const [prevResultRoot, prevRound] =
-        roundResultWitness.computeRootAndKey(roundResulValue);
+        roundResultWitness.computeRootAndKeyV2(roundResulValue);
       prevResultRoot.assertEquals(
         resultRoot,
         'checkResultValue: wrong result witness'
@@ -719,7 +719,7 @@ export function getPLottery(
     ): MerkleCheckResult {
       let checkRes = this.checkMap(state, witness, key, curValue);
 
-      const [newRoot] = witness.computeRootAndKey(newValue);
+      const [newRoot] = witness.computeRootAndKeyV2(newValue);
       state.set(newRoot);
 
       return checkRes;
@@ -743,7 +743,7 @@ export function getPLottery(
     ): MerkleCheckResult {
       const curRoot = state.getAndRequireEquals();
 
-      const [prevRoot, witnessKey] = witness.computeRootAndKey(curValue);
+      const [prevRoot, witnessKey] = witness.computeRootAndKeyV2(curValue);
       curRoot.assertEquals(prevRoot, 'Wrong witness');
       if (key) {
         witnessKey.assertEquals(key, 'Wrong key');
@@ -769,8 +769,8 @@ export function getPLottery(
         prevValue
       );
 
-      const [newRoot2] = secondWitness.computeRootAndKey(newValue);
-      const [newRoot1] = firstWitness.computeRootAndKey(newRoot2);
+      const [newRoot2] = secondWitness.computeRootAndKeyV2(newValue);
+      const [newRoot1] = firstWitness.computeRootAndKeyV2(newRoot2);
       this.ticketRoot.set(newRoot1);
 
       return res;
@@ -795,10 +795,10 @@ export function getPLottery(
       value: Field
     ): { ticketId: Field; round: Field; roundRoot: Field } {
       const [secondLevelRoot, ticketId] =
-        secondWitness.computeRootAndKey(value);
+        secondWitness.computeRootAndKeyV2(value);
 
       const [firstLevelRoot, round] =
-        firstWitness.computeRootAndKey(secondLevelRoot);
+        firstWitness.computeRootAndKeyV2(secondLevelRoot);
 
       // if (key1) {
       //   round.assertEquals(key1, 'Wrong round');
