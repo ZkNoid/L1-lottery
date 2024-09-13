@@ -13,6 +13,7 @@ import {
   Struct,
   Reducer,
   Provable,
+  UInt64,
 } from 'o1js';
 import { Ticket } from './Structs/Ticket.js';
 import {
@@ -59,6 +60,10 @@ export const generateNumbersSeed = (seed: Field): UInt32[] => {
   });
   return numbers;
 };
+
+const max = (a: UInt64, b: UInt64): UInt64 => {
+  return Provable.if(a.greaterThan(b), a, b);
+}
 
 const emptyMapRoot = new MerkleMap().getRoot();
 const emptyMap20Root = new MerkleMap20().getRoot();
@@ -175,7 +180,11 @@ export function getPLottery(
         this.sender.getAndRequireSignature()
       );
 
-      senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
+      const emptyPrice = TICKET_PRICE.mul(ticket.amount).mul(COMMISION).div(PRESICION);
+      const realPrice = TICKET_PRICE.mul(ticket.amount);
+      const price = max(emptyPrice, realPrice);
+
+      senderUpdate.send({ to: this, amount: price });
 
       // Dispatch action and emmit event
       this.reducer.dispatch(
