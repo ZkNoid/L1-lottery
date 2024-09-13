@@ -39,7 +39,7 @@ export class Ticket extends Struct({
   static random(owner: PublicKey): Ticket {
     return new Ticket({
       numbers: [...Array(NUMBERS_IN_TICKET)].map(() =>
-        UInt32.from(getRandomInt(10))
+        UInt32.from(getRandomInt(9) + 1)
       ),
       owner,
       amount: UInt64.from(1),
