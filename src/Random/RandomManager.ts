@@ -240,7 +240,7 @@ export function getRandomManager(
       const startBlock = this.startSlot.getAndRequireEquals();
       this.network.globalSlotSinceGenesis.requireBetween(
         UInt32.from(0),
-        startBlock.add(round.add(1).mul(BLOCK_PER_ROUND))
+        startBlock.add(round.add(1).mul(BLOCK_PER_ROUND).sub(1))
       );
     }
   }
