@@ -622,7 +622,7 @@ export function getPLottery(
      */
     public checkResult(
       witness: MerkleMap20Witness,
-      round: Field | null,
+      round: Field,
       curValue: Field
     ): MerkleCheckResult {
       return this.checkMap(this.roundResultRoot, witness, round, curValue);
@@ -724,7 +724,7 @@ export function getPLottery(
     public checkAndUpdateMap(
       state: State<Field>,
       witness: MerkleMap20Witness | MerkleMapWitness,
-      key: Field | null,
+      key: Field,
       curValue: Field,
       newValue: Field
     ): MerkleCheckResult {
@@ -749,16 +749,14 @@ export function getPLottery(
     public checkMap(
       state: State<Field>,
       witness: MerkleMap20Witness | MerkleMapWitness,
-      key: Field | null,
+      key: Field,
       curValue: Field
     ): MerkleCheckResult {
       const curRoot = state.getAndRequireEquals();
 
       const [prevRoot, witnessKey] = witness.computeRootAndKeyV2(curValue);
       curRoot.assertEquals(prevRoot, 'Wrong witness');
-      if (key) {
-        witnessKey.assertEquals(key, 'Wrong key');
-      }
+      witnessKey.assertEquals(key, 'Wrong key');
 
       return {
         key: witnessKey,
