@@ -11,7 +11,7 @@ import {
   Struct,
 } from 'o1js';
 
-// Copyied from https://github.com/o1-labs/o1js/blob/main/src/lib/provable/merkle-map.ts
+// Copied from https://github.com/o1-labs/o1js/blob/main/src/lib/provable/merkle-map.ts
 // With a change of merkle tree height.
 
 const LENGTH20 = 20;

@@ -63,7 +63,7 @@ export function getRandomManager(
     }
 
     /**
-     * @notice Inital set of start slot.
+     * @notice Initial set of start slot.
      * @dev It should be equal to startBlock on PLottery. Called only once.
      *
      * @param startSlot start slot value.
@@ -90,7 +90,9 @@ export function getRandomManager(
     ) {
       this.permissionCheck();
 
-      const [prevCommitRoot, round] = commitWitness.computeRootAndKeyV2(Field(0));
+      const [prevCommitRoot, round] = commitWitness.computeRootAndKeyV2(
+        Field(0)
+      );
 
       this.checkRoundDoNotEnd(convertToUInt32(round));
 
@@ -105,7 +107,7 @@ export function getRandomManager(
     }
 
     /**
-     * @notice Reveal number commited previously.
+     * @notice Reveal number committed previously.
      * @dev This function can be called only after oracle provided its random value
      *
      * @param commitValue Commit value = value + slot.

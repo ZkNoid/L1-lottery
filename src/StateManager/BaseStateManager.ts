@@ -3,13 +3,13 @@ import { Ticket } from '../Structs/Ticket.js';
 import { getEmpty2dMerkleMap, getNullifierId } from '../util.js';
 import {
   BLOCK_PER_ROUND,
-  COMMISION,
-  PRESICION,
+  COMMISSION,
+  PRECISION,
   TICKET_PRICE,
   mockWinningCombination,
 } from '../constants.js';
 import {
-  DistibutionProgram,
+  DistributionProgram,
   DistributionProof,
   DistributionProofPublicInput,
   addTicket,
@@ -89,7 +89,7 @@ export class BaseStateManager {
     }
   }
 
-  getNextTicketWitenss(
+  getNextTicketWitness(
     round: number
   ): [MerkleMap20Witness, MerkleMap20Witness] {
     const roundWitness = this.ticketMap.getWitness(Field.from(round));
@@ -133,7 +133,7 @@ export class BaseStateManager {
       this.roundResultMap.set(round, result);
       this.bankMap.set(
         round,
-        bankValue.mul(PRESICION - COMMISION).div(PRESICION)
+        bankValue.mul(PRECISION - COMMISSION).div(PRECISION)
       );
     }
 
@@ -161,7 +161,7 @@ export class BaseStateManager {
 
     let curProof = this.isMock
       ? await mockProof(await init(input), DistributionProof, input)
-      : await DistibutionProgram.init(input);
+      : await DistributionProgram.init(input);
 
     for (let i = 0; i < ticketsInRound; i++) {
       const ticket = this.roundTickets[round][i];
@@ -184,9 +184,8 @@ export class BaseStateManager {
           input
         );
       } else {
-        curProof = await DistibutionProgram.addTicket(input, curProof);
+        curProof = await DistributionProgram.addTicket(input, curProof);
       }
-      // curProof = await DistibutionProgram.addTicket(input, curProof);
     }
 
     this.dpProofs[round] = curProof;

@@ -13,7 +13,7 @@ import {
   ZkonRequestCoordinator,
   ZkonZkProgram,
 } from 'zkon-zkapp';
-import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { ZkOnCoordinatorAddress } from '../src/constants.js';
 import { RandomManagerManager } from '../src/StateManager/RandomManagerManager.js';
 
@@ -142,7 +142,7 @@ export const compileRandomManager = async (epoch: string = 'current') => {
 export const compilePlottery = async (epoch: string = 'current') => {
   let { PLottery, plottery } = findPlottery(epoch);
 
-  await DistibutionProgram.compile({ cache: Cache.FileSystem('./cache/DP') });
+  await DistributionProgram.compile({ cache: Cache.FileSystem('./cache/DP') });
   await TicketReduceProgram.compile({ cache: Cache.FileSystem('./cache/TRP') });
 
   await PLottery.compile({

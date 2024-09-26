@@ -33,7 +33,7 @@ export class RandomManagerManager {
   addCommit(round: number | Field, commit: CommitValue) {
     round = Field(round);
     if (this.commits[+round]) {
-      throw Error(`You have already commited to round ${+round}`);
+      throw Error(`You have already committed to round ${+round}`);
     }
 
     this.commits[+round] = commit;

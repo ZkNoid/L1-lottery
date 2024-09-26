@@ -18,9 +18,9 @@ import {
 import { Ticket } from './Structs/Ticket.js';
 import {
   BLOCK_PER_ROUND,
-  COMMISION,
+  COMMISSION,
   NUMBERS_IN_TICKET,
-  PRESICION,
+  PRECISION,
   TICKET_PRICE,
   ZkOnCoordinatorAddress,
   mockWinningCombination,
@@ -101,11 +101,11 @@ export class ReduceEvent extends Struct({
 export function getPLottery(
   randomManagerAddress: PublicKey,
   randomManagerOwner: PublicKey,
-  coordiantorAddress: PublicKey = ZkOnCoordinatorAddress
+  coordinatorAddress: PublicKey = ZkOnCoordinatorAddress
 ) {
   class RandomManager extends getRandomManager(
     randomManagerOwner,
-    coordiantorAddress
+    coordinatorAddress
   ) {}
 
   class PLottery extends SmartContract {
@@ -158,7 +158,7 @@ export function getPLottery(
 
     /**
      * @notice Allows a user to buy a lottery ticket for a specific round.
-     * @dev No ticket merkle tree update happens here. Only action is dispathched.
+     * @dev No ticket merkle tree update happens here. Only action is dispatched.
      *
      * @param ticket The lottery ticket being purchased.
      * @param round The lottery round for which the ticket is being purchased.
@@ -183,14 +183,14 @@ export function getPLottery(
       );
 
       const emptyPrice = TICKET_PRICE.mul(ticket.amount)
-        .mul(COMMISION)
-        .div(PRESICION);
+        .mul(COMMISSION)
+        .div(PRECISION);
       const realPrice = TICKET_PRICE.mul(ticket.amount);
       const price = max(emptyPrice, realPrice);
 
       senderUpdate.send({ to: this, amount: price });
 
-      // Dispatch action and emmit event
+      // Dispatch action and emit event
       this.reducer.dispatch(
         new LotteryAction({
           ticket,
@@ -261,7 +261,7 @@ export function getPLottery(
         reduceProof.publicOutput.finalState
       );
 
-      // Check inital ticket id
+      // Check initial ticket id
       lastProcessedTicketId.assertEquals(
         reduceProof.publicOutput.initialTicketId,
         'Initial ticket id don not match contract last processed ticket id'
@@ -291,7 +291,7 @@ export function getPLottery(
      * @dev Random number seed is taken from RandomManager contract for this round.
      *        Then using this seed 6 number is generated and stored
      *
-     * @param resultWiness The Merkle proof witness for the current result tree.
+     * @param resultWitness The Merkle proof witness for the current result tree.
      * @param bankValue The current value in the bank for this round.
      * @param bankWitness The Merkle proof witness for the bank tree.
      * @param rmWitness The Merkle proof witness for the random value tree(tree is stored on RandomManager contract).
@@ -300,19 +300,19 @@ export function getPLottery(
      * @require The result for this round must not have been computed yet.
      * @require The provided result witness must be valid and match the initial result root.
      * @require The round must have been reduced before the result can be computed.
-     * @require The random value shoud match one, that is stored on RandomManager contract.
+     * @require The random value should match one, that is stored on RandomManager contract.
      *
      * @event produce-result Emitted when the result is successfully produced and the result tree is updated.
      */
     @method async produceResult(
-      resultWiness: MerkleMap20Witness,
+      resultWitness: MerkleMap20Witness,
       bankValue: Field,
       bankWitness: MerkleMap20Witness,
       rmWitness: MerkleMapWitness,
       rmValue: Field
     ) {
       // Check that result for this round is not computed yet, and that witness is valid
-      const [initialResultRoot, round] = resultWiness.computeRootAndKeyV2(
+      const [initialResultRoot, round] = resultWitness.computeRootAndKeyV2(
         Field.from(0)
       );
 
@@ -331,7 +331,7 @@ export function getPLottery(
       let newLeafValue = NumberPacked.pack(winningNumbers);
 
       // Update result tree
-      const [newResultRoot] = resultWiness.computeRootAndKeyV2(newLeafValue);
+      const [newResultRoot] = resultWitness.computeRootAndKeyV2(newLeafValue);
 
       this.roundResultRoot.set(newResultRoot);
 
@@ -340,12 +340,12 @@ export function getPLottery(
         bankWitness,
         round,
         bankValue,
-        bankValue.mul(PRESICION - COMMISION).div(PRESICION)
+        bankValue.mul(PRECISION - COMMISSION).div(PRECISION)
       );
 
       this.send({
         to: treasury,
-        amount: convertToUInt64(bankValue.mul(COMMISION).div(PRESICION)),
+        amount: convertToUInt64(bankValue.mul(COMMISSION).div(PRECISION)),
       });
 
       this.emitEvent(
@@ -387,7 +387,7 @@ export function getPLottery(
       bankWitness: MerkleMap20Witness
       // nullifierWitness: MerkleMapWitness
     ) {
-      // Check taht owner trying to claim
+      // Check that owner trying to claim
       ticket.owner.assertEquals(this.sender.getAndRequireSignature());
 
       // Check ticket in merkle map and set ticket to zero
@@ -407,19 +407,8 @@ export function getPLottery(
 
       // Check and update bank witness
       const totalTicketPrice = ticket.amount.mul(TICKET_PRICE);
-      // const priceWithoutCommision = totalTicketPrice
-      //   .mul(PRESICION - COMMISION)
-      //   .div(PRESICION);
       const newBankValue = bankValue.sub(totalTicketPrice.value);
       this.checkAndUpdateBank(bankWitness, round, bankValue, newBankValue);
-
-      // Check and update nullifier
-      // this.checkAndUpdateNullifier(
-      //   nullifierWitness,
-      //   getNullifierId(round, ticketId),
-      //   Field(0),
-      //   Field.from(1)
-      // );
 
       // Send ticket price back to user
       this.send({
@@ -438,15 +427,15 @@ export function getPLottery(
 
     /**
      * @notice Claims the reward for a winning lottery ticket.
-     * @dev Thif function calculate ticket score, totalScore is obtained from DistibutionProof,
-     *        and then sends apropriate potion of bank to ticket owner. Finally it nullify the ticket.
+     * @dev This function calculate ticket score, totalScore is obtained from DistributionProof,
+     *        and then sends appropriate potion of bank to ticket owner. Finally it nullify the ticket.
      *
      * @param ticket The lottery ticket for which the reward is being claimed.
      * @param roundWitness The 1s level Merkle proof witness for the ticket tree.
      * @param roundTicketWitness The 2nd level Merkle proof witness for the ticket tree.
      * @param dp The distribution proof to verify the winning numbers and ticket distribution.
      * @param winningNumbers The winning numbers for the current round.
-     * @param resutWitness The Merkle proof witness for the result tree.
+     * @param resultWitness The Merkle proof witness for the result tree.
      * @param bankValue The current value in the bank for this round.
      * @param bankWitness The Merkle proof witness for the bank tree.
      * @param nullifierWitness The Merkle proof witness for the nullifier tree.
@@ -466,14 +455,14 @@ export function getPLottery(
       roundTicketWitness: MerkleMap20Witness,
       dp: DistributionProof,
       winningNumbers: Field,
-      resutWitness: MerkleMap20Witness,
+      resultWitness: MerkleMap20Witness,
       bankValue: Field,
       bankWitness: MerkleMap20Witness,
       nullifierWitness: MerkleMapWitness
     ) {
-      // Check taht owner trying to claim
+      // Check that owner trying to claim
       ticket.owner.assertEquals(this.sender.getAndRequireSignature());
-      // Verify distibution proof
+      // Verify distribution proof
       dp.verify();
 
       // Check ticket in tree
@@ -504,9 +493,9 @@ export function getPLottery(
       );
 
       // Check result root info
-      this.checkResult(resutWitness, round, winningNumbers);
+      this.checkResult(resultWitness, round, winningNumbers);
 
-      // Compute score using winnging ticket
+      // Compute score using winning ticket
       const score = ticket.getScore(NumberPacked.unpack(winningNumbers));
       const totalScore = dp.publicOutput.total;
 
@@ -542,7 +531,7 @@ export function getPLottery(
      *      from the Random Manager matches the provided witness, and ensures the round matches the expected round.
      *
      * @param roundResultWitness The Merkle proof witness for the round result value.
-     * @param roundResulValue The random result value to be checked.
+     * @param roundResultValue The random result value to be checked.
      * @param round The round for which the random result value is being checked.
      *
      * @require The random result value must be greater than zero.
@@ -551,15 +540,15 @@ export function getPLottery(
      */
     public checkRandomResultValue(
       roundResultWitness: MerkleMapWitness,
-      roundResulValue: Field,
+      roundResultValue: Field,
       round: Field
     ) {
-      roundResulValue.assertGreaterThan(Field(0));
+      roundResultValue.assertGreaterThan(Field(0));
       const rm = new RandomManager(randomManagerAddress);
       const resultRoot = rm.resultRoot.getAndRequireEquals();
 
       const [prevResultRoot, prevRound] =
-        roundResultWitness.computeRootAndKeyV2(roundResulValue);
+        roundResultWitness.computeRootAndKeyV2(roundResultValue);
       prevResultRoot.assertEquals(
         resultRoot,
         'checkResultValue: wrong result witness'
@@ -605,7 +594,7 @@ export function getPLottery(
     // }
 
     /**
-     * @notice Check validiy of merkle map witness for result tree.
+     * @notice Check validity of merkle map witness for result tree.
      *
      * @param witness Merkle map witness for result tree.
      * @param round Optional value for round. If provided - checks, that round match key in <witness>.
@@ -637,7 +626,7 @@ export function getPLottery(
     // }
 
     /**
-     * @notice Check validiy of merkle map witness for bank tree.
+     * @notice Check validity of merkle map witness for bank tree.
      *
      * @param witness Merkle map witness for bank tree.
      * @param round Round number, that will be compared with <witness> key.
@@ -654,7 +643,7 @@ export function getPLottery(
     }
 
     /**
-     * @notice Check validiy of merkle map witness for bank tree and then updates tree with new value.
+     * @notice Check validity of merkle map witness for bank tree and then updates tree with new value.
      *
      * @param witness Merkle map witness for bank tree.
      * @param round Round number, that will be compared with <witness> key.
@@ -679,7 +668,7 @@ export function getPLottery(
     }
 
     /**
-     * @notice Check validiy of merkle map witness for nullifier tree and then updates tree with new value.
+     * @notice Check validity of merkle map witness for nullifier tree and then updates tree with new value.
      *
      * @param witness Merkle map witness for nullifier tree.
      * @param round Round number, that will be compared with <witness> key.
@@ -782,7 +771,7 @@ export function getPLottery(
 
     /**
      * @notice Methods to check if ticket lies on ticket merkle tree.
-     * @dev We can't use ordinary checkMap, because of two level stracture of ticket tree.
+     * @dev We can't use ordinary checkMap, because of two level structure of ticket tree.
      *
      * @param firstWitness First level witness for ticket tree.
      * @param key1 First level key for ticket tree(round).

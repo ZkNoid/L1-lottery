@@ -9,7 +9,7 @@ export * from './constants';
 import {
   DistributionProofPublicInput,
   DistributionProofPublicOutput,
-  DistibutionProgram,
+  DistributionProgram,
   DistributionProof,
 } from './Proofs/DistributionProof.js';
 import {
@@ -22,7 +22,7 @@ import {
 export {
   DistributionProofPublicInput,
   DistributionProofPublicOutput,
-  DistibutionProgram,
+  DistributionProgram,
   DistributionProof,
   TicketReduceProofPublicInput,
   TicketReduceProofPublicOutput,

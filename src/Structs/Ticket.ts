@@ -48,7 +48,10 @@ export class Ticket extends Struct({
 
   check(): Bool {
     return this.numbers.reduce(
-      (acc, val) => acc.and(val.lessThan(UInt32.from(10)).and(val.greaterThan(UInt32.from(0)))),
+      (acc, val) =>
+        acc.and(
+          val.lessThan(UInt32.from(10)).and(val.greaterThan(UInt32.from(0)))
+        ),
       Bool(true)
     );
   }

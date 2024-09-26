@@ -1,6 +1,5 @@
 import { Field, Gadgets, MerkleMap, Poseidon, UInt32, UInt64 } from 'o1js';
 import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
-import { COMMISION, PRESICION } from './constants.js';
 import { PackedUInt32Factory } from 'o1js-pack';
 
 export const getEmpty2dMerkleMap = (height?: number): MerkleMap => {

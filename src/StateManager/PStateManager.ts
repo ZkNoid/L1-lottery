@@ -49,9 +49,9 @@ export class PStateManager extends BaseStateManager {
     plottery: PLotteryType,
     startBlock: Field,
     isMock: boolean = true,
-    shouldUpadteState: boolean = false
+    shouldUpdateState: boolean = false
   ) {
-    super(startBlock, isMock, shouldUpadteState);
+    super(startBlock, isMock, shouldUpdateState);
 
     this.contract = plottery;
     this.processedTicketData = {
@@ -65,7 +65,7 @@ export class PStateManager extends BaseStateManager {
     round: number,
     forceUpdate: boolean = false
   ): [MerkleMap20Witness, MerkleMap20Witness, MerkleMap20Witness, Field] {
-    const [roundWitness, ticketRoundWitness] = this.getNextTicketWitenss(round);
+    const [roundWitness, ticketRoundWitness] = this.getNextTicketWitness(round);
     const [bankWitness, bankValue] = this.getBankWitness(round);
 
     if (this.shouldUpdateState || forceUpdate) {

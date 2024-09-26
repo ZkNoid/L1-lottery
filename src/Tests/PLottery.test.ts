@@ -18,7 +18,7 @@ import {
   ZkOnCoordinatorAddress,
   treasury,
 } from '../constants';
-import { DistibutionProgram } from '../Proofs/DistributionProof';
+import { DistributionProgram } from '../Proofs/DistributionProof';
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { PStateManager } from '../StateManager/PStateManager';
@@ -82,14 +82,14 @@ describe('Add', () => {
     randomManager: MockedRandomManagerType,
     rmStateManager: RandomManagerManager,
     state: PStateManager,
-    checkConsistancy: () => void,
+    checkConsistency: () => void,
     mineNBlocks: (n: number) => void,
     commitValue: (round: number) => Promise<void>,
     produceResultInRM: (round: number) => Promise<void>;
   beforeAll(async () => {
     if (proofsEnabled) {
       console.log(`Compiling distribution program proof`);
-      await DistibutionProgram.compile({
+      await DistributionProgram.compile({
         cache: Cache.FileSystem('./cache'),
       });
       console.log(`Compiling reduce program proof`);
@@ -136,7 +136,7 @@ describe('Add', () => {
       let curAmount = Local.getNetworkState().globalSlotSinceGenesis;
       Local.setGlobalSlot(curAmount.add(n));
     };
-    checkConsistancy = () => {
+    checkConsistency = () => {
       expect(lottery.ticketRoot.get()).toEqual(state.ticketMap.getRoot());
       expect(lottery.ticketNullifier.get()).toEqual(
         state.ticketNullifierMap.getRoot()
@@ -211,12 +211,12 @@ describe('Add', () => {
     await tx.sign([senderKey]).send();
     const balanceAfter = Mina.getBalance(senderAccount);
     expect(balanceBefore.sub(balanceAfter)).toEqual(TICKET_PRICE);
-    checkConsistancy();
-    // Coomit value for random
+    checkConsistency();
+    // Commit value for random
     await commitValue(curRound);
     // Wait next round
     mineNBlocks(BLOCK_PER_ROUND);
-    // Buy dummy ticket in next round, so reudcer works as expected
+    // Buy dummy ticket in next round, so reducer works as expected
     state.syncWithCurBlock(
       +Mina.activeInstance.getNetworkState().globalSlotSinceGenesis
     );
@@ -234,7 +234,7 @@ describe('Add', () => {
     });
     await tx2_1.prove();
     await tx2_1.sign([senderKey]).send();
-    checkConsistancy();
+    checkConsistency();
     // Produce random value
     await produceResultInRM(curRound);
     // Produce result
@@ -255,7 +255,7 @@ describe('Add', () => {
     });
     await tx2.prove();
     await tx2.sign([senderKey]).send();
-    checkConsistancy();
+    checkConsistency();
 
     // Get reward
     const rp = await state.getReward(curRound, ticket);
@@ -312,7 +312,7 @@ describe('Add', () => {
     });
     await tx3.prove();
     await tx3.sign([senderKey]).send();
-    checkConsistancy();
+    checkConsistency();
   });
   it('Refund check', async () => {
     await localDeploy();
@@ -327,18 +327,18 @@ describe('Add', () => {
     await tx.sign([senderKey]).send();
     const balanceAfter = Mina.getBalance(senderAccount);
     expect(balanceBefore.sub(balanceAfter)).toEqual(TICKET_PRICE);
-    checkConsistancy();
+    checkConsistency();
     // Buy second ticket
     let tx1_1 = await Mina.transaction(senderAccount, async () => {
       await lottery.buyTicket(ticket, Field.from(curRound));
     });
     await tx1_1.prove();
     await tx1_1.sign([senderKey]).send();
-    // Coomit value for random
+    // Commit value for random
     await commitValue(curRound);
     // Wait 3 more rounds
     mineNBlocks(3 * BLOCK_PER_ROUND + 1);
-    // Buy dummy ticket in next round, so reudcer works as expected
+    // Buy dummy ticket in next round, so reducer works as expected
     state.syncWithCurBlock(
       +Mina.activeInstance.getNetworkState().globalSlotSinceGenesis
     );
@@ -357,7 +357,7 @@ describe('Add', () => {
     });
     await tx2_1.prove();
     await tx2_1.sign([senderKey]).send();
-    checkConsistancy();
+    checkConsistency();
     // Get refund
     let {
       roundWitness,
@@ -381,7 +381,7 @@ describe('Add', () => {
     });
     await tx3.prove();
     await tx3.sign([senderKey]).send();
-    checkConsistancy();
+    checkConsistency();
     const balanceAfter2 = Mina.getBalance(senderAccount);
     expect(balanceAfter2.sub(balanceBefore2)).toEqual(TICKET_PRICE);
     // Produce random value
@@ -404,7 +404,7 @@ describe('Add', () => {
     });
     await tx4.prove();
     await tx4.sign([senderKey]).send();
-    checkConsistancy();
+    checkConsistency();
     const balanceBefore3 = Mina.getBalance(senderAccount);
     // Get reward for second transaction
     const rp = await state.getReward(curRound, ticket);
@@ -423,7 +423,7 @@ describe('Add', () => {
     });
     await tx5.prove();
     await tx5.sign([senderKey]).send();
-    checkConsistancy();
+    checkConsistency();
     const balanceAfter3 = Mina.getBalance(senderAccount);
     console.log(`Bank: ${state.bankMap.get(Field(0)).toString()}`);
     console.log();
@@ -457,14 +457,14 @@ describe('Add', () => {
         await tx.sign([ticket.owner.key]).send();
         const balanceAfter = Mina.getBalance(ticket.owner);
         expect(balanceBefore.sub(balanceAfter)).toEqual(TICKET_PRICE);
-        checkConsistancy();
+        checkConsistency();
       }
-      // Coomit value for random
+      // Commit value for random
       await commitValue(round);
       // Wait for the end of round
       mineNBlocks(BLOCK_PER_ROUND);
       // Reduce tickets
-      // Buy dummy ticket in next round, so reudcer works as expected
+      // Buy dummy ticket in next round, so reducer works as expected
       state.syncWithCurBlock(
         +Mina.activeInstance.getNetworkState().globalSlotSinceGenesis
       );
@@ -481,7 +481,7 @@ describe('Add', () => {
       });
       await tx2_1.prove();
       await tx2_1.sign([senderKey]).send();
-      checkConsistancy();
+      checkConsistency();
       // Produce random value
       await produceResultInRM(round);
 
@@ -502,7 +502,7 @@ describe('Add', () => {
       });
       await tx2.prove();
       await tx2.sign([senderKey]).send();
-      checkConsistancy();
+      checkConsistency();
       const bank = convertToUInt64(state.bankMap.get(Field(round)));
       // Get rewards
       for (let j = 0; j < amountOfTickets; j++) {
@@ -528,7 +528,7 @@ describe('Add', () => {
         });
         await tx3.prove();
         await tx3.sign([ticketInfo.owner.key]).send();
-        checkConsistancy();
+        checkConsistency();
 
         const balanceAfter = Mina.getBalance(ticketInfo.owner);
 

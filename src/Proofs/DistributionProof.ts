@@ -61,7 +61,7 @@ export const addTicket = async (
   });
 };
 
-export const DistibutionProgram = ZkProgram({
+export const DistributionProgram = ZkProgram({
   name: 'distribution-program',
   publicInput: DistributionProofPublicInput,
   publicOutput: DistributionProofPublicOutput,
@@ -89,4 +89,4 @@ export const DistibutionProgram = ZkProgram({
   },
 });
 
-export class DistributionProof extends ZkProgram.Proof(DistibutionProgram) {}
+export class DistributionProof extends ZkProgram.Proof(DistributionProgram) {}

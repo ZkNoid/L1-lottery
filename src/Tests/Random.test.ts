@@ -19,11 +19,6 @@ import {
   ZkOnCoordinatorAddress,
   treasury,
 } from '../constants';
-import { DistibutionProgram } from '../Proofs/DistributionProof';
-import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
-import { Pickles } from 'o1js/dist/node/snarky';
-import { PStateManager } from '../StateManager/PStateManager';
-import { TicketReduceProgram } from '../Proofs/TicketReduceProof';
 import {
   CommitValue,
   MockedRandomManagerType,
@@ -130,7 +125,7 @@ describe('Add', () => {
     await txn.sign([deployerKey, randomManagerPrivateKey]).send();
   }
 
-  it('Sould produce random value', async () => {
+  it('Should produce random value', async () => {
     await localDeploy();
 
     expect(rmStateManager.commitMap.getRoot()).toEqual(
