@@ -53,9 +53,11 @@ export const mockResult = NumberPacked.pack(
 export const generateNumbersSeed = (seed: Field): UInt32[] => {
   let bits = seed.toBits();
   const numbers = [...Array(6)].map((_, i) => {
+    let res64 = UInt64.from(0);
+    res64.value = Field.fromBits(bits.slice(42 * i, 42 * (i + 1)));
+    res64 = res64.mod(9).add(1);
     let res = UInt32.from(0);
-    res.value = Field.fromBits(bits.slice(32 * i, 32 * (i + 1)));
-    res = res.mod(9).add(1);
+    res.value = res64.value;
     return res;
   });
   return numbers;
@@ -63,7 +65,7 @@ export const generateNumbersSeed = (seed: Field): UInt32[] => {
 
 const max = (a: UInt64, b: UInt64): UInt64 => {
   return Provable.if(a.greaterThan(b), a, b);
-}
+};
 
 const emptyMapRoot = new MerkleMap().getRoot();
 const emptyMap20Root = new MerkleMap20().getRoot();
@@ -180,7 +182,9 @@ export function getPLottery(
         this.sender.getAndRequireSignature()
       );
 
-      const emptyPrice = TICKET_PRICE.mul(ticket.amount).mul(COMMISION).div(PRESICION);
+      const emptyPrice = TICKET_PRICE.mul(ticket.amount)
+        .mul(COMMISION)
+        .div(PRESICION);
       const realPrice = TICKET_PRICE.mul(ticket.amount);
       const price = max(emptyPrice, realPrice);
 
