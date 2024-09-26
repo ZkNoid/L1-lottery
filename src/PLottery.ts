@@ -14,6 +14,9 @@ import {
   Reducer,
   Provable,
   UInt64,
+  Permissions,
+  TransactionVersion,
+  VerificationKey,
 } from 'o1js';
 import { Ticket } from './Structs/Ticket.js';
 import {
@@ -154,6 +157,21 @@ export function getPLottery(
       );
       this.lastProcessedState.set(Reducer.initialActionState);
       this.lastProcessedTicketId.set(Field(-1));
+
+      this.account.permissions.set({
+        ...Permissions.default(),
+        setVerificationKey:
+          Permissions.VerificationKey.impossibleDuringCurrentVersion(),
+      });
+    }
+
+    /**
+     * @notice Set verification key for account
+     * @dev verification key can be updated only if Mina hardfork happen. It allows zkApp to be live after Mina hardfork
+     * @param vk Verification key
+     */
+    @method async updateVerificationKey(vk: VerificationKey) {
+      this.account.verificationKey.set(vk);
     }
 
     /**
