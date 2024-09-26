@@ -97,8 +97,6 @@ describe('Add', () => {
         cache: Cache.FileSystem('./cache'),
       });
       console.log(`Compiling MockLottery`);
-      // await PLotteryExample.compile({ cache: Cache.FileSystem('./cache') });
-      // console.log(`Successfully compiled`);
       throw Error('Currently there is no option to compile PLottery');
     }
   });
@@ -131,7 +129,6 @@ describe('Add', () => {
     );
 
     rmStateManager = new RandomManagerManager();
-    // rmStateManager = new RandomManagerManager();
     mineNBlocks = (n: number) => {
       let curAmount = Local.getNetworkState().globalSlotSinceGenesis;
       Local.setGlobalSlot(curAmount.add(n));
@@ -365,7 +362,6 @@ describe('Add', () => {
       resultWitness: resultWitness1,
       bankValue: bankValue1,
       bankWitness: bankWitness1,
-      // nullifierWitness,
     } = await state.getRefund(0, ticket);
     const balanceBefore2 = Mina.getBalance(senderAccount);
     let tx3 = await Mina.transaction(senderAccount, async () => {
@@ -376,7 +372,6 @@ describe('Add', () => {
         resultWitness1,
         bankValue1,
         bankWitness1
-        // nullifierWitness
       );
     });
     await tx3.prove();

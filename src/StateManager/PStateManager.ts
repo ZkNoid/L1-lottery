@@ -122,9 +122,6 @@ export class PStateManager extends BaseStateManager {
         fromActionState: initialState,
       });
     }
-    // const actionLists = await this.contract.reducer.fetchActions({
-    //   fromActionState: initialState,
-    // });
 
     // All this params can be random for init function, because init do not use them
     let input = new TicketReduceProofPublicInput({

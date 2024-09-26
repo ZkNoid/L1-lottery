@@ -278,7 +278,6 @@ export class BaseStateManager {
     resultWitness: MerkleMap20Witness;
     bankValue: Field;
     bankWitness: MerkleMap20Witness;
-    // nullifierWitness: MerkleMapWitness;
   }> {
     const roundWitness = this.ticketMap.getWitness(Field.from(round));
 
@@ -308,19 +307,11 @@ export class BaseStateManager {
     const bankValue = this.bankMap.get(Field.from(round));
     const bankWitness = this.bankMap.getWitness(Field.from(round));
 
-    // const nullifierWitness = this.ticketNullifierMap.getWitness(
-    //   getNullifierId(Field.from(round), Field.from(ticketId))
-    // );
-
     if (this.shouldUpdateState) {
       this.roundTicketMap[round].set(Field(ticketId), Field(0));
       this.ticketMap.set(Field(round), this.roundTicketMap[round].getRoot());
 
       this.roundTickets[round][ticketId] = undefined;
-      // this.ticketNullifierMap.set(
-      //   getNullifierId(Field.from(round), Field.from(ticketId)),
-      //   Field(1)
-      // );
       this.bankMap.set(
         Field.from(round),
         bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
@@ -333,7 +324,6 @@ export class BaseStateManager {
       resultWitness,
       bankValue,
       bankWitness,
-      // nullifierWitness,
     };
   }
 }

@@ -45,7 +45,6 @@ export const addTicket = async (
   prevProof.verify();
 
   const [initialRoot, key] = input.valueWitness.computeRootAndKeyV2(Field(0));
-  // key.assertEquals(input.ticket.hash(), 'Wrong key for that ticket');
   initialRoot.assertEquals(prevProof.publicOutput.root);
 
   const newValue = input.ticket.hash();

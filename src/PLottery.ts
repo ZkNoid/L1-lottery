@@ -403,15 +403,13 @@ export function getPLottery(
       resultWitness: MerkleMap20Witness,
       bankValue: Field,
       bankWitness: MerkleMap20Witness
-      // nullifierWitness: MerkleMapWitness
     ) {
       // Check that owner trying to claim
       ticket.owner.assertEquals(this.sender.getAndRequireSignature());
 
       // Check ticket in merkle map and set ticket to zero
-      const { ticketId, round } = this.checkAndUpdateTicket(
+      const { round } = this.checkAndUpdateTicket(
         roundWitness,
-        // null,
         roundTicketWitness,
         ticket.hash(),
         Field(0)
@@ -488,12 +486,7 @@ export function getPLottery(
         ticketId,
         roundRoot: roundTicketRoot,
         round,
-      } = this.checkTicket(
-        roundWitness,
-        // null,
-        roundTicketWitness,
-        ticket.hash()
-      );
+      } = this.checkTicket(roundWitness, roundTicketWitness, ticket.hash());
 
       dp.publicOutput.root.assertEquals(
         roundTicketRoot,
@@ -605,12 +598,6 @@ export function getPLottery(
       );
     }
 
-    // public getWiningNumbersForRound(): UInt32[] {
-    //   return mockWinningCombination.map((val) => UInt32.from(val));
-    //   // // Temporary function implementation. Later will be switch with oracle call.
-    //   // return generateNumbersSeed(Field(12345));
-    // }
-
     /**
      * @notice Check validity of merkle map witness for result tree.
      *
@@ -627,21 +614,6 @@ export function getPLottery(
     ): MerkleCheckResult {
       return this.checkMap(this.roundResultRoot, witness, round, curValue);
     }
-
-    // private checkAndUpdateResult(
-    //   witness: MerkleMap20Witness,
-    //   round: Field,
-    //   curValue: Field,
-    //   newValue: Field
-    // ): MerkleCheckResult {
-    //   return this.checkAndUpdateMap(
-    //     this.roundResultRoot,
-    //     witness,
-    //     round,
-    //     curValue,
-    //     newValue
-    //   );
-    // }
 
     /**
      * @notice Check validity of merkle map witness for bank tree.
@@ -765,18 +737,11 @@ export function getPLottery(
 
     public checkAndUpdateTicket(
       firstWitness: MerkleMap20Witness | MerkleMapWitness,
-      // key1: Field | null,
       secondWitness: MerkleMap20Witness | MerkleMapWitness,
-      // key2: Field, For know second level key is not checked as later it would transform to merkle map
       prevValue: Field,
       newValue: Field
     ): { ticketId: Field; round: Field } {
-      const res = this.checkTicket(
-        firstWitness,
-        // key1,
-        secondWitness,
-        prevValue
-      );
+      const res = this.checkTicket(firstWitness, secondWitness, prevValue);
 
       const [newRoot2] = secondWitness.computeRootAndKeyV2(newValue);
       const [newRoot1] = firstWitness.computeRootAndKeyV2(newRoot2);
@@ -798,9 +763,7 @@ export function getPLottery(
      */
     public checkTicket(
       firstWitness: MerkleMap20Witness | MerkleMapWitness,
-      // key1: Field | null,
       secondWitness: MerkleMap20Witness | MerkleMapWitness,
-      // key2: Field, For know second level key is not checked as later it would transform to merkle map
       value: Field
     ): { ticketId: Field; round: Field; roundRoot: Field } {
       const [secondLevelRoot, ticketId] =
@@ -809,9 +772,6 @@ export function getPLottery(
       const [firstLevelRoot, round] =
         firstWitness.computeRootAndKeyV2(secondLevelRoot);
 
-      // if (key1) {
-      //   round.assertEquals(key1, 'Wrong round');
-      // }
       this.ticketRoot
         .getAndRequireEquals()
         .assertEquals(firstLevelRoot, 'Wrong 2d witness');

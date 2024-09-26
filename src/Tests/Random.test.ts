@@ -77,7 +77,6 @@ describe('Add', () => {
     randomManager = new RandomManager(randomManagerAddress);
 
     rmStateManager = new RandomManagerManager();
-    // rmStateManager = new RandomManagerManager();
     mineNBlocks = (n: number) => {
       let curAmount = Local.getNetworkState().globalSlotSinceGenesis;
       Local.setGlobalSlot(curAmount.add(n));
