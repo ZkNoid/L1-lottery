@@ -171,7 +171,7 @@ export function getPLottery(
      */
     @method async buyTicket(ticket: Ticket, round: Field) {
       // Ticket validity check
-      ticket.owner.equals(this.sender.getAndRequireSignature());
+      ticket.owner.assertEquals(this.sender.getAndRequireSignature());
       ticket.check().assertTrue();
 
       // Round check
