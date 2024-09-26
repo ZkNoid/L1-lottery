@@ -200,9 +200,7 @@ export function getPLottery(
         this.sender.getAndRequireSignature()
       );
 
-      const emptyPrice = TICKET_PRICE.mul(ticket.amount)
-        .mul(COMMISSION)
-        .div(PRECISION);
+      const emptyPrice = TICKET_PRICE.mul(COMMISSION).div(PRECISION);
       const realPrice = TICKET_PRICE.mul(ticket.amount);
       const price = max(emptyPrice, realPrice);
 
