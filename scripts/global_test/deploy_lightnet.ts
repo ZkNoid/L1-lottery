@@ -3,7 +3,7 @@ import { AccountUpdate, Lightnet, Mina, NetworkId, PrivateKey } from 'o1js';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { getRandomManager } from '../../src/Random/RandomManager';
 import { getPLottery } from '../../src/PLottery';
-import { DistibutionProgram } from '../../src/Proofs/DistributionProof';
+import { DistributionProgram } from '../../src/Proofs/DistributionProof';
 import { TicketReduceProgram } from '../../src/Proofs/TicketReduceProof';
 
 export const deployToLightnet = async () => {
@@ -49,7 +49,7 @@ export const deployToLightnet = async () => {
 
   let Lottery = getPLottery(randomManagerKeys.publicKey, deployer.publicKey);
   let lottery = new Lottery(plotteryKeys.publicKey);
-  await DistibutionProgram.compile();
+  await DistributionProgram.compile();
   await TicketReduceProgram.compile();
   await Lottery.compile();
 

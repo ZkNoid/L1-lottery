@@ -22,7 +22,7 @@ import {
   fetchAccount,
   fetchLastBlock,
 } from 'o1js';
-import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { PStateManager } from '../src/StateManager/PStateManager.js';
 import { BLOCK_PER_ROUND } from '../src/constants.js';
@@ -84,7 +84,7 @@ let { plottery: lottery, PLottery } = findPlottery();
 
 // compile the contract to create prover keys
 console.log('compile the DP');
-await DistibutionProgram.compile();
+await DistributionProgram.compile();
 console.log('compile reduce proof');
 await TicketReduceProgram.compile();
 console.log('compile the Lottery');

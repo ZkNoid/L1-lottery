@@ -1,5 +1,5 @@
 import { getPLottery } from '../src/PLottery.js';
-import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { writeFileSync } from 'fs';
 import { PublicKey } from 'o1js';
 import { findPlottery } from './utils.js';
@@ -7,7 +7,7 @@ import { findPlottery } from './utils.js';
 let { PLottery } = findPlottery();
 
 const lotteryResult = await PLottery.analyzeMethods();
-const distributionResult = await DistibutionProgram.analyzeMethods();
+const distributionResult = await DistributionProgram.analyzeMethods();
 
 if (!PLottery._methods) {
   console.log("Can't find methods for Lottery");

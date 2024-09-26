@@ -7,9 +7,9 @@ import {
   generateNumbersSeed,
 } from '../../src';
 import { randomInt } from 'crypto';
-import { LotteryAction } from '../../src/Proofs/TicketReduceProof';
-import { RandomManagerType } from '../../build/src/Random/RandomManager';
-import { RandomManagerManager } from '../../src/StateManager/RandomManagerManager';
+import { LotteryAction } from '../../src/Proofs/TicketReduceProof.js';
+import { RandomManagerType } from '../../src/Random/RandomManager.js';
+import { RandomManagerManager } from '../../src/StateManager/RandomManagerManager.js';
 
 const PLAYERS_AMOUNT = 10;
 

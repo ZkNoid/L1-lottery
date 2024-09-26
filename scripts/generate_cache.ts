@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { Cache, PublicKey } from 'o1js';
-import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { getPLottery } from '../src/PLottery.js';
 import { getRandomManager } from '../src/Random/RandomManager.js';
@@ -21,7 +21,7 @@ let randomManagerAddress = PublicKey.fromBase58(addresses.randomManagerAddress);
 let lotteryAddress = PublicKey.fromBase58(addresses.lotteryAddress);
 let randomManagerOwner = PublicKey.fromBase58(addresses.randomManagerOwner);
 
-await DistibutionProgram.compile({ cache: Cache.FileSystem('./cache/DP') });
+await DistributionProgram.compile({ cache: Cache.FileSystem('./cache/DP') });
 await TicketReduceProgram.compile({ cache: Cache.FileSystem('./cache/TRP') });
 
 let RandomManager = getRandomManager(randomManagerOwner);

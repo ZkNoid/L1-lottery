@@ -14,7 +14,7 @@
  */
 import fs from 'fs/promises';
 import { Cache, Field, Mina, NetworkId, PrivateKey, fetchAccount } from 'o1js';
-import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { Ticket } from '../src/Structs/Ticket.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { PStateManager } from '../src/StateManager/PStateManager.js';
@@ -75,7 +75,7 @@ let { plottery: lottery, PLottery } = findPlottery();
 
 // compile the contract to create prover keys
 console.log('compile the DP');
-await DistibutionProgram.compile();
+await DistributionProgram.compile();
 console.log('compile reduce proof');
 await TicketReduceProgram.compile();
 console.log('compile the Lottery');

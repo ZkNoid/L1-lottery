@@ -6,7 +6,7 @@ import { getRandomManager } from '../src/Random/RandomManager.js';
 import { getPLottery } from '../src/PLottery.js';
 
 import * as fs from 'fs';
-import { DistibutionProgram } from '../src/Proofs/DistributionProof.js';
+import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { configDefaultInstance } from './utils.js';
 
@@ -85,7 +85,7 @@ await wait(15 * 60 * 1000);
 console.log(`Deploying lottery on address: ${lotteryAddress.toBase58()}`);
 let Lottery = getPLottery(randomManagerAddress, randomManagerAddress);
 let lottery = new Lottery(lotteryAddress);
-await DistibutionProgram.compile();
+await DistributionProgram.compile();
 await TicketReduceProgram.compile();
 await Lottery.compile();
 
