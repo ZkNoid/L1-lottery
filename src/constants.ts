@@ -12,9 +12,8 @@ export const COMMISION = 30; // 3% comission
 
 export const mockWinningCombination = [1, 1, 1, 1, 1, 1];
 
-/// xxQ was compomised previously. Use it for test purpose only
 export const treasury = PublicKey.fromBase58(
-  'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ'
+  'B62qnBkcyABfjz2cqJPzNZKjVt9M9kx1vgoiWLbkJUnk16Cz8KX8qC4'
 );
 
 export const ZkOnCoordinatorAddress = PublicKey.fromBase58(

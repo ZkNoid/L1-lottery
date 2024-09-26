@@ -96,7 +96,7 @@ console.log(
 // );
 await fetchAccount({ publicKey: zkAppAddress });
 await fetchAccount({
-  publicKey: 'B62qj3DYVUCaTrDnFXkJW34xHUBr9zUorg72pYN3BJTGB4KFdpYjxxQ',
+  publicKey: 'B62qnBkcyABfjz2cqJPzNZKjVt9M9kx1vgoiWLbkJUnk16Cz8KX8qC4',
 });
 
 console.log(lottery.bankRoot.get().toString());

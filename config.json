@@ -4,8 +4,8 @@
     "zeko": {
       "url": "https://devnet.zeko.io/graphql",
       "keyPath": "keys/zeko.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "MockLottery"
     },
@@ -13,8 +13,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/berkeley/v1/graphql",
       "keyPath": "keys/devnet.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "MockLottery"
     },
@@ -22,8 +22,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/devnet.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "MockLottery"
     },
@@ -31,8 +31,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/devnet_2.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "MockLottery"
     },
@@ -40,8 +40,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/devnet_ready_1.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "Lottery"
     },
@@ -49,8 +49,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/devnet_andrey.json",
-      "feepayerKeyPath": "/Users/andrey/.cache/zkapp-cli/keys/zknoid-deployer.json",
-      "feepayerAlias": "zknoid-deployer",
+      "feepayerKeyPath": "/Users/andrey/.cache/zkapp-cli/keys/zknoid-new_dev.json",
+      "feepayerAlias": "zknoid-new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -58,8 +58,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/devnet_ready_2.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "Lottery"
     },
@@ -67,8 +67,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_1.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "1",
       "smartContract": "PLottery"
     },
@@ -76,8 +76,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/test_1.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "1",
       "smartContract": "Lottery"
     },
@@ -85,8 +85,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_10_blocks_per_round.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -94,8 +94,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_10_bpr_2.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -103,8 +103,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_10_bpr_3.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "1",
       "smartContract": "PLottery"
     },
@@ -112,8 +112,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_2.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -121,8 +121,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_3.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -130,8 +130,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_4.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -139,8 +139,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_5.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -148,8 +148,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_6.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -157,8 +157,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_7_60bpr.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -166,8 +166,8 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_bug_test.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
     },
@@ -175,10 +175,18 @@
       "networkId": "testnet",
       "url": "https://api.minascan.io/node/devnet/v1/graphql",
       "keyPath": "keys/plottery_8_60bpr.json",
-      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/deployer.json",
-      "feepayerAlias": "deployer",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
       "fee": "0.1",
       "smartContract": "PLottery"
+    },
+    "some": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "keyPath": "keys/some.json",
+      "feepayerKeyPath": "/home/alex/.cache/zkapp-cli/keys/new_dev.json",
+      "feepayerAlias": "new_dev",
+      "fee": "0.1"
     }
   }
 }
