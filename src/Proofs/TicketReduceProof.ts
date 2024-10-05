@@ -3,6 +3,7 @@ import {
   MerkleList,
   Poseidon,
   Provable,
+  Reducer,
   SelfProof,
   Struct,
   UInt64,
@@ -80,44 +81,32 @@ export class MerkleActions extends MerkleList.create(
 
 export class TicketReduceProofPublicInput extends Struct({
   action: LotteryAction,
-  roundWitness: MerkleMap20Witness,
-  roundTicketWitness: MerkleMap20Witness,
-  bankWitness: MerkleMap20Witness,
-  bankValue: Field,
+  ticketWitness: MerkleMap20Witness,
 }) {}
 
 export class TicketReduceProofPublicOutput extends Struct({
-  initialState: Field,
   finalState: Field,
   initialTicketRoot: Field,
-  initialBankRoot: Field,
-  initialTicketId: Field,
+  initialBank: Field,
   newTicketRoot: Field,
-  newBankRoot: Field,
+  newBank: Field,
   processedActionList: Field,
-  lastProcessedRound: Field,
   lastProcessedTicketId: Field,
 }) {}
 
 export const init = async (
   input: TicketReduceProofPublicInput,
-  initialState: Field,
   initialTicketRoot: Field,
-  initialBankRoot: Field,
-  initialRound: Field,
-  initialTicketId: Field
+  initialBank: Field
 ): Promise<TicketReduceProofPublicOutput> => {
   return new TicketReduceProofPublicOutput({
-    initialState,
-    finalState: initialState,
+    finalState: Reducer.initialActionState,
     initialTicketRoot,
-    initialBankRoot,
-    initialTicketId,
+    initialBank,
     newTicketRoot: initialTicketRoot,
-    newBankRoot: initialBankRoot,
+    newBank: initialBank,
     processedActionList: ActionList.emptyHash,
-    lastProcessedRound: initialRound,
-    lastProcessedTicketId: initialTicketId,
+    lastProcessedTicketId: Field(-1),
   });
 };
 
@@ -130,47 +119,25 @@ export const addTicket = async (
 ): Promise<TicketReduceProofPublicOutput> => {
   prevProof.verify();
 
-  let [prevRoundRoot, ticketId] = input.roundTicketWitness.computeRootAndKeyV2(
+  let [prevTicketRoot, ticketId] = input.ticketWitness.computeRootAndKeyV2(
     Field(0)
   );
 
-  let [prevTicketRoot, round] =
-    input.roundWitness.computeRootAndKeyV2(prevRoundRoot);
-
-  let expectedTicketId = Provable.if(
-    round.greaterThan(prevProof.publicOutput.lastProcessedRound),
-    Field(0),
-    prevProof.publicOutput.lastProcessedTicketId.add(1)
-  );
-
+  const expectedTicketId = prevProof.publicOutput.lastProcessedTicketId.add(1);
   ticketId.assertEquals(expectedTicketId, 'Wrong id for ticket');
 
   prevTicketRoot.assertEquals(
     prevProof.publicOutput.newTicketRoot,
     'Wrong ticket root'
   );
-  round.assertEquals(input.action.round, 'Wrong round in witness');
 
   // Update root
-  let [newTicketRoundRoot] = input.roundTicketWitness.computeRootAndKeyV2(
+  let [newTicketRoot] = input.ticketWitness.computeRootAndKeyV2(
     input.action.ticket.hash()
   );
 
-  let [newTicketRoot] =
-    input.roundWitness.computeRootAndKeyV2(newTicketRoundRoot);
-
-  let [prevBankRoot, bankKey] = input.bankWitness.computeRootAndKeyV2(
-    input.bankValue
-  );
-  bankKey.assertEquals(round, 'Wrong bankKey');
-
-  prevBankRoot.assertEquals(
-    prevProof.publicOutput.newBankRoot,
-    'Wrong bank root'
-  );
-
-  let [newBankRoot] = input.bankWitness.computeRootAndKeyV2(
-    input.bankValue.add(TICKET_PRICE.mul(input.action.ticket.amount).value)
+  let newBank = prevProof.publicOutput.newBank.add(
+    TICKET_PRICE.mul(input.action.ticket.amount).value
   );
 
   let processedActionList = actionListAdd(
@@ -179,15 +146,12 @@ export const addTicket = async (
   );
 
   return new TicketReduceProofPublicOutput({
-    initialState: prevProof.publicOutput.initialState,
     finalState: prevProof.publicOutput.finalState,
     initialTicketRoot: prevProof.publicOutput.initialTicketRoot,
-    initialBankRoot: prevProof.publicOutput.initialBankRoot,
-    initialTicketId: prevProof.publicOutput.initialTicketId,
+    initialBank: prevProof.publicOutput.initialBank,
     newTicketRoot,
-    newBankRoot,
+    newBank,
     processedActionList,
-    lastProcessedRound: round,
     lastProcessedTicketId: expectedTicketId,
   });
 };
@@ -208,15 +172,12 @@ export const cutActions = async (
   let processedActionList = ActionList.emptyHash;
 
   return new TicketReduceProofPublicOutput({
-    initialState: prevProof.publicOutput.initialState,
     finalState,
     initialTicketRoot: prevProof.publicOutput.initialTicketRoot,
-    initialBankRoot: prevProof.publicOutput.initialBankRoot,
-    initialTicketId: prevProof.publicOutput.initialTicketId,
+    initialBank: prevProof.publicOutput.initialBank,
     newTicketRoot: prevProof.publicOutput.newTicketRoot,
-    newBankRoot: prevProof.publicOutput.newBankRoot,
+    newBank: prevProof.publicOutput.newBank,
     processedActionList,
-    lastProcessedRound: prevProof.publicOutput.lastProcessedRound,
     lastProcessedTicketId: prevProof.publicOutput.lastProcessedTicketId,
   });
 };
@@ -232,23 +193,13 @@ export const TicketReduceProgram = ZkProgram({
   publicOutput: TicketReduceProofPublicOutput,
   methods: {
     init: {
-      privateInputs: [Field, Field, Field, Field, Field],
+      privateInputs: [Field, Field],
       async method(
         input: TicketReduceProofPublicInput,
-        initialState: Field,
         initialTicketRoot: Field,
-        initialBankRoot: Field,
-        initialRound: Field,
-        initialTicketId: Field
+        initialBankRoot: Field
       ): Promise<TicketReduceProofPublicOutput> {
-        return init(
-          input,
-          initialState,
-          initialTicketRoot,
-          initialBankRoot,
-          initialRound,
-          initialTicketId
-        );
+        return init(input, initialTicketRoot, initialBankRoot);
       },
     },
     addTicket: {

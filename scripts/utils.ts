@@ -2,8 +2,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { Cache, Field, Mina, PrivateKey, PublicKey } from 'o1js';
 import * as fs from 'fs';
-import { PLotteryType, getPLottery } from '../src/PLottery.js';
-import { getRandomManager } from '../src/Random/RandomManager.js';
 import {
   LotteryAction,
   TicketReduceProgram,
@@ -33,7 +31,7 @@ export const configDefaultInstance = (): { transactionFee: number } => {
 
   return { transactionFee };
 };
-
+/*
 export const findPlottery = (epoch: string = 'current') => {
   let addressesBuffer = fs.readFileSync(`./deploy/addresses/${epoch}.json`);
   let addresses: {
@@ -150,6 +148,20 @@ export const compilePlottery = async (epoch: string = 'current') => {
   });
 };
 
+export const getDeployer = (): {
+  deployer: PublicKey;
+  deployerKey: PrivateKey;
+} => {
+  let deployerKey = PrivateKey.fromBase58(process.env.DEPLOYER_KEY!);
+  let deployer = deployerKey.toPublicKey();
+
+  return {
+    deployer,
+    deployerKey,
+  };
+};
+*/
+
 export const getIPFSCID = (): { hashPart1: Field; hashPart2: Field } => {
   function segmentHash(ipfsHashFile: string) {
     const ipfsHash0 = ipfsHashFile.slice(0, 30); // first part of the ipfsHash
@@ -165,17 +177,4 @@ export const getIPFSCID = (): { hashPart1: Field; hashPart2: Field } => {
   let cidBuffer = fs.readFileSync('./random_request_cid');
 
   return segmentHash(cidBuffer.toString());
-};
-
-export const getDeployer = (): {
-  deployer: PublicKey;
-  deployerKey: PrivateKey;
-} => {
-  let deployerKey = PrivateKey.fromBase58(process.env.DEPLOYER_KEY!);
-  let deployer = deployerKey.toPublicKey();
-
-  return {
-    deployer,
-    deployerKey,
-  };
 };

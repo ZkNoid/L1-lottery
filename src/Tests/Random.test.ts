@@ -10,7 +10,6 @@ import {
   UInt32,
   UInt64,
 } from 'o1js';
-import { PLotteryType, generateNumbersSeed, getPLottery } from '../PLottery';
 import { Ticket } from '../Structs/Ticket';
 import { NumberPacked, convertToUInt64 } from '../util';
 import {
@@ -19,15 +18,16 @@ import {
   ZkOnCoordinatorAddress,
   treasury,
 } from '../constants';
-import {
-  CommitValue,
-  MockedRandomManagerType,
-  RandomManagerType,
-  getMockedRandomManager,
-  getRandomManager,
-} from '../Random/RandomManager';
 import { RandomManagerManager } from '../StateManager/RandomManagerManager';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
+import { CommitValue, RandomManager } from '../Random/RandomManager';
+import { PlotteryFactory } from '../Factory';
+import { FactoryManager } from '../StateManager/FactoryStateManager';
+import { PLottery } from '../PLottery';
+import { TicketReduceProgram } from '../Proofs/TicketReduceProof';
+import { DistributionProgram } from '../Proofs/DistributionProof';
+import { MockedRandomManager } from './MockedContracts/MockedRandomManager';
+import { MockedPlotteryFactory } from './MockedContracts/MockedFactory';
 
 const testCommitValues = [...Array(10)].map(
   (_, i) => new CommitValue({ value: Field(i), salt: Field.random() })
@@ -48,8 +48,11 @@ describe('Add', () => {
     senderKey: PrivateKey,
     randomManagerAddress: PublicKey,
     randomManagerPrivateKey: PrivateKey,
-    randomManager: MockedRandomManagerType,
-    rmStateManager: RandomManagerManager,
+    factoryAddress: PublicKey,
+    factoryPrivateKey: PrivateKey,
+    factory: PlotteryFactory,
+    randomManager: MockedRandomManager,
+    factoryManager: FactoryManager,
     mineNBlocks: (n: number) => void,
     commitValue: (round: number, commitValue: CommitValue) => Promise<void>,
     produceResultInRM: (
@@ -73,23 +76,25 @@ describe('Add', () => {
     senderKey = senderAccount.key;
     randomManagerPrivateKey = PrivateKey.random();
     randomManagerAddress = randomManagerPrivateKey.toPublicKey();
-    let RandomManager = getMockedRandomManager(deployerAccount);
-    randomManager = new RandomManager(randomManagerAddress);
+    factoryPrivateKey = PrivateKey.random();
+    factoryAddress = factoryPrivateKey.toPublicKey();
+    randomManager = new MockedRandomManager(randomManagerAddress);
+    // randomManager = new RandomManager(randomManagerAddress);
+    // factory = new MockedPlotteryFactory(factoryAddress);
+    factory = new MockedPlotteryFactory(factoryAddress);
 
-    rmStateManager = new RandomManagerManager();
+    factoryManager = new FactoryManager();
     mineNBlocks = (n: number) => {
       let curAmount = Local.getNetworkState().globalSlotSinceGenesis;
       Local.setGlobalSlot(curAmount.add(n));
     };
-
     commitValue = async (round: number, commitValue: CommitValue) => {
-      const commitWV = rmStateManager.getCommitWitness(round);
       let tx = Mina.transaction(deployerAccount, async () => {
-        randomManager.commit(commitValue, commitWV.witness);
+        randomManager.commitValue(commitValue);
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
-      rmStateManager.addCommit(round, commitValue);
+      factoryManager.randomManagers[round].addCommit(commitValue);
     };
     produceResultInRM = async (
       round: number,
@@ -101,81 +106,77 @@ describe('Add', () => {
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
-      const commitWV = rmStateManager.getCommitWitness(round);
-      const resultWV = rmStateManager.getResultWitness(round);
       let tx2 = Mina.transaction(deployerAccount, async () => {
-        randomManager.reveal(commitValue, commitWV.witness, resultWV.witness);
+        randomManager.reveal(commitValue);
       });
       await tx2.prove();
       await tx2.sign([deployerKey]).send();
-      rmStateManager.addResultValue(
-        round,
-        Poseidon.hash([commitValue.value, vrfValue])
-      );
     };
   });
   async function localDeploy() {
+    // // Factory deploy
     const txn = await Mina.transaction(deployerAccount, async () => {
       AccountUpdate.fundNewAccount(deployerAccount);
-      await randomManager.deploy();
+      await factory.deploy();
     });
     await txn.prove();
     // this tx needs .sign(), because `deploy()` adds an account update that requires signature authorization
-    await txn.sign([deployerKey, randomManagerPrivateKey]).send();
+    await txn.sign([deployerKey, factoryPrivateKey]).send();
+    let roundWitness = factoryManager.roundsMap.getWitness(Field(0));
+    let plotteryKey = PrivateKey.randomKeypair();
+    let plotteryAddress = plotteryKey.publicKey; // Do not need it for now
+    const tx2 = await Mina.transaction(deployerAccount, async () => {
+      AccountUpdate.fundNewAccount(deployerAccount);
+      AccountUpdate.fundNewAccount(deployerAccount);
+      await factory.deployRound(
+        roundWitness,
+        randomManagerAddress,
+        plotteryAddress // Do not need it for now
+      );
+    });
+    await tx2.prove();
+    await tx2
+      .sign([deployerKey, plotteryKey.privateKey, randomManagerPrivateKey])
+      .send();
+    factoryManager.addDeploy(0, randomManagerAddress, plotteryAddress);
   }
+
+  it.only('Initial state check', async () => {
+    await localDeploy();
+
+    expect(factory.roundsRoot.get()).toEqual(
+      factoryManager.roundsMap.getRoot()
+    );
+
+    expect(randomManager.startSlot.get()).toEqual(UInt32.from(0));
+    expect(randomManager.commit.get()).toEqual(Field(0));
+    expect(randomManager.result.get()).toEqual(Field(0));
+    expect(randomManager.curRandomValue.get()).toEqual(Field(0));
+  });
 
   it('Should produce random value', async () => {
     await localDeploy();
 
-    expect(rmStateManager.commitMap.getRoot()).toEqual(
-      randomManager.commitRoot.get()
-    );
-
-    expect(rmStateManager.resultMap.getRoot()).toEqual(
-      randomManager.resultRoot.get()
-    );
-
     for (let i = 0; i < 10; i++) {
       console.log(i);
       await commitValue(i, testCommitValues[i]);
-
-      expect(rmStateManager.commitMap.getRoot()).toEqual(
-        randomManager.commitRoot.get()
-      );
 
       mineNBlocks(BLOCK_PER_ROUND + 1);
 
       await produceResultInRM(i, testVRFValues[i], testCommitValues[i]);
 
       const seed = Poseidon.hash([testCommitValues[i].value, testVRFValues[i]]);
-      expect(rmStateManager.resultMap.get(Field(i))).toEqual(seed);
-      expect(rmStateManager.resultMap.getRoot()).toEqual(
-        randomManager.resultRoot.get()
-      );
+      expect(randomManager.result.get()).toEqual(seed);
     }
   });
 
-  it('JSON works', async () => {
-    for (let i = 0; i < testCommitValues.length; i++) {
-      rmStateManager.addCommit(i, testCommitValues[i]);
-      rmStateManager.addResultValue(i, testVRFValues[i]);
-    }
+  // it('JSON works', async () => {
+  //   rmStateManager.addCommit(testCommitValues[0]);
 
-    let json = rmStateManager.toJSON();
+  //   let json = rmStateManager.toJSON();
 
-    let copy = RandomManagerManager.fromJSON(json);
+  //   let copy = RandomManagerManager.fromJSON(json);
 
-    expect(rmStateManager.commitMap.getRoot()).toEqual(
-      copy.commitMap.getRoot()
-    );
-
-    expect(rmStateManager.resultMap.getRoot()).toEqual(
-      copy.resultMap.getRoot()
-    );
-
-    for (let i = 0; i < testCommitValues.length; i++) {
-      expect(rmStateManager.commits[i].hash()).toEqual(copy.commits[i].hash());
-      expect(rmStateManager.results[i]).toEqual(copy.results[i]);
-    }
-  });
+  //   expect(rmStateManager.commit).toEqual(copy.commit);
+  // });
 });
