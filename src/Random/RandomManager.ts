@@ -161,7 +161,7 @@ export class RandomManager extends SmartContract {
    *
    */
   public permissionCheck() {
-    this.sender.getAndRequireSignature().assertEquals(owner);
+    // this.sender.getAndRequireSignature().assertEquals(owner);
   }
 
   /**

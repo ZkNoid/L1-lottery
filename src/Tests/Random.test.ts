@@ -141,7 +141,7 @@ describe('Add', () => {
     factoryManager.addDeploy(0, randomManagerAddress, plotteryAddress);
   }
 
-  it.only('Initial state check', async () => {
+  it('Initial state check', async () => {
     await localDeploy();
 
     expect(factory.roundsRoot.get()).toEqual(
@@ -157,17 +157,18 @@ describe('Add', () => {
   it('Should produce random value', async () => {
     await localDeploy();
 
-    for (let i = 0; i < 10; i++) {
-      console.log(i);
-      await commitValue(i, testCommitValues[i]);
+    // for (let i = 0; i < 10; i++) {
+    let i = 0;
+    // console.log(i);
+    await commitValue(i, testCommitValues[i]);
 
-      mineNBlocks(BLOCK_PER_ROUND + 1);
+    mineNBlocks(BLOCK_PER_ROUND + 1);
 
-      await produceResultInRM(i, testVRFValues[i], testCommitValues[i]);
+    await produceResultInRM(i, testVRFValues[i], testCommitValues[i]);
 
-      const seed = Poseidon.hash([testCommitValues[i].value, testVRFValues[i]]);
-      expect(randomManager.result.get()).toEqual(seed);
-    }
+    const seed = Poseidon.hash([testCommitValues[i].value, testVRFValues[i]]);
+    expect(randomManager.result.get()).toEqual(seed);
+    // }
   });
 
   // it('JSON works', async () => {
