@@ -50,7 +50,6 @@ function emptyHashWithPrefix(prefix: string) {
 
 export class LotteryAction extends Struct({
   ticket: Ticket,
-  round: Field,
 }) {}
 
 export const actionListAdd = (hash: Field, action: LotteryAction): Field => {

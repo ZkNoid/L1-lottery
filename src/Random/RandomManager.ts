@@ -53,14 +53,14 @@ export class RandomManager extends SmartContract {
     requested: ExternalRequestEvent,
   };
 
-  init() {
-    super.init();
+  // init() {
+  //   super.init();
 
-    // assert(
-    //   Bool(false),
-    //   'This contract is supposed to be deployed from factory. No init call there'
-    // );
-  }
+  //   // assert(
+  //   //   Bool(false),
+  //   //   'This contract is supposed to be deployed from factory. No init call there'
+  //   // );
+  // }
 
   /**
    * @notice Commit hidden value.

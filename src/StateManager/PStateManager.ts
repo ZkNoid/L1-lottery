@@ -88,7 +88,6 @@ export class PStateManager extends BaseStateManager {
     let input = new TicketReduceProofPublicInput({
       action: new LotteryAction({
         ticket: Ticket.random(this.contract.address),
-        round: Field(0),
       }),
       ticketWitness: this.ticketMap.getWitness(Field(0)),
     });
@@ -106,18 +105,9 @@ export class PStateManager extends BaseStateManager {
 
     for (let actionList of actionLists) {
       for (let action of actionList) {
-        if (+action.round != this.processedTicketData.round) {
-          this.processedTicketData.round = +action.round;
-          this.processedTicketData.ticketId = 0;
-        } else {
-          this.processedTicketData.ticketId++;
-        }
+        this.processedTicketData.ticketId++;
 
-        console.log(
-          `Process ticket: <${+action.round}> <${
-            this.processedTicketData.ticketId
-          }>`
-        );
+        console.log(`Process ticket: <${this.processedTicketData.ticketId}>`);
 
         input = new TicketReduceProofPublicInput({
           action: action,
@@ -135,9 +125,7 @@ export class PStateManager extends BaseStateManager {
           : await TicketReduceProgram.addTicket(input, curProof);
 
         this.addTicket(action.ticket, true);
-        addedTicketInfo.push({
-          round: action.round,
-        });
+        addedTicketInfo.push({});
       }
 
       // Again here we do not need specific input, as it is not using here

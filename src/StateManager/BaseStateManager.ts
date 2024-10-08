@@ -48,7 +48,7 @@ export class BaseStateManager {
   ticketMap: MerkleMap20;
   roundTickets: (Ticket | undefined)[]; // Refunded ticket will be undefined
   lastTicketInRound: number;
-  ticketNullifierMap: MerkleMap;
+  ticketNullifierMap: MerkleMap20;
   startSlot: Field;
   isMock: boolean;
   shouldUpdateState: boolean;
@@ -63,7 +63,7 @@ export class BaseStateManager {
     this.ticketMap = new MerkleMap20();
     this.lastTicketInRound = 0;
     this.roundTickets = [];
-    this.ticketNullifierMap = new MerkleMap();
+    this.ticketNullifierMap = new MerkleMap20();
     this.isMock = isMock;
     this.shouldUpdateState = shouldUpdateState;
   }
@@ -129,7 +129,7 @@ export class BaseStateManager {
   ): Promise<{
     ticketWitness: MerkleMap20Witness;
     dp: DistributionProof;
-    nullifierWitness: MerkleMapWitness;
+    nullifierWitness: MerkleMap20Witness;
   }> {
     const ticketHash = ticket.hash();
     let ticketWitness;
@@ -188,6 +188,7 @@ export class BaseStateManager {
     }
 
     if (this.shouldUpdateState) {
+      console.log('Update state');
       this.ticketMap.set(Field(ticketId), Field(0));
 
       this.roundTickets[ticketId] = undefined;

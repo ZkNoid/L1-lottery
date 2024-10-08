@@ -70,22 +70,18 @@ const emptyMap20Root = new MerkleMap20().getRoot();
 
 export class BuyTicketEvent extends Struct({
   ticket: Ticket,
-  round: Field,
 }) {}
 
 export class ProduceResultEvent extends Struct({
   result: Field,
-  round: Field,
 }) {}
 
 export class GetRewardEvent extends Struct({
   ticket: Ticket,
-  round: Field,
 }) {}
 
 export class RefundEvent extends Struct({
   ticket: Ticket,
-  round: Field,
 }) {}
 
 export class ReduceEvent extends Struct({}) {}
@@ -121,19 +117,13 @@ export class PLottery extends SmartContract {
   // Questionable
   @state(Bool) reduced = State<Bool>();
 
-  // // Round in witch last reduce happened
-  // @state(Field) lastReduceInRound = State<Field>();
-
-  // // Last processed ticketId by reducer
-  // @state(Field) lastProcessedTicketId = State<Field>();
-
   init() {
     super.init();
 
     /// !!!! This contracts is deployed from factory. No init call there
 
     this.ticketRoot.set(emptyMap20Root);
-    this.ticketNullifier.set(emptyMapRoot);
+    this.ticketNullifier.set(emptyMap20Root);
     this.startSlot.set(
       this.network.globalSlotSinceGenesis.getAndRequireEquals()
     );
@@ -159,15 +149,13 @@ export class PLottery extends SmartContract {
    * @dev No ticket merkle tree update happens here. Only action is dispatched.
    *
    * @param ticket The lottery ticket being purchased.
-   * @param round The lottery round for which the ticket is being purchased.
    *
-   * @require The sender must be the owner of the ticket.
    * @require The ticket must be valid as per the ticket validity check.
    * @require The specified round must be the current lottery round.
    *
    * @event buy-ticket Emitted when a ticket is successfully purchased.
    */
-  @method async buyTicket(ticket: Ticket, round: Field) {
+  @method async buyTicket(ticket: Ticket) {
     // Ticket validity check
     ticket.check().assertTrue();
 
@@ -190,14 +178,12 @@ export class PLottery extends SmartContract {
     this.reducer.dispatch(
       new LotteryAction({
         ticket,
-        round, // #TODO remove
       })
     );
     this.emitEvent(
       'buy-ticket',
       new BuyTicketEvent({
         ticket,
-        round: round, // #TODO remove
       })
     );
   }
@@ -263,16 +249,8 @@ export class PLottery extends SmartContract {
    * @dev Random number seed is taken from RandomManager contract for this round.
    *        Then using this seed 6 number is generated and stored
    *
-   * @param resultWitness The Merkle proof witness for the current result tree.
-   * @param bankValue The current value in the bank for this round.
-   * @param bankWitness The Merkle proof witness for the bank tree.
-   * @param rmWitness The Merkle proof witness for the random value tree(tree is stored on RandomManager contract).
-   * @param rmValue The random value used to generate winning numbers.
-   *
-   * @require The result for this round must not have been computed yet.
-   * @require The provided result witness must be valid and match the initial result root.
+   * @require The result must not have been computed yet.
    * @require The round must have been reduced before the result can be computed.
-   * @require The random value should match one, that is stored on RandomManager contract.
    *
    * @event produce-result Emitted when the result is successfully produced and the result tree is updated.
    */
@@ -305,7 +283,6 @@ export class PLottery extends SmartContract {
       'produce-result',
       new ProduceResultEvent({
         result: resultPacked,
-        round: Field(0), // #TODO remove
       })
     );
   }
@@ -318,11 +295,7 @@ export class PLottery extends SmartContract {
    *      and updating the necessary states.
    *
    * @param ticket The lottery ticket for which the refund is being requested.
-   * @param roundWitness The 1st level Merkle proof witness for the tickets tree.
-   * @param roundTicketWitness The 2nd level Merkle proof witness for the round's ticket tree.
-   * @param resultWitness The Merkle proof witness for the result tree.
-   * @param bankValue The value of bank for that round.
-   * @param bankWitness The Merkle proof witness for bank tree.
+   * @param ticketWitness Witness of the ticket in the ticketMap tree.
    *
    * @require The sender must be the owner of the ticket.
    * @require The ticket must exist in the Merkle map as verified by the round and ticket witnesses.
@@ -365,7 +338,6 @@ export class PLottery extends SmartContract {
       'get-refund',
       new RefundEvent({
         ticket,
-        round: Field(0), // #TODO remove
       })
     );
   }
@@ -376,21 +348,14 @@ export class PLottery extends SmartContract {
    *        and then sends appropriate potion of bank to ticket owner. Finally it nullify the ticket.
    *
    * @param ticket The lottery ticket for which the reward is being claimed.
-   * @param roundWitness The 1s level Merkle proof witness for the ticket tree.
-   * @param roundTicketWitness The 2nd level Merkle proof witness for the ticket tree.
+   * @param ticketWitness Witness of the ticket in the ticketMap tree.
    * @param dp The distribution proof to verify the winning numbers and ticket distribution.
-   * @param winningNumbers The winning numbers for the current round.
-   * @param resultWitness The Merkle proof witness for the result tree.
-   * @param bankValue The current value in the bank for this round.
-   * @param bankWitness The Merkle proof witness for the bank tree.
    * @param nullifierWitness The Merkle proof witness for the nullifier tree.
    *
    * @require The sender must be the owner of the ticket.
    * @require The distribution proof must be valid and match the round's ticket root and winning numbers.
    * @require The ticket must exist in the Merkle map as verified by the round and ticket witnesses.
    * @require The actions for the round must be reduced before claiming the reward.
-   * @require The result root must match the winning numbers for the round.
-   * @require The bank value must be verified and sufficient to cover the reward.
    *
    * @event get-reward Emitted when the reward is successfully claimed and transferred to the ticket owner.
    */
@@ -398,7 +363,7 @@ export class PLottery extends SmartContract {
     ticket: Ticket,
     ticketWitness: MerkleMap20Witness,
     dp: DistributionProof,
-    nullifierWitness: MerkleMapWitness
+    nullifierWitness: MerkleMap20Witness
   ) {
     // Check that owner trying to claim
     ticket.owner.assertEquals(this.sender.getAndRequireSignature());
@@ -451,7 +416,6 @@ export class PLottery extends SmartContract {
       'get-reward',
       new GetRewardEvent({
         ticket,
-        round: Field(0), // #TODO remove
       })
     );
   }
@@ -459,7 +423,6 @@ export class PLottery extends SmartContract {
   /**
    * @notice Check that execution is happening within provided round
    *
-   * @param round Round to be checked
    *
    * @require globalSlotSinceGenesis to be within range of round
    */
@@ -474,7 +437,7 @@ export class PLottery extends SmartContract {
   /**
    * @notice Check that execution is happening after provided round
    *
-   * @param round Round to be checked
+   * @param amount Amounts of rounds to pass to check
    *
    * @require globalSlotSinceGenesis to be greater then last slot of given number
    */
@@ -490,14 +453,14 @@ export class PLottery extends SmartContract {
    * @notice Check validity of merkle map witness for nullifier tree and then updates tree with new value.
    *
    * @param witness Merkle map witness for nullifier tree.
-   * @param round Round number, that will be compared with <witness> key.
+   * @param key Round number, that will be compared with <witness> key.
    * @param curValue Value of nullifier to be checked.
    * @param newValue New value that should be store in tree.
    *
    * @returns key of <witness>
    */
   public checkAndUpdateNullifier(
-    witness: MerkleMapWitness,
+    witness: MerkleMap20Witness,
     key: Field,
     curValue: Field,
     newValue: Field
@@ -564,8 +527,3 @@ export class PLottery extends SmartContract {
     };
   }
 }
-
-//   return PLottery;
-// }
-
-// export type PLotteryType = InstanceType<ReturnType<typeof getPLottery>>;

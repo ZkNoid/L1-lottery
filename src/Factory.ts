@@ -14,6 +14,7 @@ import {
   Permissions,
   method,
   Cache,
+  UInt32,
 } from 'o1js';
 import { BLOCK_PER_ROUND } from './constants';
 import { MerkleMap20 } from './Structs/CustomMerkleMap';
@@ -27,11 +28,7 @@ const emptyMerkleMapRoot = new MerkleMap().getRoot();
 
 await ZkonZkProgram.compile({ cache: Cache.FileSystem('cache') });
 await ZkonRequestCoordinator.compile({ cache: Cache.FileSystem('cache') });
-const { verificationKey: randomManagerVK } = await RandomManager.compile({
-  cache: Cache.FileSystem('cache'),
-});
-// const { verificationKey: mockedRandomManagerVK } =
-//   await MockedRandomManager.compile();
+const { verificationKey: randomManagerVK } = await RandomManager.compile();
 await TicketReduceProgram.compile({ cache: Cache.FileSystem('cache') });
 await DistributionProgram.compile({ cache: Cache.FileSystem('cache') });
 const { verificationKey: PLotteryVK } = await PLottery.compile({
@@ -51,6 +48,7 @@ export class DeployEvent extends Struct({
 
 const startSlot = Field(0);
 
+///Just copy with other vk for random manager
 export class PlotteryFactory extends SmartContract {
   events = {
     'deploy-plottery': DeployEvent,
@@ -77,13 +75,15 @@ export class PlotteryFactory extends SmartContract {
     const [newRoot] = witness.computeRootAndKeyV2(Field(1));
     this.roundsRoot.set(newRoot);
 
+    const localStartSlot = startSlot.add(round.mul(BLOCK_PER_ROUND));
+
     // Deploy and initialize random manager
     {
       const rmUpdate = AccountUpdate.createSigned(randomManager);
       rmUpdate.account.verificationKey.set(randomManagerVK);
       rmUpdate.update.appState[0] = {
         isSome: Bool(true),
-        value: startSlot,
+        value: localStartSlot,
       };
 
       // Update permissions
@@ -98,25 +98,35 @@ export class PlotteryFactory extends SmartContract {
     {
       const plotteryUpdate = AccountUpdate.createSigned(plottery);
       plotteryUpdate.account.verificationKey.set(PLotteryVK);
-      // Start slot set
+
+      // Set random manager
+      const rmFields = randomManager.toFields();
+
+      // Random manager address
       plotteryUpdate.update.appState[0] = {
         isSome: Bool(true),
-        value: startSlot,
+        value: rmFields[0],
       };
-      // Set random manager
+
       plotteryUpdate.update.appState[1] = {
         isSome: Bool(true),
-        value: randomManager.x, // ?
+        value: rmFields[1],
+      };
+
+      // Start slot set
+      plotteryUpdate.update.appState[2] = {
+        isSome: Bool(true),
+        value: localStartSlot,
       };
 
       // Set ticket ticketRoot
-      plotteryUpdate.update.appState[2] = {
+      plotteryUpdate.update.appState[3] = {
         isSome: Bool(true),
         value: new MerkleMap20().getRoot(),
       };
 
       // Set ticket nullifier
-      plotteryUpdate.update.appState[3] = {
+      plotteryUpdate.update.appState[4] = {
         isSome: Bool(true),
         value: new MerkleMap20().getRoot(),
       };

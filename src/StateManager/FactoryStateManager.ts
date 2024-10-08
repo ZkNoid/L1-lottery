@@ -14,12 +14,16 @@ export class FactoryManager {
   deploys: { [key: number]: IDeployInfo };
   plotteryManagers: { [round: number]: PStateManager };
   randomManagers: { [round: number]: RandomManagerManager };
+  isMock: boolean;
+  shouldUpdateState: boolean;
 
-  constructor() {
+  constructor(isMock: boolean = true, shouldUpdateState: boolean = false) {
     this.roundsMap = new MerkleMap();
     this.deploys = {};
     this.plotteryManagers = {};
     this.randomManagers = {};
+    this.isMock = isMock;
+    this.shouldUpdateState = shouldUpdateState;
   }
 
   addDeploy(round: number, randomManager: PublicKey, plottery: PublicKey) {
@@ -32,7 +36,11 @@ export class FactoryManager {
 
     const plotteryContract = new PLottery(plottery);
 
-    this.plotteryManagers[round] = new PStateManager(plotteryContract);
+    this.plotteryManagers[round] = new PStateManager(
+      plotteryContract,
+      this.isMock,
+      this.shouldUpdateState
+    );
     this.randomManagers[round] = new RandomManagerManager();
   }
 }
