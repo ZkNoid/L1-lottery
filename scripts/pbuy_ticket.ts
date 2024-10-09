@@ -5,6 +5,7 @@ import {
   Mina,
   NetworkId,
   PrivateKey,
+  PublicKey,
   UInt32,
   fetchAccount,
 } from 'o1js';
@@ -16,6 +17,7 @@ import { configDefaultInstance, getFedFactoryManager } from './utils.js';
 import { PlotteryFactory } from '../src/Factory.js';
 import { BLOCK_PER_ROUND } from '../src/constants.js';
 import { PLottery } from '../src/PLottery.js';
+import axios from 'axios';
 
 const { transactionFee } = configDefaultInstance();
 
@@ -28,13 +30,44 @@ const deployer = deployerKey.toPublicKey();
 // Get factory
 const factoryDataPath = `./deployV2/${networkId}/${verificationKey.hash.toString()}/factory.json`;
 
-const factoryAddress = JSON.parse(
-  fs.readFileSync(factoryDataPath).toString()
-).address;
+const factoryAddress = PublicKey.fromBase58(
+  JSON.parse(fs.readFileSync(factoryDataPath).toString()).address
+);
+
+console.log(factoryAddress.toBase58());
+
+await fetchAccount({ publicKey: factoryAddress });
 
 const factory = new PlotteryFactory(factoryAddress);
 const startSlot = factory.startSlot.get();
-const currentSlot = Mina.currentSlot();
+
+const data = await axios.post(
+  'https://api.minascan.io/node/devnet/v1/graphql',
+  JSON.stringify({
+    query: `
+  query {
+    bestChain(maxLength:1) {
+      protocolState {
+        consensusState {
+          blockHeight,
+          slotSinceGenesis
+        }
+      }
+    }
+  }
+`,
+  }),
+  {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    responseType: 'json',
+  }
+);
+const currentSlot = UInt32.from(
+  data.data.data.bestChain[0].protocolState.consensusState.slotSinceGenesis
+);
+
 const currentRound = currentSlot.sub(startSlot).div(BLOCK_PER_ROUND);
 
 const factoryManager = await getFedFactoryManager(factory);

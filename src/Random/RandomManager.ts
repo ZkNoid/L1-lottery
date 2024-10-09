@@ -39,7 +39,9 @@ export class CommitValue extends Struct({
 const { hashPart1, hashPart2 } = getIPFSCID();
 
 const coordinatorAddress = ZkOnCoordinatorAddress;
-const owner = PublicKey.empty(); // #TODO change with real owner address
+const owner = PublicKey.fromBase58(
+  'B62qjGsPY47SMkTykivPBAU3riS9gvMMrGr7ve6ynoHJNBzAhQmtoBn'
+);
 
 export class RandomManager extends SmartContract {
   @state(UInt32) startSlot = State<UInt32>();
@@ -74,6 +76,8 @@ export class RandomManager extends SmartContract {
     currentCommit.assertEquals(Field(0), 'Already committed');
 
     this.commit.set(commitValue.hash());
+
+    await this.callZkon();
   }
   /*
 
@@ -113,7 +117,7 @@ export class RandomManager extends SmartContract {
    * @dev Request body is stored on IPFS.
    *
    */
-  @method async callZkon() {
+  public async callZkon() {
     let curRandomValue = this.curRandomValue.getAndRequireEquals();
     curRandomValue.assertEquals(
       Field(0),
@@ -159,7 +163,7 @@ export class RandomManager extends SmartContract {
    *
    */
   public permissionCheck() {
-    // this.sender.getAndRequireSignature().assertEquals(owner);
+    this.sender.getAndRequireSignature().assertEquals(owner);
   }
 
   /**
