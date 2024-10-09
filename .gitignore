@@ -1,5 +1,6 @@
 # NodeJS
 node_modules
+!node_modules/mina-fungible-token/*
 build
 coverage
 

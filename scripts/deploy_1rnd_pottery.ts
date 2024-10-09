@@ -25,6 +25,8 @@ const networkId = Mina.activeInstance.getNetworkId().toString();
 
 let { verificationKey } = await PlotteryFactory.compile();
 
+console.log(`Factory verification key: ${verificationKey.hash.toString()}`);
+
 let factoryAddress: PublicKey;
 
 if (
