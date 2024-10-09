@@ -15,14 +15,12 @@ import {
   state,
 } from 'o1js';
 import { BLOCK_PER_ROUND, ZkOnCoordinatorAddress } from '../constants.js';
-import { convertToUInt32 } from '../util.js';
-
 import {
   ZkonZkProgram,
   ZkonRequestCoordinator,
   ExternalRequestEvent,
 } from 'zkon-zkapp';
-import { getIPFSCID } from '../../scripts/utils.js';
+import { getIPFSCID } from '../util.js';
 
 const emptyMapRoot = new MerkleMap().getRoot();
 

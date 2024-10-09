@@ -2,6 +2,7 @@ import { Field, MerkleMap, PublicKey } from 'o1js';
 import { PStateManager } from './PStateManager.js';
 import { PLottery } from '../PLottery.js';
 import { RandomManagerManager } from './RandomManagerManager.js';
+import { RandomManager } from '../Random/RandomManager.js';
 
 interface IDeployInfo {
   round: number;
@@ -35,12 +36,15 @@ export class FactoryManager {
     this.roundsMap.set(Field(round), Field(1));
 
     const plotteryContract = new PLottery(plottery);
+    const randomManagerContract = new RandomManager(randomManager);
 
     this.plotteryManagers[round] = new PStateManager(
       plotteryContract,
       this.isMock,
       this.shouldUpdateState
     );
-    this.randomManagers[round] = new RandomManagerManager();
+    this.randomManagers[round] = new RandomManagerManager(
+      randomManagerContract
+    );
   }
 }

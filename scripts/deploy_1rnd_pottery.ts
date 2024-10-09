@@ -1,7 +1,7 @@
-import { Field, Mina, PrivateKey, PublicKey } from 'o1js';
+import { AccountUpdate, Field, Mina, PrivateKey, PublicKey } from 'o1js';
 import { DeployEvent, PlotteryFactory } from '../src/Factory.js';
 import { FactoryManager } from '../src/StateManager/FactoryStateManager.js';
-import { configDefaultInstance } from './utils.js';
+import { configDefaultInstance, getFedFactoryManager } from './utils.js';
 import * as fs from 'fs';
 
 let { transactionFee } = configDefaultInstance();
@@ -25,8 +25,6 @@ const networkId = Mina.activeInstance.getNetworkId().toString();
 
 let { verificationKey } = await PlotteryFactory.compile();
 
-const factoryManager = new FactoryManager();
-
 let factoryAddress: PublicKey;
 
 if (
@@ -47,8 +45,6 @@ if (fs.existsSync(factoryDataPath)) {
 
 let factory = new PlotteryFactory(factoryAddress);
 
-let factoryEvents = await factory.fetchEvents();
-
 let deployments;
 
 const deploymentsPath = `./deployV2/${networkId}/${verificationKey.hash.toString()}/deployments.json`;
@@ -60,18 +56,7 @@ if (fs.existsSync(deploymentsPath)) {
   deployments = {};
 }
 
-// Restore state of factoryManager
-for (const event of factoryEvents) {
-  let deployEvent = event.event.data as any;
-
-  console.log('event');
-  console.log(deployEvent);
-  factoryManager.addDeploy(
-    +deployEvent.round,
-    deployEvent.randomManager,
-    deployEvent.plottery
-  );
-}
+const factoryManager = await getFedFactoryManager(factory);
 
 for (let round = +from; round <= +to; round++) {
   if (factoryManager.roundsMap.get(Field(round)).greaterThan(0).toBoolean()) {
@@ -92,6 +77,9 @@ for (let round = +from; round <= +to; round++) {
   let tx = Mina.transaction(
     { sender: deployer, fee: 5 * transactionFee },
     async () => {
+      AccountUpdate.fundNewAccount(deployer);
+      AccountUpdate.fundNewAccount(deployer);
+
       await factory.deployRound(witness, randomManagerAddress, plotteryAddress);
     }
   );
@@ -105,9 +93,8 @@ for (let round = +from; round <= +to; round++) {
 
   if (txResult.status === 'rejected') {
     console.log(`Transaction failed due to following reason`);
-    console.log(txResult.toPretty());
     console.log(txResult.errors);
-    continue;
+    break;
   }
 
   factoryManager.addDeploy(round, randomManagerAddress, plotteryAddress);

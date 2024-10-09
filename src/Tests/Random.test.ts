@@ -50,7 +50,7 @@ describe('Add', () => {
     randomManagerPrivateKey: PrivateKey,
     factoryAddress: PublicKey,
     factoryPrivateKey: PrivateKey,
-    factory: PlotteryFactory,
+    factory: MockedPlotteryFactory,
     randomManager: MockedRandomManager,
     factoryManager: FactoryManager,
     mineNBlocks: (n: number) => void,

@@ -10,8 +10,11 @@ interface WitnessedValue {
 
 export class RandomManagerManager {
   commit: CommitValue | undefined;
+  contract: RandomManager;
 
-  constructor() {}
+  constructor(contract: RandomManager) {
+    this.contract = contract;
+  }
 
   addCommit(commit: CommitValue) {
     if (this.commit) {
@@ -32,18 +35,18 @@ export class RandomManagerManager {
     return JSON.stringify(json);
   }
 
-  static fromJSON(s: string): RandomManagerManager {
-    const data = JSON.parse(s);
+  // static fromJSON(s: string): RandomManagerManager {
+  //   const data = JSON.parse(s);
 
-    const res = new RandomManagerManager();
+  //   const res = new RandomManagerManager();
 
-    res.addCommit(
-      new CommitValue({
-        value: Field(data.commit.value),
-        salt: Field(data.commit.salt),
-      })
-    );
+  //   res.addCommit(
+  //     new CommitValue({
+  //       value: Field(data.commit.value),
+  //       salt: Field(data.commit.salt),
+  //     })
+  //   );
 
-    return res;
-  }
+  //   return res;
+  // }
 }

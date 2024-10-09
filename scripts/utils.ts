@@ -14,6 +14,8 @@ import {
 import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { ZkOnCoordinatorAddress } from '../src/constants.js';
 import { RandomManagerManager } from '../src/StateManager/RandomManagerManager.js';
+import { FactoryManager } from '../src/StateManager/FactoryStateManager.js';
+import { PlotteryFactory } from '../src/Factory.js';
 
 export const configDefaultInstance = (): { transactionFee: number } => {
   const transactionFee = 100_000_000;
@@ -161,6 +163,28 @@ export const getDeployer = (): {
   };
 };
 */
+
+export const getFedFactoryManager = async (
+  factory: PlotteryFactory
+): Promise<FactoryManager> => {
+  const factoryManager = new FactoryManager();
+
+  const factoryEvents = await factory.fetchEvents();
+
+  for (const event of factoryEvents) {
+    const deployEvent = event.event.data as any;
+
+    console.log('event');
+    console.log(deployEvent);
+    factoryManager.addDeploy(
+      +deployEvent.round,
+      deployEvent.randomManager,
+      deployEvent.plottery
+    );
+  }
+
+  return factoryManager;
+};
 
 export const getIPFSCID = (): { hashPart1: Field; hashPart2: Field } => {
   function segmentHash(ipfsHashFile: string) {

@@ -46,8 +46,6 @@ export class DeployEvent extends Struct({
   plottery: PublicKey,
 }) {}
 
-const startSlot = Field(87117); // Current slot on devnet
-
 ///Just copy with other vk for random manager
 export class PlotteryFactory extends SmartContract {
   events = {
@@ -55,10 +53,13 @@ export class PlotteryFactory extends SmartContract {
   };
 
   @state(Field) roundsRoot = State<Field>();
+  @state(UInt32) startSlot = State<UInt32>();
 
   init() {
     super.init();
     this.roundsRoot.set(emptyMerkleMapRoot);
+    this.network.globalSlotSinceGenesis.requireNothing();
+    this.startSlot.set(this.network.globalSlotSinceGenesis.get());
   }
 
   @method
@@ -75,7 +76,8 @@ export class PlotteryFactory extends SmartContract {
     const [newRoot] = witness.computeRootAndKeyV2(Field(1));
     this.roundsRoot.set(newRoot);
 
-    const localStartSlot = startSlot.add(round.mul(BLOCK_PER_ROUND));
+    const startSlot = this.startSlot.getAndRequireEquals();
+    const localStartSlot = startSlot.value.add(round.mul(BLOCK_PER_ROUND));
 
     // Deploy and initialize random manager
     {
