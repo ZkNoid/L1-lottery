@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "0.7.17",
+  "version": "0.7.18",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -62,7 +62,6 @@
     "dotenv": "^16.4.5",
     "esbuild": "^0.21.5",
     "minimist": "^1.2.8",
-    "o1js-pack": "^0.7.0",
     "pinata": "^0.3.3",
     "zkapp-cli": "^0.21.5"
   },
