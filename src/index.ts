@@ -9,6 +9,7 @@ export * from './constants.js';
 export * from './StateManager/PStateManager.js';
 export * from './StateManager/RandomManagerManager.js';
 export * from './StateManager/FactoryStateManager.js';
+export * from './Factory.js';
 
 import {
   DistributionProofPublicInput,

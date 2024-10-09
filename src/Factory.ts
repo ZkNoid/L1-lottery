@@ -16,6 +16,7 @@ import {
   Cache,
   UInt32,
 } from 'o1js';
+import fs from 'fs';
 import { BLOCK_PER_ROUND } from './constants.js';
 import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
 import { RandomManager } from './Random/RandomManager.js';
@@ -26,14 +27,27 @@ import { DistributionProgram } from './Proofs/DistributionProof.js';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 
-await ZkonZkProgram.compile({ cache: Cache.FileSystem('cache') });
-await ZkonRequestCoordinator.compile({ cache: Cache.FileSystem('cache') });
-const { verificationKey: randomManagerVK } = await RandomManager.compile();
-await TicketReduceProgram.compile({ cache: Cache.FileSystem('cache') });
-await DistributionProgram.compile({ cache: Cache.FileSystem('cache') });
-const { verificationKey: PLotteryVK } = await PLottery.compile({
-  cache: Cache.FileSystem('cache'),
-});
+// await ZkonZkProgram.compile({ cache: Cache.FileSystem('cache') });
+// await ZkonRequestCoordinator.compile({ cache: Cache.FileSystem('cache') });
+// const { verificationKey: randomManagerVK } = await RandomManager.compile();
+// await TicketReduceProgram.compile({ cache: Cache.FileSystem('cache') });
+// await DistributionProgram.compile({ cache: Cache.FileSystem('cache') });
+// const { verificationKey: PLotteryVK } = await PLottery.compile({
+//   cache: Cache.FileSystem('cache'),
+// });
+
+let vkString = fs.readFileSync('./vk.json').toString();
+let vkJSON = JSON.parse(vkString);
+
+const randomManagerVK = {
+  hash: Field(vkJSON.randomManagerVK.hash),
+  data: vkJSON.randomManagerVK.data,
+};
+
+const PLotteryVK = {
+  hash: Field(vkJSON.PLotteryVK.hash),
+  data: vkJSON.PLotteryVK.data,
+};
 
 class RoundInfo extends Struct({
   startSlot: Field,
