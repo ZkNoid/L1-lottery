@@ -1,4 +1,5 @@
 import {
+  Bool,
   Field,
   MerkleMap,
   MerkleMapWitness,
@@ -9,18 +10,17 @@ import {
   Struct,
   UInt32,
   ZkProgram,
+  assert,
   method,
   state,
 } from 'o1js';
 import { BLOCK_PER_ROUND, ZkOnCoordinatorAddress } from '../constants.js';
-import { convertToUInt32 } from '../util.js';
-
 import {
   ZkonZkProgram,
   ZkonRequestCoordinator,
   ExternalRequestEvent,
 } from 'zkon-zkapp';
-import { getIPFSCID } from '../../scripts/utils.js';
+import { getIPFSCID } from '../util.js';
 
 const emptyMapRoot = new MerkleMap().getRoot();
 
@@ -38,231 +38,144 @@ export class CommitValue extends Struct({
 
 const { hashPart1, hashPart2 } = getIPFSCID();
 
-// Add events
+const coordinatorAddress = ZkOnCoordinatorAddress;
+const owner = PublicKey.fromBase58(
+  'B62qjGsPY47SMkTykivPBAU3riS9gvMMrGr7ve6ynoHJNBzAhQmtoBn'
+);
 
-export function getRandomManager(
-  owner: PublicKey,
-  coordinatorAddress: PublicKey = ZkOnCoordinatorAddress
-) {
-  class RandomManager extends SmartContract {
-    @state(Field) commitRoot = State<Field>();
-    @state(Field) resultRoot = State<Field>();
+export class RandomManager extends SmartContract {
+  @state(UInt32) startSlot = State<UInt32>();
+  @state(Field) commit = State<Field>();
+  @state(Field) result = State<Field>();
+  @state(Field) curRandomValue = State<Field>();
 
-    @state(Field) curRandomValue = State<Field>();
-    @state(UInt32) startSlot = State<UInt32>();
+  events = {
+    requested: ExternalRequestEvent,
+  };
 
-    events = {
-      requested: ExternalRequestEvent,
-    };
+  // init() {
+  //   super.init();
 
-    init() {
-      super.init();
+  //   // assert(
+  //   //   Bool(false),
+  //   //   'This contract is supposed to be deployed from factory. No init call there'
+  //   // );
+  // }
 
-      this.commitRoot.set(emptyMapRoot);
-      this.resultRoot.set(emptyMapRoot);
-    }
+  /**
+   * @notice Commit hidden value.
+   * @dev Only hash o value and salt is stored. So value is hidden.
+   *
+   * @param commitValue Commit value = value + slot.
+   *
+   */
+  @method async commitValue(commitValue: CommitValue) {
+    this.permissionCheck();
 
-    /**
-     * @notice Initial set of start slot.
-     * @dev It should be equal to startBlock on PLottery. Called only once.
-     *
-     * @param startSlot start slot value.
-     *
-     */
-    @method async setStartSlot(startSlot: UInt32) {
-      this.permissionCheck();
+    const currentCommit = this.commit.getAndRequireEquals();
+    currentCommit.assertEquals(Field(0), 'Already committed');
 
-      this.startSlot.getAndRequireEquals().assertEquals(UInt32.from(0));
-      this.startSlot.set(startSlot);
-    }
+    this.commit.set(commitValue.hash());
 
-    /**
-     * @notice Commit hidden value.
-     * @dev Only hash o value and salt is stored. So value is hidden.
-     *
-     * @param commitValue Commit value = value + slot.
-     * @param commitWitness Witness of commit tree.
-     *
-     */
-    @method async commit(
-      commitValue: CommitValue,
-      commitWitness: MerkleMapWitness
-    ) {
-      this.permissionCheck();
+    await this.callZkon();
+  }
+  /*
 
-      const [prevCommitRoot, round] = commitWitness.computeRootAndKeyV2(
-        Field(0)
-      );
+  /**
+   * @notice Reveal number committed previously.
+   * @dev This function can be called only after oracle provided its random value
+   *
+   * @param commitValue Commit value = value + slot.
+   *
+   */
+  @method async reveal(commitValue: CommitValue) {
+    this.permissionCheck();
 
-      this.checkRoundDoNotEnd(convertToUInt32(round));
+    const result = this.result.getAndRequireEquals();
+    result.assertEquals(Field(0), 'reveal: Result already computed');
 
-      this.commitRoot
-        .getAndRequireEquals()
-        .assertEquals(prevCommitRoot, 'commit: Wrong commit witness');
+    // Check VRF computed
+    const curRandomValue = this.curRandomValue.getAndRequireEquals();
+    curRandomValue.assertGreaterThan(Field(0), 'reveal: No random value');
 
-      const [newCommitRoot] = commitWitness.computeRootAndKeyV2(
-        commitValue.hash()
-      );
-      this.commitRoot.set(newCommitRoot);
-    }
+    // Check commit
+    const commit = this.commit.getAndRequireEquals();
+    commit.assertEquals(commitValue.hash(), 'reveal: wrong commit value');
 
-    /**
-     * @notice Reveal number committed previously.
-     * @dev This function can be called only after oracle provided its random value
-     *
-     * @param commitValue Commit value = value + slot.
-     * @param commitWitness Witness of commit tree.
-     * @param resultWitness Witness of result tree.
-     *
-     */
-    @method async reveal(
-      commitValue: CommitValue,
-      commitWitness: MerkleMapWitness,
-      resultWitness: MerkleMapWitness
-    ) {
-      this.permissionCheck();
+    // Check round is over
+    this.checkRoundPass();
 
-      // Check VRF computed
-      const curRandomValue = this.curRandomValue.getAndRequireEquals();
-      curRandomValue.assertGreaterThan(
-        Field(0),
-        'reveal: No random value in stash'
-      );
+    // Compute result
+    const resultValue = Poseidon.hash([commitValue.value, curRandomValue]);
 
-      // Check commit witness
-      const [prevCommitRoot, round] = commitWitness.computeRootAndKeyV2(
-        commitValue.hash()
-      );
-
-      this.commitRoot
-        .getAndRequireEquals()
-        .assertEquals(prevCommitRoot, 'reveal: Wrong commit witness');
-
-      // Check result witness
-      const [prevResultRoot, resultRound] = resultWitness.computeRootAndKeyV2(
-        Field(0)
-      );
-
-      this.resultRoot
-        .getAndRequireEquals()
-        .assertEquals(prevResultRoot, 'reveal: wrong result witness');
-
-      round.assertEquals(
-        resultRound,
-        'reveal: Round for commit and result should be equal'
-      );
-
-      // Check round is over
-      this.checkRoundPass(convertToUInt32(round));
-
-      // Compute result
-      const resultValue = Poseidon.hash([commitValue.value, curRandomValue]);
-
-      // Update result
-      const [newResultRoot] = resultWitness.computeRootAndKeyV2(resultValue);
-      this.resultRoot.set(newResultRoot);
-
-      // Consume random value
-      this.curRandomValue.set(Field(0));
-    }
-
-    /**
-     * @notice Sends request to ZKOn oracle.
-     * @dev Request body is stored on IPFS.
-     *
-     */
-    @method async callZkon() {
-      let curRandomValue = this.curRandomValue.getAndRequireEquals();
-      curRandomValue.assertEquals(
-        Field(0),
-        'receiveZkonResponse: prev random value was not consumed. Call reveal first'
-      );
-
-      const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
-
-      const requestId = await coordinator.sendRequest(
-        this.address,
-        hashPart1,
-        hashPart2
-      );
-
-      const event = new ExternalRequestEvent({
-        id: requestId,
-        hash1: hashPart1,
-        hash2: hashPart2,
-      });
-
-      this.emitEvent('requested', event);
-    }
-
-    /**
-     * @notice Callback function for ZKOn response
-     *
-     */
-    @method
-    async receiveZkonResponse(requestId: Field, proof: ZkonProof) {
-      let curRandomValue = this.curRandomValue.getAndRequireEquals();
-      curRandomValue.assertEquals(
-        Field(0),
-        'receiveZkonResponse: prev random value was not consumed. Call reveal first'
-      );
-
-      const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
-      await coordinator.recordRequestFullfillment(requestId, proof);
-      this.curRandomValue.set(proof.publicInput.dataField);
-    }
-
-    /**
-     * @notice Checks that sender is the owner of the contract.
-     *
-     */
-    public permissionCheck() {
-      this.sender.getAndRequireSignature().assertEquals(owner);
-    }
-
-    /**
-     * @notice Checks that specified round have already passed.
-     *
-     * @param round Round to check
-     */
-    public checkRoundPass(round: UInt32) {
-      const startBlock = this.startSlot.getAndRequireEquals();
-      this.network.globalSlotSinceGenesis.requireBetween(
-        startBlock.add(round.add(1).mul(BLOCK_PER_ROUND)),
-        UInt32.MAXINT()
-      );
-    }
-
-    /**
-     * @notice Checks that round have not ended yet
-     *
-     * @param round Round to check
-     */
-    public checkRoundDoNotEnd(round: UInt32) {
-      const startBlock = this.startSlot.getAndRequireEquals();
-      this.network.globalSlotSinceGenesis.requireBetween(
-        UInt32.from(0),
-        startBlock.add(round.add(1).mul(BLOCK_PER_ROUND).sub(1))
-      );
-    }
+    // Update result
+    this.result.set(resultValue);
   }
 
-  return RandomManager;
-}
+  /**
+   * @notice Sends request to ZKOn oracle.
+   * @dev Request body is stored on IPFS.
+   *
+   */
+  public async callZkon() {
+    let curRandomValue = this.curRandomValue.getAndRequireEquals();
+    curRandomValue.assertEquals(
+      Field(0),
+      'random value have already been computed'
+    );
 
-export function getMockedRandomManager(owner: PublicKey) {
-  class MockedRandomManager extends getRandomManager(owner, PublicKey.empty()) {
-    @method async mockReceiveZkonResponse(newValue: Field) {
-      this.curRandomValue.set(newValue);
-    }
+    const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
+
+    const requestId = await coordinator.sendRequest(
+      this.address,
+      hashPart1,
+      hashPart2
+    );
+
+    const event = new ExternalRequestEvent({
+      id: requestId,
+      hash1: hashPart1,
+      hash2: hashPart2,
+    });
+
+    this.emitEvent('requested', event);
   }
 
-  return MockedRandomManager;
-}
+  /**
+   * @notice Callback function for ZKOn response
+   *
+   */
+  @method
+  async receiveZkonResponse(requestId: Field, proof: ZkonProof) {
+    let curRandomValue = this.curRandomValue.getAndRequireEquals();
+    curRandomValue.assertEquals(
+      Field(0),
+      'receiveZkonResponse: prev random value was not consumed. Call reveal first'
+    );
 
-export type RandomManagerType = InstanceType<
-  ReturnType<typeof getRandomManager>
->;
-export type MockedRandomManagerType = InstanceType<
-  ReturnType<typeof getMockedRandomManager>
->;
+    const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
+    await coordinator.recordRequestFullfillment(requestId, proof);
+    this.curRandomValue.set(proof.publicInput.dataField);
+  }
+
+  /**
+   * @notice Checks that sender is the owner of the contract.
+   *
+   */
+  public permissionCheck() {
+    this.sender.getAndRequireSignature().assertEquals(owner);
+  }
+
+  /**
+   * @notice Checks that specified round have already passed.
+   *
+   * @param round Round to check
+   */
+  public checkRoundPass() {
+    const startSlot = this.startSlot.getAndRequireEquals();
+    this.network.globalSlotSinceGenesis.requireBetween(
+      startSlot.add(BLOCK_PER_ROUND),
+      UInt32.MAXINT()
+    );
+  }
+}

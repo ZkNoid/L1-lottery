@@ -13,10 +13,17 @@ const pinata = new PinataSDK({
 
 const contractCode = readFileSync('./build/src/Random/RandomManager.js');
 
+// const json = {
+//   method: 'GET',
+//   baseURL: 'https://quantum-random.com/quantum',
+//   path: 'seed',
+//   zkapp: contractCode.toString(),
+// };
+
 const json = {
   method: 'GET',
-  baseURL: 'https://quantum-random.com/quantum',
-  path: 'seed',
+  baseURL: 'https://random-data-api.com/api/number/random_number',
+  path: 'number',
   zkapp: contractCode.toString(),
 };
 

@@ -9,6 +9,9 @@ coverage
 # System
 .DS_Store
 
+# Deploy info. Consist private keys and other sensitive data.
+deployV2
+
 # Never commit keys to Git!
 keys
 

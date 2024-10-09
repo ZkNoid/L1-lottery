@@ -1,6 +1,5 @@
 import { Field, JsonProof, MerkleMap, MerkleMapWitness, PublicKey } from 'o1js';
 import { Ticket } from '../Structs/Ticket.js';
-import { getEmpty2dMerkleMap, getNullifierId } from '../util.js';
 import {
   BLOCK_PER_ROUND,
   COMMISSION,
@@ -18,6 +17,7 @@ import {
 // import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 // import { Pickles } from 'o1js/dist/node/snarky';
 import { MerkleMap20, MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
+import { PLottery } from '../PLottery.js';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -44,119 +44,47 @@ export async function mockProof<I, O, P>(
 }
 
 export class BaseStateManager {
+  contract: PLottery;
   ticketMap: MerkleMap20;
-  roundTicketMap: MerkleMap20[];
-  roundTickets: (Ticket | undefined)[][]; // Refunded ticket will be undefined
-  lastTicketInRound: number[];
-  ticketNullifierMap: MerkleMap;
-  bankMap: MerkleMap20;
-  roundResultMap: MerkleMap20;
-  startBlock: Field;
+  roundTickets: (Ticket | undefined)[]; // Refunded ticket will be undefined
+  lastTicketInRound: number;
+  ticketNullifierMap: MerkleMap20;
+  startSlot: Field;
   isMock: boolean;
   shouldUpdateState: boolean;
-  dpProofs: { [key: number]: DistributionProof };
+  dpProof: DistributionProof | undefined;
 
   constructor(
-    startBlock: Field,
+    contract: PLottery,
     isMock: boolean = true,
     shouldUpdateState: boolean = false
   ) {
-    this.ticketMap = getEmpty2dMerkleMap(20);
-    this.roundTicketMap = [new MerkleMap20()];
-    this.lastTicketInRound = [0];
-    this.roundTickets = [[]];
-    this.ticketNullifierMap = new MerkleMap();
-    this.bankMap = new MerkleMap20();
-    this.roundResultMap = new MerkleMap20();
-    this.dpProofs = {};
-    this.startBlock = startBlock;
+    this.contract = contract;
+    this.ticketMap = new MerkleMap20();
+    this.lastTicketInRound = 0;
+    this.roundTickets = [];
+    this.ticketNullifierMap = new MerkleMap20();
     this.isMock = isMock;
     this.shouldUpdateState = shouldUpdateState;
   }
 
-  syncWithCurBlock(curBlock: number) {
-    let localRound = this.roundTicketMap.length - 1;
-    let curRound = Math.ceil((curBlock - +this.startBlock) / BLOCK_PER_ROUND);
-
-    this.startNextRound(curRound - localRound);
-  }
-
-  startNextRound(amount: number = 1) {
-    for (let i = 0; i < amount; i++) {
-      this.roundTicketMap.push(new MerkleMap20());
-      this.lastTicketInRound.push(0);
-      this.roundTickets.push([]);
-    }
-  }
-
-  getNextTicketWitness(
-    round: number
-  ): [MerkleMap20Witness, MerkleMap20Witness] {
-    const roundWitness = this.ticketMap.getWitness(Field.from(round));
-    const ticketRoundWitness = this.roundTicketMap[round].getWitness(
-      Field.from(this.lastTicketInRound[round])
-    );
-
-    return [roundWitness, ticketRoundWitness];
-  }
-
-  addTicket(
-    ticket: Ticket,
-    round: number
-  ): [MerkleMap20Witness, MerkleMap20Witness, MerkleMap20Witness, Field] {
+  addTicket(ticket: Ticket) {
     throw Error('Add ticket is not implemented');
   }
 
-  // Returns witness and value
-  getBankWitness(round: number): [MerkleMap20Witness, Field] {
-    const bankWitness = this.bankMap.getWitness(Field.from(round));
-    const value = this.bankMap.get(Field.from(round));
-
-    return [bankWitness, value];
-  }
-
-  updateResult(
-    round: number | Field,
-    result: Field
-  ): {
-    resultWitness: MerkleMap20Witness;
-    bankValue: Field;
-    bankWitness: MerkleMap20Witness;
-  } {
-    round = Field(round);
-    const resultWitness = this.roundResultMap.getWitness(round);
-
-    const bankValue = this.bankMap.get(round);
-    const bankWitness = this.bankMap.getWitness(round);
-
-    if (this.shouldUpdateState) {
-      this.roundResultMap.set(round, result);
-      this.bankMap.set(
-        round,
-        bankValue.mul(PRECISION - COMMISSION).div(PRECISION)
-      );
-    }
-
-    return {
-      resultWitness,
-      bankValue,
-      bankWitness,
-    };
-  }
-
   async getDP(round: number): Promise<DistributionProof> {
-    if (this.dpProofs[round]) {
-      return this.dpProofs[round];
+    if (this.dpProof) {
+      return this.dpProof;
     }
 
-    const winningCombination = this.roundResultMap.get(Field.from(round));
-    let ticketsInRound = this.lastTicketInRound[round];
+    const winningCombination = this.contract.result.get();
+    let ticketsInRound = this.lastTicketInRound;
     let curMap = new MerkleMap20();
 
     let input = new DistributionProofPublicInput({
       winningCombination,
       ticket: Ticket.random(PublicKey.empty()),
-      valueWitness: this.roundTicketMap[round].getWitness(Field(0)),
+      valueWitness: this.ticketMap.getWitness(Field(0)),
     });
 
     let curProof = this.isMock
@@ -164,7 +92,7 @@ export class BaseStateManager {
       : await DistributionProgram.init(input);
 
     for (let i = 0; i < ticketsInRound; i++) {
-      const ticket = this.roundTickets[round][i];
+      const ticket = this.roundTickets[i];
       if (!ticket) {
         // Skip refunded tickets
         continue;
@@ -188,7 +116,7 @@ export class BaseStateManager {
       }
     }
 
-    this.dpProofs[round] = curProof;
+    this.dpProof = curProof;
     return curProof;
   }
 
@@ -199,72 +127,42 @@ export class BaseStateManager {
     roundDP: JsonProof | undefined = undefined,
     ticketIndex: number = 1 // If two or more same tickets presented
   ): Promise<{
-    roundWitness: MerkleMap20Witness;
-    roundTicketWitness: MerkleMap20Witness;
+    ticketWitness: MerkleMap20Witness;
     dp: DistributionProof;
-    winningNumbers: Field;
-    resultWitness: MerkleMap20Witness;
-    bankValue: Field;
-    bankWitness: MerkleMap20Witness;
-    nullifierWitness: MerkleMapWitness;
+    nullifierWitness: MerkleMap20Witness;
   }> {
-    const roundWitness = this.ticketMap.getWitness(Field.from(round));
-
     const ticketHash = ticket.hash();
-    let roundTicketWitness;
+    let ticketWitness;
     // Find ticket in tree
     let ticketId = 0;
-    for (; ticketId < this.lastTicketInRound[round]; ticketId++) {
-      if (
-        this.roundTicketMap[round]
-          .get(Field(ticketId))
-          .equals(ticketHash)
-          .toBoolean()
-      ) {
+    for (; ticketId < this.lastTicketInRound; ticketId++) {
+      if (this.ticketMap.get(Field(ticketId)).equals(ticketHash).toBoolean()) {
         ticketIndex--;
         if (ticketIndex == 0) {
-          roundTicketWitness = this.roundTicketMap[round].getWitness(
-            Field.from(ticketId)
-          );
+          ticketWitness = this.ticketMap.getWitness(Field.from(ticketId));
           break;
         }
       }
     }
-    if (!roundTicketWitness) {
+    if (!ticketWitness) {
       throw Error(`No such ticket in round ${round}`);
     }
 
     const dp = !roundDP
       ? await this.getDP(round)
       : await DistributionProof.fromJSON(roundDP);
-    const winningNumbers = this.roundResultMap.get(Field.from(round));
-    if (winningNumbers.equals(Field(0)).toBoolean()) {
-      throw Error('Do not have a result for this round');
-    }
-    const resultWitness = this.roundResultMap.getWitness(Field.from(round));
-
-    const bankValue = this.bankMap.get(Field.from(round));
-    const bankWitness = this.bankMap.getWitness(Field.from(round));
 
     const nullifierWitness = this.ticketNullifierMap.getWitness(
-      getNullifierId(Field.from(round), Field.from(ticketId))
+      Field.from(ticketId)
     );
 
     if (this.shouldUpdateState) {
-      this.ticketNullifierMap.set(
-        getNullifierId(Field.from(round), Field.from(ticketId)),
-        Field(1)
-      );
+      this.ticketNullifierMap.set(Field.from(ticketId), Field(1));
     }
 
     return {
-      roundWitness,
-      roundTicketWitness,
+      ticketWitness,
       dp,
-      winningNumbers,
-      resultWitness,
-      bankValue,
-      bankWitness,
       nullifierWitness,
     };
   }
@@ -273,57 +171,31 @@ export class BaseStateManager {
     round: number,
     ticket: Ticket
   ): Promise<{
-    roundWitness: MerkleMap20Witness;
-    roundTicketWitness: MerkleMap20Witness;
-    resultWitness: MerkleMap20Witness;
-    bankValue: Field;
-    bankWitness: MerkleMap20Witness;
+    ticketWitness: MerkleMap20Witness;
   }> {
-    const roundWitness = this.ticketMap.getWitness(Field.from(round));
-
     const ticketHash = ticket.hash();
-    let roundTicketWitness;
+    let ticketWitness;
     // Find ticket in tree
     let ticketId = 0;
-    for (; ticketId < this.lastTicketInRound[round]; ticketId++) {
-      if (
-        this.roundTicketMap[round]
-          .get(Field(ticketId))
-          .equals(ticketHash)
-          .toBoolean()
-      ) {
-        roundTicketWitness = this.roundTicketMap[round].getWitness(
-          Field.from(ticketId)
-        );
+    for (; ticketId < this.lastTicketInRound; ticketId++) {
+      if (this.ticketMap.get(Field(ticketId)).equals(ticketHash).toBoolean()) {
+        ticketWitness = this.ticketMap.getWitness(Field.from(ticketId));
         break;
       }
     }
-    if (!roundTicketWitness) {
+    if (!ticketWitness) {
       throw Error(`No such ticket in round ${round}`);
     }
 
-    const resultWitness = this.roundResultMap.getWitness(Field.from(round));
-
-    const bankValue = this.bankMap.get(Field.from(round));
-    const bankWitness = this.bankMap.getWitness(Field.from(round));
-
     if (this.shouldUpdateState) {
-      this.roundTicketMap[round].set(Field(ticketId), Field(0));
-      this.ticketMap.set(Field(round), this.roundTicketMap[round].getRoot());
+      console.log('Update state');
+      this.ticketMap.set(Field(ticketId), Field(0));
 
-      this.roundTickets[round][ticketId] = undefined;
-      this.bankMap.set(
-        Field.from(round),
-        bankValue.sub(ticket.amount.mul(TICKET_PRICE).value)
-      );
+      this.roundTickets[ticketId] = undefined;
     }
 
     return {
-      roundWitness,
-      roundTicketWitness,
-      resultWitness,
-      bankValue,
-      bankWitness,
+      ticketWitness,
     };
   }
 }

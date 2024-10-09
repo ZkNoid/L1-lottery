@@ -12,7 +12,7 @@ import {
   cutActions,
 } from '../Proofs/TicketReduceProof.js';
 import { BaseStateManager } from './BaseStateManager.js';
-import { PLotteryType } from '../PLottery.js';
+import { PLottery } from '../PLottery.js';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -39,19 +39,18 @@ export async function mockProof<I, O, P>(
 }
 
 export class PStateManager extends BaseStateManager {
-  contract: PLotteryType;
+  contract: PLottery;
   processedTicketData: {
     ticketId: number;
     round: number;
   };
 
   constructor(
-    plottery: PLotteryType,
-    startBlock: Field,
+    plottery: PLottery,
     isMock: boolean = true,
     shouldUpdateState: boolean = false
   ) {
-    super(startBlock, isMock, shouldUpdateState);
+    super(plottery, isMock, shouldUpdateState);
 
     this.contract = plottery;
     this.processedTicketData = {
@@ -60,129 +59,61 @@ export class PStateManager extends BaseStateManager {
     };
   }
 
-  override addTicket(
-    ticket: Ticket,
-    round: number,
-    forceUpdate: boolean = false
-  ): [MerkleMap20Witness, MerkleMap20Witness, MerkleMap20Witness, Field] {
-    const [roundWitness, ticketRoundWitness] = this.getNextTicketWitness(round);
-    const [bankWitness, bankValue] = this.getBankWitness(round);
-
+  override addTicket(ticket: Ticket, forceUpdate: boolean = false) {
     if (this.shouldUpdateState || forceUpdate) {
-      this.roundTicketMap[round].set(
-        Field.from(this.lastTicketInRound[round]),
-        ticket.hash()
-      );
-      this.ticketMap.set(
-        Field.from(round),
-        this.roundTicketMap[round].getRoot()
-      );
-
-      this.bankMap.set(
-        Field.from(round),
-        bankValue.add(TICKET_PRICE.mul(ticket.amount).value)
-      );
+      this.ticketMap.set(Field.from(this.lastTicketInRound), ticket.hash());
     }
 
-    this.roundTickets[round].push(ticket);
-    this.lastTicketInRound[round]++;
-
-    return [roundWitness, ticketRoundWitness, bankWitness, bankValue];
+    this.roundTickets.push(ticket);
+    this.lastTicketInRound++;
   }
 
-  async removeLastTicket(round: number) {
-    const ticket = this.roundTickets[round].pop()!;
-    this.lastTicketInRound[round]--;
-    const bankValue = this.bankMap.get(Field.from(round));
-    this.roundTicketMap[round].set(
-      Field.from(this.lastTicketInRound[round] - 1),
-      Field(0)
-    );
-    this.ticketMap.set(Field.from(round), this.roundTicketMap[round].getRoot());
-
-    this.bankMap.set(
-      Field.from(round),
-      bankValue.sub(TICKET_PRICE.mul(ticket.amount).value)
-    );
+  async removeLastTicket() {
+    const ticket = this.roundTickets.pop()!;
+    this.lastTicketInRound--;
+    this.ticketMap.set(Field.from(this.lastTicketInRound - 1), Field(0)); // ?
   }
 
   async reduceTickets(
-    initialState?: Field,
     actionLists?: LotteryAction[][],
     updateState: boolean = true
   ): Promise<TicketReduceProof> {
     let addedTicketInfo = [];
 
-    if (!initialState) {
-      initialState = this.contract.lastProcessedState.get();
-    }
-
     if (!actionLists) {
-      actionLists = await this.contract.reducer.fetchActions({
-        fromActionState: initialState,
-      });
+      actionLists = await this.contract.reducer.fetchActions({});
     }
 
     // All this params can be random for init function, because init do not use them
     let input = new TicketReduceProofPublicInput({
       action: new LotteryAction({
         ticket: Ticket.random(this.contract.address),
-        round: Field(0),
       }),
-      roundWitness: this.ticketMap.getWitness(Field(0)),
-      roundTicketWitness: this.roundTicketMap[0].getWitness(Field(0)),
-      bankWitness: this.bankMap.getWitness(Field(0)),
-      bankValue: Field(0),
+      ticketWitness: this.ticketMap.getWitness(Field(0)),
     });
 
     let initialTicketRoot = this.ticketMap.getRoot();
-    let initialBankRoot = this.bankMap.getRoot();
+    let initialBank = this.contract.bank.get();
 
     let curProof = this.isMock
       ? await mockProof(
-          await TRinit(
-            input,
-            initialState,
-            initialTicketRoot,
-            initialBankRoot,
-            Field.from(this.processedTicketData.round),
-            Field.from(this.processedTicketData.ticketId)
-          ),
+          await TRinit(input, initialTicketRoot, initialBank),
           TicketReduceProof,
           input
         )
-      : await TicketReduceProgram.init(
-          input,
-          initialState,
-          initialTicketRoot,
-          initialBankRoot,
-          Field.from(this.processedTicketData.round),
-          Field.from(this.processedTicketData.ticketId)
-        );
+      : await TicketReduceProgram.init(input, initialTicketRoot, initialBank);
 
     for (let actionList of actionLists) {
       for (let action of actionList) {
-        if (+action.round != this.processedTicketData.round) {
-          this.processedTicketData.round = +action.round;
-          this.processedTicketData.ticketId = 0;
-        } else {
-          this.processedTicketData.ticketId++;
-        }
+        this.processedTicketData.ticketId++;
 
-        console.log(
-          `Process ticket: <${+action.round}> <${
-            this.processedTicketData.ticketId
-          }>`
-        );
+        console.log(`Process ticket: <${this.processedTicketData.ticketId}>`);
 
         input = new TicketReduceProofPublicInput({
           action: action,
-          roundWitness: this.ticketMap.getWitness(action.round),
-          roundTicketWitness: this.roundTicketMap[+action.round].getWitness(
+          ticketWitness: this.ticketMap.getWitness(
             Field(this.processedTicketData.ticketId)
           ),
-          bankWitness: this.bankMap.getWitness(action.round),
-          bankValue: this.bankMap.get(action.round),
         });
 
         curProof = this.isMock
@@ -193,10 +124,8 @@ export class PStateManager extends BaseStateManager {
             )
           : await TicketReduceProgram.addTicket(input, curProof);
 
-        this.addTicket(action.ticket, +action.round, true);
-        addedTicketInfo.push({
-          round: action.round,
-        });
+        this.addTicket(action.ticket, true);
+        addedTicketInfo.push({});
       }
 
       // Again here we do not need specific input, as it is not using here
@@ -210,7 +139,7 @@ export class PStateManager extends BaseStateManager {
     }
 
     if (!updateState) {
-      addedTicketInfo.forEach((v) => this.removeLastTicket(+v.round));
+      addedTicketInfo.forEach((v) => this.removeLastTicket());
     }
 
     return curProof;

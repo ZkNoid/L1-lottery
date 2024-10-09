@@ -1,118 +1,103 @@
-/**
- * This script can be used to interact with the Add contract, after deploying it.
- *
- * We call the update() method on the contract, create a proof and send it to the chain.
- * The endpoint that we interact with is read from your config.json.
- *
- * This simulates a user interacting with the zkApp from a browser, except that here, sending the transaction happens
- * from the script and we're using your pre-funded zkApp account to pay the transaction fee. In a real web app, the user's wallet
- * would send the transaction and pay the fee.
- *
- * To run locally:
- * Build the project: `$ npm run build`
- * Run with node:     `$ node build/scripts/buy_ticket.js <deployAlias>`.
- */
-import fs from 'fs/promises';
-import { Cache, Field, Mina, NetworkId, PrivateKey, fetchAccount } from 'o1js';
+import fs from 'fs';
+import {
+  Cache,
+  Field,
+  Mina,
+  NetworkId,
+  PrivateKey,
+  PublicKey,
+  UInt32,
+  fetchAccount,
+} from 'o1js';
 import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { Ticket } from '../src/Structs/Ticket.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { PStateManager } from '../src/StateManager/PStateManager.js';
-import { findPlottery } from './utils.js';
+import { configDefaultInstance, getFedFactoryManager } from './utils.js';
+import { PlotteryFactory } from '../src/Factory.js';
+import { BLOCK_PER_ROUND } from '../src/constants.js';
+import { PLottery } from '../src/PLottery.js';
+import axios from 'axios';
 
-// check command line arg
-let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument.
+const { transactionFee } = configDefaultInstance();
 
-Usage:
-node build/src/interact.js <deployAlias>
-`);
-Error.stackTraceLimit = 1000;
-const DEFAULT_NETWORK_ID = 'testnet';
+const networkId = Mina.activeInstance.getNetworkId().toString();
+const { verificationKey } = await PlotteryFactory.compile();
 
-// parse config and private key from file
-type Config = {
-  deployAliases: Record<
-    string,
-    {
-      networkId?: string;
-      url: string;
-      keyPath: string;
-      fee: string;
-      feepayerKeyPath: string;
-      feepayerAlias: string;
+const deployerKey = PrivateKey.fromBase58(process.env.DEPLOYER_KEY!);
+const deployer = deployerKey.toPublicKey();
+
+// Get factory
+const factoryDataPath = `./deployV2/${networkId}/${verificationKey.hash.toString()}/factory.json`;
+
+const factoryAddress = PublicKey.fromBase58(
+  JSON.parse(fs.readFileSync(factoryDataPath).toString()).address
+);
+
+console.log(factoryAddress.toBase58());
+
+await fetchAccount({ publicKey: factoryAddress });
+
+const factory = new PlotteryFactory(factoryAddress);
+const startSlot = factory.startSlot.get();
+
+const data = await axios.post(
+  'https://api.minascan.io/node/devnet/v1/graphql',
+  JSON.stringify({
+    query: `
+  query {
+    bestChain(maxLength:1) {
+      protocolState {
+        consensusState {
+          blockHeight,
+          slotSinceGenesis
+        }
+      }
     }
-  >;
-};
-let configJson: Config = JSON.parse(await fs.readFile('config.json', 'utf8'));
-let config = configJson.deployAliases[deployAlias];
-let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-  await fs.readFile(config.feepayerKeyPath, 'utf8')
+  }
+`,
+  }),
+  {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    responseType: 'json',
+  }
+);
+const currentSlot = UInt32.from(
+  data.data.data.bestChain[0].protocolState.consensusState.slotSinceGenesis
 );
 
-let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-  await fs.readFile(config.keyPath, 'utf8')
-);
+const currentRound = currentSlot.sub(startSlot).div(BLOCK_PER_ROUND);
 
-let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
+const factoryManager = await getFedFactoryManager(factory);
 
-// set up Mina instance and contract we interact with
-const Network = Mina.Network({
-  // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
-  // This is to ensure the backward compatibility.
-  networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
-  mina: config.url,
-});
-// const Network = Mina.Network(config.url);
-const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
-Mina.setActiveInstance(Network);
-let feepayerAddress = feepayerKey.toPublicKey();
-let zkAppAddress = zkAppKey.toPublicKey();
+const ticket = Ticket.from([1, 1, 1, 1, 1, 1], deployer, 1);
 
-let { plottery: lottery, PLottery } = findPlottery();
+const plottery = factoryManager.plotteryManagers[+currentRound].contract;
 
 // compile the contract to create prover keys
 console.log('compile the DP');
-await DistributionProgram.compile();
+await DistributionProgram.compile({ cache: Cache.FileSystem('../cache') });
 console.log('compile reduce proof');
-await TicketReduceProgram.compile();
+await TicketReduceProgram.compile({ cache: Cache.FileSystem('../cache') });
 console.log('compile the Lottery');
-let lotteryCompileResult = await PLottery.compile();
-// let mockLotteryCompileResult = await MockLottery.compile({
-//   cache: Cache.FileSystem('../cache'),
-// });
+await PLottery.compile({
+  cache: Cache.FileSystem('../cache'),
+});
 
-console.log(`Fetch: ${zkAppAddress.toBase58()}`);
-console.log(`Onchain VK: `, lottery.account.verificationKey);
-console.log(
-  `Local VK1: `,
-  lotteryCompileResult.verificationKey.hash.toString()
-);
-// console.log(
-//   `Local VK2: `,
-//   mockLotteryCompileResult.verificationKey.hash.toString()
-// );
-await fetchAccount({ publicKey: zkAppAddress });
+await fetchAccount({ publicKey: plottery.address });
 await fetchAccount({
-  publicKey: 'B62qnBkcyABfjz2cqJPzNZKjVt9M9kx1vgoiWLbkJUnk16Cz8KX8qC4',
+  publicKey: deployer,
 });
 
-console.log(lottery.bankRoot.get().toString());
-
-console.log(lottery.ticketRoot.get().toString());
-
-const state = new PStateManager(lottery, lottery.startBlock.get().value);
-
-const ticket = Ticket.from([1, 1, 1, 1, 1, 1], feepayerAddress, 1);
-
-// console.log(`Digest: `, await MockLottery.digest());
-
-let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-  await lottery.buyTicket(ticket, Field(0));
-});
+let tx = await Mina.transaction(
+  { sender: deployer, fee: transactionFee },
+  async () => {
+    await plottery.buyTicket(ticket);
+  }
+);
 await tx.prove();
-let txResult = await tx.sign([feepayerKey]).send();
+let txResult = await tx.sign([deployerKey]).send();
 
 console.log(`Tx successful. Hash: `, txResult.hash);
