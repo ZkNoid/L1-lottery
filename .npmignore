@@ -22,4 +22,4 @@ cache_frontend
 
 commits
 
-!node_modules/mina-fungible-token/*
+!./node_modules/mina-fungible-token/*
