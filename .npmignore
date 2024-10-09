@@ -7,6 +7,9 @@ src
 # System
 .DS_Store
 
+# Deploy info. Consist private keys and other sensitive data.
+deployV2
+
 # Never reveal your keys!
 keys
 
