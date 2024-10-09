@@ -21,3 +21,5 @@ cache_frontend
 .env
 
 commits
+
+!node_modules/mina-fungible-token/*
