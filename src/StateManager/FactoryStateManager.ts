@@ -1,7 +1,7 @@
 import { Field, MerkleMap, PublicKey } from 'o1js';
-import { PStateManager } from './PStateManager';
-import { PLottery } from '../PLottery';
-import { RandomManagerManager } from './RandomManagerManager';
+import { PStateManager } from './PStateManager.js';
+import { PLottery } from '../PLottery.js';
+import { RandomManagerManager } from './RandomManagerManager.js';
 
 interface IDeployInfo {
   round: number;

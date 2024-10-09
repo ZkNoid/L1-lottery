@@ -16,13 +16,13 @@ import {
   Cache,
   UInt32,
 } from 'o1js';
-import { BLOCK_PER_ROUND } from './constants';
-import { MerkleMap20 } from './Structs/CustomMerkleMap';
-import { RandomManager } from './Random/RandomManager';
-import { PLottery } from './PLottery';
+import { BLOCK_PER_ROUND } from './constants.js';
+import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
+import { RandomManager } from './Random/RandomManager.js';
+import { PLottery } from './PLottery.js';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
-import { TicketReduceProgram } from './Proofs/TicketReduceProof';
-import { DistributionProgram } from './Proofs/DistributionProof';
+import { TicketReduceProgram } from './Proofs/TicketReduceProof.js';
+import { DistributionProgram } from './Proofs/DistributionProof.js';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 
@@ -46,7 +46,7 @@ export class DeployEvent extends Struct({
   plottery: PublicKey,
 }) {}
 
-const startSlot = Field(0);
+const startSlot = Field(87117); // Current slot on devnet
 
 ///Just copy with other vk for random manager
 export class PlotteryFactory extends SmartContract {

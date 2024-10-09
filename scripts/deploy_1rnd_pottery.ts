@@ -1,13 +1,15 @@
 import { Field, Mina, PrivateKey, PublicKey } from 'o1js';
-import { DeployEvent, PlotteryFactory } from '../src/Factory';
-import { FactoryManager } from '../src/StateManager/FactoryStateManager';
-import { configDefaultInstance } from './utils';
+import { DeployEvent, PlotteryFactory } from '../src/Factory.js';
+import { FactoryManager } from '../src/StateManager/FactoryStateManager.js';
+import { configDefaultInstance } from './utils.js';
 import * as fs from 'fs';
 
-configDefaultInstance();
+let { transactionFee } = configDefaultInstance();
 
 let deployerKey = PrivateKey.fromBase58(process.env.DEPLOYER_KEY!);
 let deployer = deployerKey.toPublicKey();
+
+console.log(`Using deployer ${deployer.toBase58()}`);
 
 let from = process.argv[2];
 
@@ -17,13 +19,23 @@ if (!from || !to) {
   throw Error(`You should provide from round and to round`);
 }
 
+console.log(`Compiling PlotteryFactory`);
+
+const networkId = Mina.activeInstance.getNetworkId().toString();
+
 let { verificationKey } = await PlotteryFactory.compile();
 
 const factoryManager = new FactoryManager();
 
 let factoryAddress: PublicKey;
 
-const factoryDataPath = `./deployV2/${verificationKey.hash.toString()}/factory.json`;
+if (
+  !fs.existsSync(`./deployV2/${networkId}/${verificationKey.hash.toString()}`)
+) {
+  throw Error(`No factory deployment found. Deploy it first`);
+}
+
+const factoryDataPath = `./deployV2/${networkId}/${verificationKey.hash.toString()}/factory.json`;
 if (fs.existsSync(factoryDataPath)) {
   let factoryData = fs.readFileSync(factoryDataPath);
   factoryAddress = PublicKey.fromBase58(
@@ -39,7 +51,7 @@ let factoryEvents = await factory.fetchEvents();
 
 let deployments;
 
-const deploymentsPath = `./deployV2/${verificationKey.hash.toString()}/deployments.json`;
+const deploymentsPath = `./deployV2/${networkId}/${verificationKey.hash.toString()}/deployments.json`;
 
 if (fs.existsSync(deploymentsPath)) {
   let deploymentsBuffer = fs.readFileSync(deploymentsPath);
@@ -52,6 +64,8 @@ if (fs.existsSync(deploymentsPath)) {
 for (const event of factoryEvents) {
   let deployEvent = event.event.data as any;
 
+  console.log('event');
+  console.log(deployEvent);
   factoryManager.addDeploy(
     +deployEvent.round,
     deployEvent.randomManager,
@@ -60,6 +74,10 @@ for (const event of factoryEvents) {
 }
 
 for (let round = +from; round <= +to; round++) {
+  if (factoryManager.roundsMap.get(Field(round)).greaterThan(0).toBoolean()) {
+    console.log(`Plottery for round ${round} have been deployed`);
+    continue;
+  }
   let witness = factoryManager.roundsMap.getWitness(Field(round));
 
   let plotteryPrivateKey = PrivateKey.random();
@@ -68,15 +86,31 @@ for (let round = +from; round <= +to; round++) {
   let randomManagerPrivateKey = PrivateKey.random();
   let randomManagerAddress = randomManagerPrivateKey.toPublicKey();
 
-  let tx = Mina.transaction(deployer, async () => {
-    await factory.deployRound(witness, randomManagerAddress, plotteryAddress);
-  });
+  console.log(
+    `Deploying plottery: ${plotteryAddress.toBase58()} and random manager: ${randomManagerAddress.toBase58()} for round ${round}`
+  );
+  let tx = Mina.transaction(
+    { sender: deployer, fee: 5 * transactionFee },
+    async () => {
+      await factory.deployRound(witness, randomManagerAddress, plotteryAddress);
+    }
+  );
 
   await tx.prove();
-  await tx
+  let txInfo = await tx
     .sign([deployerKey, randomManagerPrivateKey, plotteryPrivateKey])
     .send();
 
+  const txResult = await txInfo.safeWait();
+
+  if (txResult.status === 'rejected') {
+    console.log(`Transaction failed due to following reason`);
+    console.log(txResult.toPretty());
+    console.log(txResult.errors);
+    continue;
+  }
+
+  factoryManager.addDeploy(round, randomManagerAddress, plotteryAddress);
   deployments[round] = {
     randomManager: randomManagerAddress.toBase58(),
     plottery: plotteryAddress.toBase58(),
@@ -85,8 +119,10 @@ for (let round = +from; round <= +to; round++) {
 
 // Write result to file
 
-if (!fs.existsSync(`./deployV2/${verificationKey.hash.toString()}`)) {
-  fs.mkdirSync(`./deployV2/${verificationKey.hash.toString()}`, {
+if (
+  !fs.existsSync(`./deployV2/${networkId}/${verificationKey.hash.toString()}`)
+) {
+  fs.mkdirSync(`./deployV2/${networkId}/${verificationKey.hash.toString()}`, {
     recursive: true,
   });
 }

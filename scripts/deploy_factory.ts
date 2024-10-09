@@ -1,16 +1,20 @@
 import { AccountUpdate, Mina, PrivateKey } from 'o1js';
-import { configDefaultInstance } from './utils';
-import { PlotteryFactory } from '../src/Factory';
+import { configDefaultInstance } from './utils.js';
+import { PlotteryFactory } from '../src/Factory.js';
 import * as fs from 'fs';
 
-configDefaultInstance();
+const { transactionFee } = configDefaultInstance();
+const networkId = Mina.activeInstance.getNetworkId().toString();
 
 let deployerKey = PrivateKey.fromBase58(process.env.DEPLOYER_KEY!);
 let deployer = deployerKey.toPublicKey();
 
+console.log(`Deploying with ${deployer.toBase58()}`);
+
+console.log(`Compiling PlotteryFactory`);
 let { verificationKey } = await PlotteryFactory.compile();
 
-const factoryDataPath = `./deployV2/${verificationKey.hash.toString()}/factory.json`;
+const factoryDataPath = `./deployV2/${networkId}/${verificationKey.hash.toString()}/factory.json`;
 
 if (fs.existsSync(factoryDataPath)) {
   throw Error('Contract with same verification key already deployed');
@@ -21,26 +25,38 @@ let factoryAddress = factoryKey.toPublicKey();
 
 let factory = new PlotteryFactory(factoryAddress);
 
-let tx = Mina.transaction(deployer, async () => {
-  AccountUpdate.fundNewAccount(deployer);
-  factory.deploy();
-});
+console.log(`Preparing transaction`);
+let tx = Mina.transaction(
+  { sender: deployer, fee: transactionFee },
+  async () => {
+    AccountUpdate.fundNewAccount(deployer);
+    factory.deploy();
+  }
+);
 
 await tx.prove();
-await tx.sign([deployerKey, factoryKey]).send();
+let txInfo = await tx.sign([deployerKey, factoryKey]).send();
 
 let deploymentData = {
   address: factoryAddress.toBase58(),
   key: factoryKey.toBase58(),
 };
 
-if (!fs.existsSync(`./deployV2/${verificationKey.hash.toString()}`)) {
-  fs.mkdirSync(`./deployV2/${verificationKey.hash.toString()}`, {
+if (
+  !fs.existsSync(`./deployV2/${networkId}/${verificationKey.hash.toString()}`)
+) {
+  fs.mkdirSync(`./deployV2/${networkId}/${verificationKey.hash.toString()}`, {
     recursive: true,
   });
 }
 
 fs.writeFileSync(
-  `./deployV2/${verificationKey.hash.toString()}/factory.json`,
+  `./deployV2/${networkId}/${verificationKey.hash.toString()}/factory.json`,
   JSON.stringify(deploymentData, null, 2)
 );
+
+console.log(`Transaction hash: ${txInfo.hash}`);
+
+console.log('Waiting for transaction to be included in block');
+
+await txInfo.wait();
