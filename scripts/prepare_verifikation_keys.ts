@@ -26,4 +26,6 @@ const result = {
   },
 };
 
+console.log(result);
+
 fs.writeFileSync('vk.json', JSON.stringify(result, null, 2));
