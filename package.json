@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "0.7.24",
+  "version": "0.7.25",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -53,7 +53,7 @@
     "node": ">=18.14.0"
   },
   "peerDependencies": {
-    "o1js": "1.6.0"
+    "o1js": "^1.6.0"
   },
   "dependencies": {
     "@types/node": "^20.12.13",
