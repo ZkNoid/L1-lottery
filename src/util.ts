@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+// import * as fs from 'fs';
 
 import {
   Field,
@@ -15,6 +15,7 @@ import {
 import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
 // import { PackedUInt32Factory } from 'o1js-pack';
 import { StringCircuitValue } from 'zkon-zkapp';
+import { cidBuffer } from '../random_request_cid.js';
 
 const MAX_BITS_PER_FIELD = 254n;
 const L = 7; // 7 32-bit uints fit in one Field
@@ -196,8 +197,6 @@ export const getIPFSCID = (): { hashPart1: Field; hashPart2: Field } => {
 
     return { hashPart1, hashPart2 };
   }
-
-  let cidBuffer = fs.readFileSync('./random_request_cid');
 
   return segmentHash(cidBuffer.toString());
 };
