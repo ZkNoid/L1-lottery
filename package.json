@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "0.7.30",
+  "version": "0.7.31",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -33,7 +33,8 @@
     "bug_poc": "npm run build && node build/scripts/bug_poc.js",
     "token_prepare": "node build-mina-fungible-token.js && cd node_modules/mina-fungible-token && npm run build",
     "deploy": "npm run build && node build/scripts/deploy.js",
-    "publish_ipfs_request": "npm run build && node build/scripts/publish_request.js"
+    "publish_ipfs_request": "npm run build && node build/scripts/publish_request.js",
+    "prepare_for_deploy": "npm run build && node build/scripts/publish_request.js && node build/scripts/prepare_verification_keys.js ** npm run build"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",
