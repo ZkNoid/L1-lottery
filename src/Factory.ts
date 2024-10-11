@@ -16,7 +16,7 @@ import {
   Cache,
   UInt32,
 } from 'o1js';
-import fs from 'fs';
+import { vkJSON } from '../vk';
 import { BLOCK_PER_ROUND } from './constants.js';
 import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
 import { RandomManager } from './Random/RandomManager.js';
@@ -35,9 +35,6 @@ const emptyMerkleMapRoot = new MerkleMap().getRoot();
 // const { verificationKey: PLotteryVK } = await PLottery.compile({
 //   cache: Cache.FileSystem('cache'),
 // });
-
-let vkString = fs.readFileSync('./vk.json').toString();
-let vkJSON = JSON.parse(vkString);
 
 const randomManagerVK = {
   hash: Field(vkJSON.randomManagerVK.hash),

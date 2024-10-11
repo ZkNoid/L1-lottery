@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { Cache, Field, Mina, PrivateKey, PublicKey } from 'o1js';
-import * as fs from 'fs';
 import {
   LotteryAction,
   TicketReduceProgram,
@@ -16,6 +15,7 @@ import { ZkOnCoordinatorAddress } from '../src/constants.js';
 import { RandomManagerManager } from '../src/StateManager/RandomManagerManager.js';
 import { FactoryManager } from '../src/StateManager/FactoryStateManager.js';
 import { PlotteryFactory } from '../src/Factory.js';
+import { cidBuffer } from '../random_request_cid.js';
 
 export const configDefaultInstance = (): { transactionFee: number } => {
   const transactionFee = 100_000_000;
@@ -197,8 +197,6 @@ export const getIPFSCID = (): { hashPart1: Field; hashPart2: Field } => {
 
     return { hashPart1, hashPart2 };
   }
-
-  let cidBuffer = fs.readFileSync('./random_request_cid');
 
   return segmentHash(cidBuffer.toString());
 };
