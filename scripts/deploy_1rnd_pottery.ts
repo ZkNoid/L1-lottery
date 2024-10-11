@@ -77,7 +77,7 @@ for (let round = +from; round <= +to; round++) {
     `Deploying plottery: ${plotteryAddress.toBase58()} and random manager: ${randomManagerAddress.toBase58()} for round ${round}`
   );
   let tx = Mina.transaction(
-    { sender: deployer, fee: 5 * transactionFee },
+    { sender: deployer, fee: 10 * transactionFee },
     async () => {
       AccountUpdate.fundNewAccount(deployer);
       AccountUpdate.fundNewAccount(deployer);
