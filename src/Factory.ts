@@ -16,7 +16,7 @@ import {
   Cache,
   UInt32,
 } from 'o1js';
-import { vkJSON } from '../vk';
+import { vkJSON } from '../vk.js';
 import { BLOCK_PER_ROUND } from './constants.js';
 import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
 import { RandomManager } from './Random/RandomManager.js';

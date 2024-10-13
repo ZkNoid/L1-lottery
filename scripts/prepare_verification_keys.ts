@@ -28,4 +28,7 @@ const result = {
 
 console.log(result);
 
-fs.writeFileSync('vk.json', JSON.stringify(result, null, 2));
+fs.writeFileSync(
+  'vk.js',
+  `export const vkJSON = ${JSON.stringify(result, null, 2)}`
+);

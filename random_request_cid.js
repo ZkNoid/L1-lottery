@@ -1,1 +1,1 @@
-export const cidBuffer = 'bafkreicnannsz4gqqk3ccfwfd3z2hfzonr63z3hgsplefgrmz37psay23y';
+export const cidBuffer = 'bafkreih6hhv5m44xz6fhklhqhcpdgd3znrs6w5332trjxb3qz5ychjy4se'

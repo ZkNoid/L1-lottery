@@ -74,17 +74,32 @@ const factoryManager = await getFedFactoryManager(factory);
 
 const ticket = Ticket.from([1, 1, 1, 1, 1, 1], deployer, 1);
 
+console.log(`Current round: ${currentRound}`);
+
 const plottery = factoryManager.plotteryManagers[+currentRound].contract;
 
 // compile the contract to create prover keys
 console.log('compile the DP');
-await DistributionProgram.compile({ cache: Cache.FileSystem('../cache') });
-console.log('compile reduce proof');
-await TicketReduceProgram.compile({ cache: Cache.FileSystem('../cache') });
-console.log('compile the Lottery');
-await PLottery.compile({
+const dpResult = await DistributionProgram.compile({
   cache: Cache.FileSystem('../cache'),
 });
+console.log(`DP verification key: ${dpResult.verificationKey.hash.toString()}`);
+
+console.log('compile reduce proof');
+const ticketReduceResult = await TicketReduceProgram.compile({
+  cache: Cache.FileSystem('../cache'),
+});
+console.log(
+  `Ticket Reduce Result: ${ticketReduceResult.verificationKey.hash.toString()}`
+);
+
+console.log('compile the Lottery');
+const plotteryResult = await PLottery.compile({
+  cache: Cache.FileSystem('../cache'),
+});
+console.log(
+  `Plottery Result: ${plotteryResult.verificationKey.hash.toString()}`
+);
 
 await fetchAccount({ publicKey: plottery.address });
 await fetchAccount({

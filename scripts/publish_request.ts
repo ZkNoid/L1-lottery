@@ -30,6 +30,9 @@ const json = {
 let response = await pinata.upload.json(json);
 
 console.log(response.IpfsHash);
-writeFileSync('./random_request_cid', response.IpfsHash.toString());
+writeFileSync(
+  './random_request_cid.js',
+  `export const cidBuffer = '${response.IpfsHash.toString()}'`
+);
 
-writeFileSync('./random_request_file', JSON.stringify(json, null, 2));
+writeFileSync('./random_request_file', `${JSON.stringify(json, null, 2)}`);
