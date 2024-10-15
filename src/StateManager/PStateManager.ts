@@ -12,7 +12,7 @@ import {
   cutActions,
 } from '../Proofs/TicketReduceProof.js';
 import { BaseStateManager } from './BaseStateManager.js';
-import { PLottery } from '../PLottery.js';
+import { BuyTicketEvent, PLottery } from '../PLottery.js';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -82,6 +82,17 @@ export class PStateManager extends BaseStateManager {
 
     if (!actionLists) {
       actionLists = await this.contract.reducer.fetchActions({});
+      const allEvents = await this.contract.fetchEvents();
+
+      actionLists = allEvents
+        .filter((event) => event.type === 'buy-ticket')
+        // @ts-ignore
+        .map((event) => event.event.data as BuyTicketEvent)
+        .map((ticketEvent) => [
+          new LotteryAction({
+            ticket: ticketEvent.ticket,
+          }),
+        ]);
     }
 
     // All this params can be random for init function, because init do not use them
