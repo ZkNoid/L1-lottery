@@ -77,8 +77,9 @@ export class BaseStateManager {
       return this.dpProof;
     }
 
+    const reducedTickets = (await this.contract.reducer.fetchActions()).flat(1);
+
     const winningCombination = this.contract.result.get();
-    let ticketsInRound = this.lastTicketInRound;
     let curMap = new MerkleMap20();
 
     let input = new DistributionProofPublicInput({
@@ -91,8 +92,8 @@ export class BaseStateManager {
       ? await mockProof(await init(input), DistributionProof, input)
       : await DistributionProgram.init(input);
 
-    for (let i = 0; i < ticketsInRound; i++) {
-      const ticket = this.roundTickets[i];
+    for (let i = 0; i < reducedTickets.length; i++) {
+      const ticket = reducedTickets[i].ticket;
       if (!ticket) {
         // Skip refunded tickets
         continue;
