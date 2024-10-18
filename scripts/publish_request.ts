@@ -11,7 +11,8 @@ const pinata = new PinataSDK({
   pinataGateway: process.env.PINATA_GATEWAY,
 });
 
-const contractCode = readFileSync('./build/src/Random/RandomManager.js');
+// const contractCode = readFileSync('./build/src/Random/RandomManager.js');
+const contractCode = readFileSync('./dist/bundledRandomManager.js');
 
 // const json = {
 //   method: 'GET',

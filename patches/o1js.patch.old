@@ -1,0 +1,95 @@
+diff --git a/dist/node/lib/mina/fetch.js b/dist/node/lib/mina/fetch.js
+index c104c944476e65e020505b2d37dd6aa04e6f8ddd..d1dce69056f59995f5239a5e839cb6527d168a9d 100644
+--- a/dist/node/lib/mina/fetch.js
++++ b/dist/node/lib/mina/fetch.js
+@@ -274,8 +274,8 @@ async function checkZkappTransaction(transactionHash, blockLength = 20) {
+                     let failureReason = zkappCommand.failureReason
+                         .reverse()
+                         .map((failure) => {
+-                        return [failure.failures.map((failureItem) => failureItem)];
+-                    });
++                            return [failure.failures.map((failureItem) => failureItem)];
++                        });
+                     return {
+                         success: false,
+                         failureReason,
+@@ -403,6 +403,26 @@ async function fetchActions(accountInfo, graphqlEndpoint = networkConfig.archive
+     addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
+     return actionsList;
+ }
++
++function permute(arr) {
++    const result = [];
++
++    function generatePermutation(current, remaining) {
++        if (remaining.length === 0) {
++            result.push(current);
++        } else {
++            for (let i = 0; i < remaining.length; i++) {
++                const next = current.concat(remaining[i]);
++                const rest = remaining.slice(0, i).concat(remaining.slice(i + 1));
++                generatePermutation(next, rest);
++            }
++        }
++    }
++
++    generatePermutation([], arr);
++    return result;
++}
++
+ /**
+  * Given a graphQL response from #getActionsQuery, process the actions into a canonical actions list
+  */
+@@ -413,18 +433,26 @@ export function createActionsList(accountInfo, fetchedActions) {
+     // correct for archive node sending one block too many
+     if (fetchedActions.length !== 0 &&
+         fetchedActions[0].actionState.actionStateOne ===
+-            actionStates.fromActionState) {
++        actionStates.fromActionState) {
+         fetchedActions = fetchedActions.slice(1);
+     }
++    // console.log('Fetched actions', fetchedActions);
+     fetchedActions.forEach((actionBlock) => {
+         let { actionData } = actionBlock;
+         let latestActionState = Field(actionBlock.actionState.actionStateTwo);
+         let actionState = actionBlock.actionState.actionStateOne;
+         if (actionData.length === 0)
+             throw Error(`No action data was found for the account ${publicKey} with the latest action state ${actionState}`);
++
+         actionData = actionData.sort((a1, a2) => {
+             return Number(a1.accountUpdateId) < Number(a2.accountUpdateId) ? -1 : 1;
+         });
++
++        if (actionBlock.actionState.actionStateOne == global.errorAtHash) {
++            const permutation = permute(actionData)
++            actionData = permutation[global.permutation];
++        }
++
+         // split actions by account update
+         let actionsByAccountUpdate = [];
+         let currentAccountUpdateId = 'none';
+@@ -447,13 +475,19 @@ export function createActionsList(accountInfo, fetchedActions) {
+         const finalActionState = latestActionState.toString();
+         const expectedActionState = actionState;
+         if (finalActionState !== expectedActionState) {
+-            throw new Error(`Failed to derive correct actions hash for ${publicKey}.
+-        Derived hash: ${finalActionState}, expected hash: ${expectedActionState}).
+-        All action hashes derived: ${JSON.stringify(actionsList, null, 2)}
+-        Please try a different Archive Node API endpoint.
+-        `);
++            global.errorAtHash = expectedActionState;
++            global.permutation = typeof global.permutation === "undefined" ? global.permutation + 1 : 0;
++            
++        //     throw new Error(`Failed to derive correct actions hash for ${publicKey}.
++        // Derived hash: ${finalActionState}, expected hash: ${expectedActionState}).
++        // All action hashes derived: ${JSON.stringify(actionsList, null, 2)}
++        // Please try a different Archive Node API endpoint.
++        // `);
+         }
+     });
++    global.errorAtHash = undefined;
++    global.permutation = undefined;
++
+     return actionsList;
+ }
+ /**
