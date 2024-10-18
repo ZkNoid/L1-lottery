@@ -365,8 +365,6 @@ export class PLottery extends SmartContract {
     dp: DistributionProof,
     nullifierWitness: MerkleMap20Witness
   ) {
-    // Check that owner trying to claim
-    ticket.owner.assertEquals(this.sender.getAndRequireSignature());
     // Verify distribution proof
     dp.verify();
 
