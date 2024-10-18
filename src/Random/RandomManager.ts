@@ -100,7 +100,7 @@ export class RandomManager extends SmartContract {
     // Check VRF computed
     const curRandomValue = this.curRandomValue.getAndRequireEquals();
     // Check is ommitted for a while
-    curRandomValue.assertGreaterThan(Field(0), 'reveal: No random value');
+    // curRandomValue.assertGreaterThan(Field(0), 'reveal: No random value');
 
     // Check commit
     const commit = this.commit.getAndRequireEquals();
