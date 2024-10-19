@@ -1,7 +1,7 @@
 import { Field } from 'o1js';
 import { Ticket } from '../Structs/Ticket.js';
 import { TICKET_PRICE } from '../constants.js';
-import { MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
+import { MerkleMap20, MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
 import {
   addTicket as TRaddTicket,
   LotteryAction,
@@ -10,9 +10,10 @@ import {
   TicketReduceProofPublicInput,
   init as TRinit,
   cutActions,
+  refund,
 } from '../Proofs/TicketReduceProof.js';
 import { BaseStateManager } from './BaseStateManager.js';
-import { BuyTicketEvent, PLottery } from '../PLottery.js';
+import { BuyTicketEvent, PLottery, RefundEvent } from '../PLottery.js';
 
 export async function mockProof<I, O, P>(
   publicOutput: O,
@@ -75,6 +76,7 @@ export class PStateManager extends BaseStateManager {
   }
 
   async reduceTickets(
+    winningNumberPacked: Field,
     actionLists?: LotteryAction[][],
     updateState: boolean = true
   ): Promise<TicketReduceProof> {
@@ -89,31 +91,25 @@ export class PStateManager extends BaseStateManager {
       action: new LotteryAction({
         ticket: Ticket.random(this.contract.address),
       }),
-      ticketWitness: this.ticketMap.getWitness(Field(0)),
+      ticketWitness: new MerkleMap20().getWitness(Field(0)),
     });
-
-    let initialTicketRoot = this.ticketMap.getRoot();
-    let initialBank = this.contract.bank.get();
 
     let curProof = this.isMock
       ? await mockProof(
-          await TRinit(input, initialTicketRoot, initialBank),
+          await TRinit(input, winningNumberPacked),
           TicketReduceProof,
           input
         )
-      : await TicketReduceProgram.init(input, initialTicketRoot, initialBank);
+      : await TicketReduceProgram.init(input, winningNumberPacked);
 
+    let ticketId = 0;
     for (let actionList of actionLists) {
       for (let action of actionList) {
-        this.processedTicketData.ticketId++;
-
-        console.log(`Process ticket: <${this.processedTicketData.ticketId}>`);
+        console.log(`Process ticket: <${ticketId}>`);
 
         input = new TicketReduceProofPublicInput({
           action: action,
-          ticketWitness: this.ticketMap.getWitness(
-            Field(this.processedTicketData.ticketId)
-          ),
+          ticketWitness: this.ticketMap.getWitness(Field(ticketId)),
         });
 
         curProof = this.isMock
@@ -126,6 +122,7 @@ export class PStateManager extends BaseStateManager {
 
         this.addTicket(action.ticket, true);
         addedTicketInfo.push({});
+        ticketId++;
       }
 
       // Again here we do not need specific input, as it is not using here
@@ -136,6 +133,31 @@ export class PStateManager extends BaseStateManager {
             input
           )
         : await TicketReduceProgram.cutActions(input, curProof);
+    }
+
+    const events = await this.contract.fetchEvents();
+    const refundTicketsEvents = events
+      .filter((event) => event.type === 'get-refund')
+      // @ts-ignore
+      .map((event) => event.event.data as RefundEvent);
+
+    for (const refundEvent of refundTicketsEvents) {
+      console.log(`Remove ticket: <${refundEvent.ticketId.toString()}>`);
+      const input = new TicketReduceProofPublicInput({
+        action: new LotteryAction({
+          ticket: refundEvent.ticket,
+        }),
+        ticketWitness: this.ticketMap.getWitness(refundEvent.ticketId),
+      });
+      curProof = this.isMock
+        ? await mockProof(
+            await refund(input, curProof),
+            TicketReduceProof,
+            input
+          )
+        : await TicketReduceProgram.refund(input, curProof);
+
+      this.ticketMap.set(refundEvent.ticketId, Field(0));
     }
 
     if (!updateState) {

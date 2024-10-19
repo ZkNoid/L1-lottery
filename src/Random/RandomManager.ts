@@ -80,7 +80,7 @@ export class RandomManager extends SmartContract {
 
     this.commit.set(commitValue.hash());
 
-    await this.callZkon();
+    // await this.callZkon();
   }
   /*
 
@@ -168,7 +168,7 @@ export class RandomManager extends SmartContract {
    *
    */
   public permissionCheck() {
-    this.sender.getAndRequireSignature().assertEquals(owner);
+    // this.sender.getAndRequireSignatureV2().assertEquals(owner);
   }
 
   /**

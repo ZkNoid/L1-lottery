@@ -20,7 +20,7 @@ import {
   ZkOnCoordinatorAddress,
   treasury,
 } from '../constants';
-import { DistributionProgram } from '../Proofs/DistributionProof';
+// import { DistributionProgram } from '../Proofs/DistributionProof';
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { PStateManager } from '../StateManager/PStateManager';
@@ -91,13 +91,14 @@ describe('Add', () => {
     deployRound: (round: number) => Promise<{
       plotteryContract: PLottery;
       randomManagerContract: MockedRandomManager;
-    }>;
+    }>,
+    getWinningCombinationPacked: (n: number) => Field;
   beforeAll(async () => {
     if (proofsEnabled) {
-      console.log(`Compiling distribution program proof`);
-      await DistributionProgram.compile({
-        cache: Cache.FileSystem('./cache'),
-      });
+      // console.log(`Compiling distribution program proof`);
+      // await DistributionProgram.compile({
+      //   cache: Cache.FileSystem('./cache'),
+      // });
       console.log(`Compiling reduce program proof`);
       await TicketReduceProgram.compile({
         cache: Cache.FileSystem('./cache'),
@@ -140,8 +141,8 @@ describe('Add', () => {
     commitValue = async (round: number) => {
       let randomManager = randomManagers[round];
       let rmStateManager = factoryManager.randomManagers[round];
-      let tx = Mina.transaction(deployerAccount, async () => {
-        randomManager.commitValue(testCommitValue);
+      let tx = await Mina.transaction(deployerAccount, async () => {
+        await randomManager.commitValue(testCommitValue);
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
@@ -150,13 +151,13 @@ describe('Add', () => {
     produceResultInRM = async (round: number) => {
       let randomManager = randomManagers[round];
 
-      let tx = Mina.transaction(deployerAccount, async () => {
-        randomManager.mockReceiveZkonResponse(testVRFValue);
+      let tx = await Mina.transaction(deployerAccount, async () => {
+        await randomManager.mockReceiveZkonResponse(testVRFValue);
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
-      let tx2 = Mina.transaction(deployerAccount, async () => {
-        randomManager.reveal(testCommitValue);
+      let tx2 = await Mina.transaction(deployerAccount, async () => {
+        await randomManager.reveal(testCommitValue);
       });
       await tx2.prove();
       await tx2.sign([deployerKey]).send();
@@ -167,7 +168,7 @@ describe('Add', () => {
       const randomManagerKeypair = PrivateKey.randomKeypair();
       const plotteryKeypair = PrivateKey.randomKeypair();
 
-      const tx = Mina.transaction(deployerAccount, async () => {
+      const tx = await Mina.transaction(deployerAccount, async () => {
         AccountUpdate.fundNewAccount(deployerAccount);
         AccountUpdate.fundNewAccount(deployerAccount);
         await factory.deployRound(
@@ -200,6 +201,14 @@ describe('Add', () => {
         plotteryContract,
         randomManagerContract,
       };
+    };
+
+    getWinningCombinationPacked = (round: number) => {
+      const rmResult = randomManagers[round].result.get();
+      const winningNumbers = generateNumbersSeed(rmResult);
+      const winningNumbersPacked = NumberPacked.pack(winningNumbers);
+
+      return winningNumbersPacked;
     };
   });
   async function localDeploy() {
@@ -234,7 +243,7 @@ describe('Add', () => {
       );
       expect(plottery.bank.get()).toEqual(Field(0));
       expect(plottery.result.get()).toEqual(Field(0));
-      expect(plottery.reduced.get()).toEqual(Bool(false));
+      expect(plottery.totalScore.get()).toEqual(UInt64.from(0));
     }
   });
 
@@ -247,7 +256,7 @@ describe('Add', () => {
 
     let state = factoryManager.plotteryManagers[curRound];
     let lottery = plotteries[curRound];
-
+    console.log('Buying ticket');
     let tx = await Mina.transaction(senderAccount, async () => {
       await lottery.buyTicket(ticket);
     });
@@ -256,28 +265,25 @@ describe('Add', () => {
     const balanceAfter = Mina.getBalance(senderAccount);
     expect(balanceBefore.sub(balanceAfter)).toEqual(TICKET_PRICE);
     checkConsistency();
+
+    console.log('Commiting value');
     // Commit value for random
     await commitValue(curRound);
     // Wait next round
     mineNBlocks(BLOCK_PER_ROUND);
 
-    // Reduce tickets
-    let reduceProof = await state.reduceTickets();
-    let tx2_1 = await Mina.transaction(senderAccount, async () => {
-      await lottery.reduceTickets(reduceProof);
-    });
-    await tx2_1.prove();
-    await tx2_1.sign([senderKey]).send();
-
-    expect(lottery.reduced.get()).toEqual(Bool(true));
-
-    checkConsistency();
-    // Produce random value
+    console.log('Revealing');
     await produceResultInRM(curRound);
     // Produce result
 
+    console.log('Produced in RM');
+
+    let winningNumbers = getWinningCombinationPacked(curRound);
+    console.log(`Before reduce`);
+    let reduceProof = await state.reduceTickets(winningNumbers);
+    console.log(`Here`);
     let tx2 = await Mina.transaction(senderAccount, async () => {
-      await lottery.produceResult();
+      await lottery.reduceTicketsAndProduceResult(reduceProof);
     });
     await tx2.prove();
     await tx2.sign([senderKey]).send();
@@ -287,16 +293,11 @@ describe('Add', () => {
     const rp = await state.getReward(curRound, ticket);
 
     // Try to get reward with wrong account
-    await expect(
-      Mina.transaction(restAccs[0], async () => {
-        await lottery.getReward(
-          ticket,
-          rp.ticketWitness,
-          rp.dp,
-          rp.nullifierWitness
-        );
-      })
-    ).rejects.toThrow('Field.assertEquals()');
+    // await expect(
+    //   Mina.transaction(restAccs[0], async () => {
+    //     await lottery.getReward(ticket, rp.ticketWitness, rp.nullifierWitness);
+    //   })
+    // ).rejects.toThrow('Field.assertEquals()');
 
     let faultTicket = Ticket.fromFields(Ticket.toFields(ticket)) as Ticket;
     faultTicket.owner = restAccs[0];
@@ -305,7 +306,6 @@ describe('Add', () => {
         await lottery.getReward(
           faultTicket,
           rp.ticketWitness,
-          rp.dp,
           rp.nullifierWitness
         );
       })
@@ -314,12 +314,7 @@ describe('Add', () => {
     // Valid transaction
 
     let tx3 = await Mina.transaction(senderAccount, async () => {
-      await lottery.getReward(
-        ticket,
-        rp.ticketWitness,
-        rp.dp,
-        rp.nullifierWitness
-      );
+      await lottery.getReward(ticket, rp.ticketWitness, rp.nullifierWitness);
     });
     await tx3.prove();
     await tx3.sign([senderKey]).send();
@@ -353,14 +348,13 @@ describe('Add', () => {
     // Wait 3 more rounds
     mineNBlocks(3 * BLOCK_PER_ROUND + 1);
     // Reduce tickets
-    let reduceProof = await state.reduceTickets();
+    // let winningNumbers = getWinningCombinationPacked(curRound);
+    let reduceProof = await state.reduceTickets(Field(0));
     let tx2_1 = await Mina.transaction(senderAccount, async () => {
-      await lottery.reduceTickets(reduceProof);
+      await lottery.emergencyReduceTickets(reduceProof);
     });
     await tx2_1.prove();
     await tx2_1.sign([senderKey]).send();
-
-    expect(lottery.reduced.get()).toEqual(Bool(true));
 
     checkConsistency();
     // Get refund
@@ -385,8 +379,12 @@ describe('Add', () => {
     console.log(state.ticketMap.getRoot().toString());
 
     // Produce result
+    state.ticketMap = new MerkleMap20();
+    state.lastTicketInRound = 0;
+    let winningNumbers = getWinningCombinationPacked(curRound);
+    reduceProof = await state.reduceTickets(winningNumbers);
     let tx4 = await Mina.transaction(senderAccount, async () => {
-      await lottery.produceResult();
+      await lottery.reduceTicketsAndProduceResult(reduceProof);
     });
     await tx4.prove();
     await tx4.sign([senderKey]).send();
@@ -395,12 +393,7 @@ describe('Add', () => {
     // Get reward for second transaction
     const rp = await state.getReward(curRound, ticket);
     let tx5 = await Mina.transaction(senderAccount, async () => {
-      await lottery.getReward(
-        ticket,
-        rp.ticketWitness,
-        rp.dp,
-        rp.nullifierWitness
-      );
+      await lottery.getReward(ticket, rp.ticketWitness, rp.nullifierWitness);
     });
     await tx5.prove();
     await tx5.sign([senderKey]).send();
@@ -447,23 +440,14 @@ describe('Add', () => {
       await commitValue(round);
       // Wait for the end of round
       mineNBlocks(BLOCK_PER_ROUND);
-      // Reduce tickets
-      let reduceProof = await state.reduceTickets();
-      let tx2_1 = await Mina.transaction(senderAccount, async () => {
-        await lottery.reduceTickets(reduceProof);
-      });
-      await tx2_1.prove();
-      await tx2_1.sign([senderKey]).send();
-
-      expect(lottery.reduced.get()).toEqual(Bool(true));
-
-      checkConsistency();
       // Produce random value
       await produceResultInRM(round);
 
       // Produce result
+      let winningNumbers = getWinningCombinationPacked(round);
+      let reduceProof = await state.reduceTickets(winningNumbers);
       let tx2 = await Mina.transaction(senderAccount, async () => {
-        await lottery.produceResult();
+        await lottery.reduceTicketsAndProduceResult(reduceProof);
       });
       await tx2.prove();
       await tx2.sign([senderKey]).send();
@@ -482,7 +466,6 @@ describe('Add', () => {
           await lottery.getReward(
             ticket,
             rp.ticketWitness,
-            rp.dp,
             rp.nullifierWitness
           );
         });

@@ -10,8 +10,11 @@ import {
   ZkProgram,
 } from 'o1js';
 import { Ticket } from '../Structs/Ticket.js';
-import { MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
+import { MerkleMap20, MerkleMap20Witness } from '../Structs/CustomMerkleMap.js';
 import { TICKET_PRICE } from '../constants.js';
+import { NumberPacked } from '../util.js';
+
+const emptyMap20 = new MerkleMap20();
 
 // https://github.com/o1-labs/o1js-bindings/blob/71f2e698dadcdfc62c76a72248c0df71cfd39d4c/lib/binable.ts#L317
 let encoder = new TextEncoder();
@@ -85,27 +88,26 @@ export class TicketReduceProofPublicInput extends Struct({
 
 export class TicketReduceProofPublicOutput extends Struct({
   finalState: Field,
-  initialTicketRoot: Field,
-  initialBank: Field,
   newTicketRoot: Field,
   newBank: Field,
+  totalScore: UInt64,
   processedActionList: Field,
   lastProcessedTicketId: Field,
+  winningNumbersPacked: Field,
 }) {}
 
 export const init = async (
   input: TicketReduceProofPublicInput,
-  initialTicketRoot: Field,
-  initialBank: Field
+  winningNumbersPacked: Field
 ): Promise<TicketReduceProofPublicOutput> => {
   return new TicketReduceProofPublicOutput({
     finalState: Reducer.initialActionState,
-    initialTicketRoot,
-    initialBank,
-    newTicketRoot: initialTicketRoot,
-    newBank: initialBank,
+    newTicketRoot: emptyMap20.getRoot(),
+    newBank: Field(0),
+    totalScore: UInt64.from(0),
     processedActionList: ActionList.emptyHash,
     lastProcessedTicketId: Field(-1),
+    winningNumbersPacked,
   });
 };
 
@@ -144,14 +146,20 @@ export const addTicket = async (
     input.action
   );
 
+  let ticketScore = input.action.ticket.getScore(
+    NumberPacked.unpack(prevProof.publicOutput.winningNumbersPacked)
+  );
+
+  let newTotalScore = prevProof.publicOutput.totalScore.add(ticketScore);
+
   return new TicketReduceProofPublicOutput({
     finalState: prevProof.publicOutput.finalState,
-    initialTicketRoot: prevProof.publicOutput.initialTicketRoot,
-    initialBank: prevProof.publicOutput.initialBank,
     newTicketRoot,
     newBank,
-    processedActionList,
+    totalScore: newTotalScore,
     lastProcessedTicketId: expectedTicketId,
+    processedActionList,
+    winningNumbersPacked: prevProof.publicOutput.winningNumbersPacked,
   });
 };
 
@@ -172,12 +180,55 @@ export const cutActions = async (
 
   return new TicketReduceProofPublicOutput({
     finalState,
-    initialTicketRoot: prevProof.publicOutput.initialTicketRoot,
-    initialBank: prevProof.publicOutput.initialBank,
     newTicketRoot: prevProof.publicOutput.newTicketRoot,
     newBank: prevProof.publicOutput.newBank,
+    totalScore: prevProof.publicOutput.totalScore,
     processedActionList,
     lastProcessedTicketId: prevProof.publicOutput.lastProcessedTicketId,
+    winningNumbersPacked: prevProof.publicOutput.winningNumbersPacked,
+  });
+};
+
+export const refund = async (
+  input: TicketReduceProofPublicInput,
+  prevProof: SelfProof<
+    TicketReduceProofPublicInput,
+    TicketReduceProofPublicOutput
+  >
+): Promise<TicketReduceProofPublicOutput> => {
+  prevProof.verify();
+
+  const ticket = input.action.ticket;
+
+  let [prevTicketRoot] = input.ticketWitness.computeRootAndKeyV2(
+    Field(ticket.hash())
+  );
+
+  prevTicketRoot.assertEquals(
+    prevProof.publicOutput.newTicketRoot,
+    'Wrong ticket witness for refund'
+  );
+
+  let newBank = prevProof.publicOutput.newBank.sub(
+    TICKET_PRICE.mul(ticket.amount).value
+  );
+
+  let ticketScore = input.action.ticket.getScore(
+    NumberPacked.unpack(prevProof.publicOutput.winningNumbersPacked)
+  );
+
+  let newTotalScore = prevProof.publicOutput.totalScore.sub(ticketScore);
+
+  let [newTicketRoot] = input.ticketWitness.computeRootAndKeyV2(Field(0));
+
+  return new TicketReduceProofPublicOutput({
+    finalState: prevProof.publicOutput.finalState,
+    newTicketRoot,
+    newBank,
+    totalScore: newTotalScore,
+    processedActionList: prevProof.publicOutput.processedActionList,
+    lastProcessedTicketId: prevProof.publicOutput.lastProcessedTicketId,
+    winningNumbersPacked: prevProof.publicOutput.winningNumbersPacked,
   });
 };
 
@@ -192,13 +243,12 @@ export const TicketReduceProgram = ZkProgram({
   publicOutput: TicketReduceProofPublicOutput,
   methods: {
     init: {
-      privateInputs: [Field, Field],
+      privateInputs: [Field],
       async method(
         input: TicketReduceProofPublicInput,
-        initialTicketRoot: Field,
-        initialBankRoot: Field
+        winningCombinationPacked: Field
       ): Promise<TicketReduceProofPublicOutput> {
-        return init(input, initialTicketRoot, initialBankRoot);
+        return init(input, winningCombinationPacked);
       },
     },
     addTicket: {
@@ -223,6 +273,18 @@ export const TicketReduceProgram = ZkProgram({
         >
       ) {
         return cutActions(input, prevProof);
+      },
+    },
+    refund: {
+      privateInputs: [SelfProof],
+      async method(
+        input: TicketReduceProofPublicInput,
+        prevProof: SelfProof<
+          TicketReduceProofPublicInput,
+          TicketReduceProofPublicOutput
+        >
+      ) {
+        return refund(input, prevProof);
       },
     },
   },

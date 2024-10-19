@@ -81,6 +81,7 @@ export class GetRewardEvent extends Struct({
 }) {}
 
 export class RefundEvent extends Struct({
+  ticketId: Field,
   ticket: Ticket,
 }) {}
 
@@ -114,8 +115,7 @@ export class PLottery extends SmartContract {
   // Stores merkle map with wining combination for each rounds
   @state(Field) result = State<Field>();
 
-  // Questionable
-  @state(Bool) reduced = State<Bool>();
+  @state(UInt64) totalScore = State<UInt64>();
 
   init() {
     super.init();
@@ -203,26 +203,62 @@ export class PLottery extends SmartContract {
    *
    * @event reduce Emitted when the tickets are successfully reduced and the contract state is updated.
    */
-  @method async reduceTickets(reduceProof: TicketReduceProof) {
-    // Check proof validity
-    reduceProof.verify();
-
+  @method async reduceTicketsAndProduceResult(reduceProof: TicketReduceProof) {
+    this.result
+      .getAndRequireEquals()
+      .assertEquals(Field(0), 'Already produced');
     // Only after round is passed
     this.checkRoundPass(UInt32.from(1));
 
-    let initialRoot = this.ticketRoot.getAndRequireEquals();
-    let initialBank = this.bank.getAndRequireEquals();
+    // Get random value
+    const RM = new RandomManager(this.randomManager.getAndRequireEquals());
+    const rmValue = RM.result.getAndRequireEquals();
 
-    // Check initial root equal
-    reduceProof.publicOutput.initialTicketRoot.assertEquals(
-      initialRoot,
-      'Wrong initial root'
-    );
+    let winningNumbers = generateNumbersSeed(rmValue);
+    let winningNumbersPacked = NumberPacked.pack(winningNumbers);
 
-    reduceProof.publicOutput.initialBank.assertEquals(
-      initialBank,
-      'Wrong bank'
+    this.checkReduceProof(reduceProof, winningNumbersPacked);
+
+    const bankValue = reduceProof.publicOutput.newBank;
+
+    this.send({
+      to: treasury,
+      amount: convertToUInt64(bankValue.mul(COMMISSION).div(PRECISION)),
+    });
+
+    // Update onchain values
+    this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
+    this.bank.set(bankValue.mul(PRECISION - COMMISSION).div(PRECISION));
+    this.totalScore.set(reduceProof.publicOutput.totalScore);
+    this.result.set(winningNumbersPacked);
+
+    // Emit event
+    // this.emitEvent('reduce', new ReduceEvent({}));
+    this.emitEvent(
+      'produce-result',
+      new ProduceResultEvent({
+        result: winningNumbersPacked,
+      })
     );
+  }
+
+  // If random manager can't produce value
+  @method async emergencyReduceTickets(reduceProof: TicketReduceProof) {
+    // Allow only after 2 round pass
+    this.checkRoundPass(UInt32.from(2));
+    // And no result produce
+    this.result.getAndRequireEquals().assertEquals(Field(0));
+
+    this.checkReduceProof(reduceProof, Field(0));
+    this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
+  }
+
+  checkReduceProof(
+    reduceProof: TicketReduceProof,
+    winningNumbersPacked: Field
+  ) {
+    // Check proof validity
+    reduceProof.verify();
 
     // Check that all actions was processed.
     reduceProof.publicOutput.processedActionList.assertEquals(
@@ -230,19 +266,30 @@ export class PLottery extends SmartContract {
       'Proof is not complete. Call cutActions first'
     );
 
+    // Check random value
+    reduceProof.publicOutput.winningNumbersPacked.assertEquals(
+      winningNumbersPacked,
+      'Wrong winning combination used in proof'
+    );
+
+    // If emergency reduce was previously call then check that ticketRoot is equal to newTicketRoot
+    const currentRoot = this.ticketRoot.getAndRequireEquals();
+    currentRoot
+      .equals(new MerkleMap20().getRoot())
+      .or(currentRoot.equals(reduceProof.publicOutput.newTicketRoot))
+      .assertTrue('Wrong ticket root');
+
     // Check that actionState is equal to actionState on proof
     this.account.actionState
       .getAndRequireEquals()
       .assertEquals(reduceProof.publicOutput.finalState);
-
-    // Update onchain values
-    this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
-    this.bank.set(reduceProof.publicOutput.newBank);
-    this.reduced.set(Bool(true));
-
-    // Emit event
-    this.emitEvent('reduce', new ReduceEvent({}));
   }
+
+  /*
+  1) Common check 
+  2) Check reduce
+  3) Write values
+  */
 
   /**
    * @notice Generate winning combination for round
@@ -254,38 +301,38 @@ export class PLottery extends SmartContract {
    *
    * @event produce-result Emitted when the result is successfully produced and the result tree is updated.
    */
-  @method async produceResult() {
-    // Check that result for this round is not computed yet
-    const result = this.result.getAndRequireEquals();
-    result.assertEquals(Field(0), 'Result for this round is already computed');
+  // @method async produceResult() {
+  //   // Check that result for this round is not computed yet
+  //   const result = this.result.getAndRequireEquals();
+  //   result.assertEquals(Field(0), 'Result for this round is already computed');
 
-    const reduced = this.reduced.getAndRequireEquals();
-    reduced.assertTrue('Actions was not reduced for this round yet');
+  //   const reduced = this.reduced.getAndRequireEquals();
+  //   reduced.assertTrue('Actions was not reduced for this round yet');
 
-    const RM = new RandomManager(this.randomManager.getAndRequireEquals());
-    const rmValue = RM.result.getAndRequireEquals();
+  //   const RM = new RandomManager(this.randomManager.getAndRequireEquals());
+  //   const rmValue = RM.result.getAndRequireEquals();
 
-    // Generate new winning combination using random number from NumberManager
-    let winningNumbers = generateNumbersSeed(rmValue);
-    let resultPacked = NumberPacked.pack(winningNumbers);
+  //   // Generate new winning combination using random number from NumberManager
+  //   let winningNumbers = generateNumbersSeed(rmValue);
+  //   let resultPacked = NumberPacked.pack(winningNumbers);
 
-    this.result.set(resultPacked);
+  //   this.result.set(resultPacked);
 
-    const bankValue = this.bank.getAndRequireEquals();
-    this.bank.set(bankValue.mul(PRECISION - COMMISSION).div(PRECISION));
+  //   const bankValue = this.bank.getAndRequireEquals();
+  //   this.bank.set(bankValue.mul(PRECISION - COMMISSION).div(PRECISION));
 
-    this.send({
-      to: treasury,
-      amount: convertToUInt64(bankValue.mul(COMMISSION).div(PRECISION)),
-    });
+  //   this.send({
+  //     to: treasury,
+  //     amount: convertToUInt64(bankValue.mul(COMMISSION).div(PRECISION)),
+  //   });
 
-    this.emitEvent(
-      'produce-result',
-      new ProduceResultEvent({
-        result: resultPacked,
-      })
-    );
-  }
+  //   this.emitEvent(
+  //     'produce-result',
+  //     new ProduceResultEvent({
+  //       result: resultPacked,
+  //     })
+  //   );
+  // }
 
   // Update refund natspec
   /**
@@ -312,7 +359,9 @@ export class PLottery extends SmartContract {
     result.assertEquals(Field(0), 'Result for this round is not zero');
 
     // Check ticket in merkle map and set ticket to zero
-    const [ticketRoot, _] = ticketWitness.computeRootAndKeyV2(ticket.hash());
+    const [ticketRoot, ticketId] = ticketWitness.computeRootAndKeyV2(
+      ticket.hash()
+    );
     this.ticketRoot
       .getAndRequireEquals()
       .assertEquals(ticketRoot, 'Wrong ticket witness');
@@ -337,6 +386,7 @@ export class PLottery extends SmartContract {
     this.emitEvent(
       'get-refund',
       new RefundEvent({
+        ticketId,
         ticket,
       })
     );
@@ -349,7 +399,6 @@ export class PLottery extends SmartContract {
    *
    * @param ticket The lottery ticket for which the reward is being claimed.
    * @param ticketWitness Witness of the ticket in the ticketMap tree.
-   * @param dp The distribution proof to verify the winning numbers and ticket distribution.
    * @param nullifierWitness The Merkle proof witness for the nullifier tree.
    *
    * @require The sender must be the owner of the ticket.
@@ -362,12 +411,8 @@ export class PLottery extends SmartContract {
   @method async getReward(
     ticket: Ticket,
     ticketWitness: MerkleMap20Witness,
-    dp: DistributionProof,
     nullifierWitness: MerkleMap20Witness
   ) {
-    // Verify distribution proof
-    dp.verify();
-
     // Check ticket in tree
     const [ticketRoot, ticketId] = ticketWitness.computeRootAndKeyV2(
       ticket.hash()
@@ -376,22 +421,15 @@ export class PLottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(ticketRoot, 'Wrong ticket witness');
 
-    dp.publicOutput.root.assertEquals(ticketRoot, 'Wrong distribution proof');
-
     const winningNumbers = this.result.getAndRequireEquals();
-
-    dp.publicInput.winningCombination.assertEquals(
-      winningNumbers,
-      'Wrong winning numbers in dp'
+    winningNumbers.assertGreaterThan(
+      Field(0),
+      'Winning number is not generated yet'
     );
-
-    this.reduced
-      .getAndRequireEquals()
-      .assertTrue('Actions was not reduced yet');
 
     // Compute score using winning ticket
     const score = ticket.getScore(NumberPacked.unpack(winningNumbers));
-    const totalScore = dp.publicOutput.total;
+    const totalScore = this.totalScore.getAndRequireEquals();
 
     const bank = this.bank.getAndRequireEquals();
 
