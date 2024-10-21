@@ -267,10 +267,10 @@ describe('Add', () => {
     checkConsistency();
 
     console.log('Commiting value');
-    // Commit value for random
-    await commitValue(curRound);
     // Wait next round
     mineNBlocks(BLOCK_PER_ROUND);
+    // Commit value for random
+    await commitValue(curRound);
 
     console.log('Revealing');
     await produceResultInRM(curRound);
@@ -343,10 +343,10 @@ describe('Add', () => {
     });
     await tx1_1.prove();
     await tx1_1.sign([senderKey]).send();
-    // Commit value for random
-    await commitValue(curRound);
     // Wait 3 more rounds
     mineNBlocks(3 * BLOCK_PER_ROUND + 1);
+    // Commit value for random
+    await commitValue(curRound);
     // Reduce tickets
     // let winningNumbers = getWinningCombinationPacked(curRound);
     let reduceProof = await state.reduceTickets(Field(0));
@@ -436,10 +436,10 @@ describe('Add', () => {
         expect(balanceBefore.sub(balanceAfter)).toEqual(TICKET_PRICE);
         checkConsistency();
       }
-      // Commit value for random
-      await commitValue(round);
       // Wait for the end of round
       mineNBlocks(BLOCK_PER_ROUND);
+      // Commit value for random
+      await commitValue(round);
       // Produce random value
       await produceResultInRM(round);
 

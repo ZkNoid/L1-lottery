@@ -72,8 +72,7 @@ export class RandomManager extends SmartContract {
   @method async commitValue(commitValue: CommitValue) {
     this.permissionCheck();
 
-    // Add time check
-    // this.checkRoundPass();
+    this.checkRoundPass();
 
     const currentCommit = this.commit.getAndRequireEquals();
     currentCommit.assertEquals(Field(0), 'Already committed');

@@ -74,6 +74,8 @@ export class BuyTicketEvent extends Struct({
 
 export class ProduceResultEvent extends Struct({
   result: Field,
+  totalScore: UInt64,
+  bank: Field,
 }) {}
 
 export class GetRewardEvent extends Struct({
@@ -226,9 +228,11 @@ export class PLottery extends SmartContract {
       amount: convertToUInt64(bankValue.mul(COMMISSION).div(PRECISION)),
     });
 
+    const newBankValue = bankValue.mul(PRECISION - COMMISSION).div(PRECISION);
+
     // Update onchain values
     this.ticketRoot.set(reduceProof.publicOutput.newTicketRoot);
-    this.bank.set(bankValue.mul(PRECISION - COMMISSION).div(PRECISION));
+    this.bank.set(newBankValue);
     this.totalScore.set(reduceProof.publicOutput.totalScore);
     this.result.set(winningNumbersPacked);
 
@@ -238,6 +242,8 @@ export class PLottery extends SmartContract {
       'produce-result',
       new ProduceResultEvent({
         result: winningNumbersPacked,
+        bank: newBankValue,
+        totalScore: reduceProof.publicOutput.totalScore,
       })
     );
   }
