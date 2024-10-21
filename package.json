@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "0.7.44",
+  "version": "0.7.45",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -65,7 +65,7 @@
     "minimist": "^1.2.8",
     "pinata": "^0.3.3",
     "zkapp-cli": "^0.21.5",
-    "zkon-zkapp": "git://github.com/ZKON-Network/zkapp.git#fa772df63e10f29155ef1ea60fe6fae23485c80f"
+    "zkon-zkapp": "git://github.com/ZKON-Network/zkTLS-Mina-zkApp.git#fa772df63e10f29155ef1ea60fe6fae23485c80f"
   },
   "pnpm": {
     "patchedDependencies": {

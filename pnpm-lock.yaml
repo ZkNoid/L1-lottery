@@ -35,8 +35,8 @@ importers:
         specifier: ^0.21.5
         version: 0.21.7
       zkon-zkapp:
-        specifier: git://github.com/ZKON-Network/zkapp.git#fa772df63e10f29155ef1ea60fe6fae23485c80f
-        version: zkonmina@git+https://git@github.com:ZKON-Network/zkapp.git#fa772df63e10f29155ef1ea60fe6fae23485c80f(o1js@1.8.0(patch_hash=c6i47jdiyaz6mulra2zgu3oxl4))
+        specifier: git://github.com/ZKON-Network/zkTLS-Mina-zkApp.git#fa772df63e10f29155ef1ea60fe6fae23485c80f
+        version: zkonmina@https://codeload.github.com/ZKON-Network/zkTLS-Mina-zkApp/tar.gz/fa772df63e10f29155ef1ea60fe6fae23485c80f(o1js@1.8.0(patch_hash=c6i47jdiyaz6mulra2zgu3oxl4))
     devDependencies:
       '@babel/preset-env':
         specifier: ^7.16.4
@@ -2852,8 +2852,8 @@ packages:
     engines: {node: '>=18.14.0'}
     hasBin: true
 
-  zkonmina@git+https://git@github.com:ZKON-Network/zkapp.git#fa772df63e10f29155ef1ea60fe6fae23485c80f:
-    resolution: {commit: fa772df63e10f29155ef1ea60fe6fae23485c80f, repo: git@github.com:ZKON-Network/zkapp.git, type: git}
+  zkonmina@https://codeload.github.com/ZKON-Network/zkTLS-Mina-zkApp/tar.gz/fa772df63e10f29155ef1ea60fe6fae23485c80f:
+    resolution: {tarball: https://codeload.github.com/ZKON-Network/zkTLS-Mina-zkApp/tar.gz/fa772df63e10f29155ef1ea60fe6fae23485c80f}
     version: 0.1.0
     peerDependencies:
       o1js: ^1.2.0
@@ -6024,7 +6024,7 @@ snapshots:
       - encoding
       - supports-color
 
-  zkonmina@git+https://git@github.com:ZKON-Network/zkapp.git#fa772df63e10f29155ef1ea60fe6fae23485c80f(o1js@1.8.0(patch_hash=c6i47jdiyaz6mulra2zgu3oxl4)):
+  zkonmina@https://codeload.github.com/ZKON-Network/zkTLS-Mina-zkApp/tar.gz/fa772df63e10f29155ef1ea60fe6fae23485c80f(o1js@1.8.0(patch_hash=c6i47jdiyaz6mulra2zgu3oxl4)):
     dependencies:
       '@noble/curves': 1.6.0
       dotenv: 16.4.5
