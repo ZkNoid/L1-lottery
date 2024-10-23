@@ -474,9 +474,10 @@ describe('Add', () => {
         checkConsistency();
 
         const balanceAfter = Mina.getBalance(ticketInfo.owner);
+        const totalScore = await lottery.totalScore.get();
 
         expect(balanceAfter.sub(balanceBefore)).toEqual(
-          bank.mul(score).div(rp.dp.publicOutput.total)
+          bank.mul(score).div(totalScore)
         );
       }
     }

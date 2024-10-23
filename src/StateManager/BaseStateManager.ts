@@ -72,54 +72,54 @@ export class BaseStateManager {
     throw Error('Add ticket is not implemented');
   }
 
-  async getDP(round: number): Promise<DistributionProof> {
-    if (this.dpProof) {
-      return this.dpProof;
-    }
+  // async getDP(round: number): Promise<DistributionProof> {
+  //   if (this.dpProof) {
+  //     return this.dpProof;
+  //   }
 
-    const reducedTickets = (await this.contract.reducer.fetchActions()).flat(1);
+  //   const reducedTickets = (await this.contract.reducer.fetchActions()).flat(1);
 
-    const winningCombination = this.contract.result.get();
-    let curMap = new MerkleMap20();
+  //   const winningCombination = this.contract.result.get();
+  //   let curMap = new MerkleMap20();
 
-    let input = new DistributionProofPublicInput({
-      winningCombination,
-      ticket: Ticket.random(PublicKey.empty()),
-      valueWitness: this.ticketMap.getWitness(Field(0)),
-    });
+  //   let input = new DistributionProofPublicInput({
+  //     winningCombination,
+  //     ticket: Ticket.random(PublicKey.empty()),
+  //     valueWitness: this.ticketMap.getWitness(Field(0)),
+  //   });
 
-    let curProof = this.isMock
-      ? await mockProof(await init(input), DistributionProof, input)
-      : await DistributionProgram.init(input);
+  //   let curProof = this.isMock
+  //     ? await mockProof(await init(input), DistributionProof, input)
+  //     : await DistributionProgram.init(input);
 
-    for (let i = 0; i < reducedTickets.length; i++) {
-      const ticket = reducedTickets[i].ticket;
-      if (!ticket) {
-        // Skip refunded tickets
-        continue;
-      }
+  //   for (let i = 0; i < reducedTickets.length; i++) {
+  //     const ticket = reducedTickets[i].ticket;
+  //     if (!ticket) {
+  //       // Skip refunded tickets
+  //       continue;
+  //     }
 
-      const input = new DistributionProofPublicInput({
-        winningCombination,
-        ticket: ticket,
-        valueWitness: curMap.getWitness(Field(i)),
-      });
-      curMap.set(Field(i), ticket.hash());
+  //     const input = new DistributionProofPublicInput({
+  //       winningCombination,
+  //       ticket: ticket,
+  //       valueWitness: curMap.getWitness(Field(i)),
+  //     });
+  //     curMap.set(Field(i), ticket.hash());
 
-      if (this.isMock) {
-        curProof = await mockProof(
-          await addTicket(input, curProof),
-          DistributionProof,
-          input
-        );
-      } else {
-        curProof = await DistributionProgram.addTicket(input, curProof);
-      }
-    }
+  //     if (this.isMock) {
+  //       curProof = await mockProof(
+  //         await addTicket(input, curProof),
+  //         DistributionProof,
+  //         input
+  //       );
+  //     } else {
+  //       curProof = await DistributionProgram.addTicket(input, curProof);
+  //     }
+  //   }
 
-    this.dpProof = curProof;
-    return curProof;
-  }
+  //   this.dpProof = curProof;
+  //   return curProof;
+  // }
 
   // Changes value of nullifier!
   async getReward(
@@ -129,7 +129,6 @@ export class BaseStateManager {
     ticketIndex: number = 1 // If two or more same tickets presented
   ): Promise<{
     ticketWitness: MerkleMap20Witness;
-    dp: DistributionProof;
     nullifierWitness: MerkleMap20Witness;
   }> {
     const ticketHash = ticket.hash();
@@ -149,9 +148,9 @@ export class BaseStateManager {
       throw Error(`No such ticket in round ${round}`);
     }
 
-    const dp = !roundDP
-      ? await this.getDP(round)
-      : await DistributionProof.fromJSON(roundDP);
+    // const dp = !roundDP
+    //   ? await this.getDP(round)
+    //   : await DistributionProof.fromJSON(roundDP);
 
     const nullifierWitness = this.ticketNullifierMap.getWitness(
       Field.from(ticketId)
@@ -163,7 +162,7 @@ export class BaseStateManager {
 
     return {
       ticketWitness,
-      dp,
+      // dp,
       nullifierWitness,
     };
   }
