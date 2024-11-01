@@ -99,6 +99,7 @@ export class PLottery extends SmartContract {
     'get-refund': RefundEvent,
     reduce: ReduceEvent,
   };
+  // Do not change order of storage, as it would affect deployment via factory
   // !!!!First slot for outer initializer
   @state(PublicKey) randomManager = State<PublicKey>();
 

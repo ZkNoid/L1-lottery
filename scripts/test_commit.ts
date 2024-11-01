@@ -30,11 +30,11 @@ await RandomManager.compile({
 });
 
 await fetchAccount({
-  publicKey: 'B62qnBkcyABfjz2cqJPzNZKjVt9M9kx1vgoiWLbkJUnk16Cz8KX8qC4',
+  publicKey: 'B62qqdpeonJcfVJADCNJ83vzws1n8fSZ5An23xqLU4z2pZ8UgGAc7WV',
 });
 
 const rmAddress = PublicKey.fromBase58(
-  'B62qrDBmmY9fCPtgS4W8gqxMyjxJjWdt6711AA4m5AYTyEBUFdG961s'
+  'B62qqdpeonJcfVJADCNJ83vzws1n8fSZ5An23xqLU4z2pZ8UgGAc7WV'
 );
 
 let rm = new RandomManager(rmAddress);

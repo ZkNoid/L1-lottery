@@ -20,7 +20,6 @@ import {
   ZkonRequestCoordinator,
   ExternalRequestEvent,
 } from 'zkon-zkapp';
-import { getIPFSCID } from '../util.js';
 
 const emptyMapRoot = new MerkleMap().getRoot();
 
@@ -36,31 +35,23 @@ export class CommitValue extends Struct({
   }
 }
 
-const { hashPart1, hashPart2 } = getIPFSCID();
-
 const coordinatorAddress = ZkOnCoordinatorAddress;
 const owner = PublicKey.fromBase58(
   'B62qjGsPY47SMkTykivPBAU3riS9gvMMrGr7ve6ynoHJNBzAhQmtoBn'
 );
 
 export class RandomManager extends SmartContract {
+  // Do not change order of storage, as it would affect deployment via factory
   @state(UInt32) startSlot = State<UInt32>();
   @state(Field) commit = State<Field>();
   @state(Field) result = State<Field>();
   @state(Field) curRandomValue = State<Field>();
+  @state(Field) requestFirstPart = State<Field>();
+  @state(Field) requestSecondPart = State<Field>();
 
   events = {
     requested: ExternalRequestEvent,
   };
-
-  // init() {
-  //   super.init();
-
-  //   // assert(
-  //   //   Bool(false),
-  //   //   'This contract is supposed to be deployed from factory. No init call there'
-  //   // );
-  // }
 
   /**
    * @notice Commit hidden value.
@@ -72,14 +63,14 @@ export class RandomManager extends SmartContract {
   @method async commitValue(commitValue: CommitValue) {
     this.permissionCheck();
 
-    this.checkRoundPass();
+    // this.checkRoundPass();
 
     const currentCommit = this.commit.getAndRequireEquals();
     currentCommit.assertEquals(Field(0), 'Already committed');
 
     this.commit.set(commitValue.hash());
 
-    // await this.callZkon();
+    await this.callZkon();
   }
   /*
 
@@ -99,7 +90,7 @@ export class RandomManager extends SmartContract {
     // Check VRF computed
     const curRandomValue = this.curRandomValue.getAndRequireEquals();
     // Check is ommitted for a while
-    // curRandomValue.assertGreaterThan(Field(0), 'reveal: No random value');
+    curRandomValue.assertGreaterThan(Field(0), 'reveal: No random value');
 
     // Check commit
     const commit = this.commit.getAndRequireEquals();
@@ -121,13 +112,8 @@ export class RandomManager extends SmartContract {
    *
    */
   public async callZkon() {
-    // #TODO remove
-    let curRandomValue = this.curRandomValue.getAndRequireEquals();
-    curRandomValue.assertEquals(
-      Field(0),
-      'random value have already been computed'
-    );
-
+    const hashPart1 = this.requestFirstPart.getAndRequireEquals();
+    const hashPart2 = this.requestSecondPart.getAndRequireEquals();
     const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
 
     const requestId = await coordinator.sendRequest(

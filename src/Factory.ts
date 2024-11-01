@@ -24,6 +24,7 @@ import { PLottery } from './PLottery.js';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { TicketReduceProgram } from './Proofs/TicketReduceProof.js';
 import { DistributionProgram } from './Proofs/DistributionProof.js';
+import { getIPFSCID } from './util.js';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 
@@ -35,6 +36,8 @@ const emptyMerkleMapRoot = new MerkleMap().getRoot();
 // const { verificationKey: PLotteryVK } = await PLottery.compile({
 //   cache: Cache.FileSystem('cache'),
 // });
+
+const { hashPart1, hashPart2 } = getIPFSCID();
 
 const randomManagerVK = {
   hash: Field(vkJSON.randomManagerVK.hash),
@@ -105,6 +108,16 @@ export class PlotteryFactory extends SmartContract {
         value: {
           ...Permissions.default(),
         },
+      };
+
+      rmUpdate.body.update.appState[4] = {
+        isSome: Bool(true),
+        value: hashPart1,
+      };
+
+      rmUpdate.body.update.appState[5] = {
+        isSome: Bool(true),
+        value: hashPart2,
       };
     }
     // Deploy plottery
