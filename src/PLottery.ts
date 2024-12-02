@@ -172,7 +172,7 @@ export class PLottery extends SmartContract {
 
     // Take ticket price from user
     let senderUpdate = AccountUpdate.createSigned(
-      this.sender.getAndRequireSignature()
+      this.sender.getAndRequireSignatureV2()
     );
 
     senderUpdate.send({ to: this, amount: TICKET_PRICE.mul(ticket.amount) });
