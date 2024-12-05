@@ -56,15 +56,21 @@ export async function mockProof<I, O, P>(
   });
 }
 
-const testCommitValue = new CommitValue({
-  value: Field(123),
-  salt: Field(456),
-});
+const testCommitValue = {
+  v1: new CommitValue({
+    value: Field(123),
+    salt: Field(456),
+  }),
+  v2: new CommitValue({
+    value: Field(654),
+    salt: Field(117),
+  }),
+};
 
 const testVRFValue = Field(789);
 
 const testWinningCombination = generateNumbersSeed(
-  Poseidon.hash([testCommitValue.value, testVRFValue])
+  Poseidon.hash([testCommitValue.v1.value, testCommitValue.v2.value])
 );
 
 const ROUNDS = 10;
@@ -142,25 +148,32 @@ describe('Add', () => {
       let randomManager = randomManagers[round];
       let rmStateManager = factoryManager.randomManagers[round];
       let tx = await Mina.transaction(deployerAccount, async () => {
-        await randomManager.commitValue(testCommitValue);
+        await randomManager.firstPartyCommit(testCommitValue.v1);
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
-      rmStateManager.addCommit(testCommitValue);
+
+      let tx2 = await Mina.transaction(deployerAccount, async () => {
+        await randomManager.secondPartyCommit(testCommitValue.v2);
+      });
+      await tx2.prove();
+      await tx2.sign([deployerKey]).send();
+      // rmStateManager.addCommit(testCommitValue);
     };
     produceResultInRM = async (round: number) => {
       let randomManager = randomManagers[round];
 
-      let tx = await Mina.transaction(deployerAccount, async () => {
-        await randomManager.mockReceiveZkonResponse(testVRFValue);
-      });
-      await tx.prove();
-      await tx.sign([deployerKey]).send();
       let tx2 = await Mina.transaction(deployerAccount, async () => {
-        await randomManager.reveal(testCommitValue);
+        await randomManager.revealFirstCommit(testCommitValue.v1);
       });
       await tx2.prove();
       await tx2.sign([deployerKey]).send();
+
+      let tx3 = await Mina.transaction(deployerAccount, async () => {
+        await randomManager.revealSecondCommit(testCommitValue.v2);
+      });
+      await tx3.prove();
+      await tx3.sign([deployerKey]).send();
     };
 
     deployRound = async (round: number) => {

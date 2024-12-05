@@ -216,6 +216,7 @@ export class PLottery extends SmartContract {
     // Get random value
     const RM = new RandomManager(this.randomManager.getAndRequireEquals());
     const rmValue = RM.result.getAndRequireEquals();
+    rmValue.assertGreaterThan(Field(0), 'Random value was not generated yet');
     this.approve(RM.self);
 
     let winningNumbers = generateNumbersSeed(rmValue);
