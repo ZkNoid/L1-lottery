@@ -25,7 +25,7 @@ import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { PStateManager } from '../StateManager/PStateManager';
 import { TicketReduceProgram } from '../Proofs/TicketReduceProof';
-import { CommitValue, RandomManagerTwoParties } from '../Random/RandomManagerTwoParties';
+import { CommitValue } from '../Random/RandomManagerTwoParties';
 import { MockedRandomManager } from './MockedContracts/MockedRandomManagerTwoParties';
 import { FactoryManager } from '../StateManager/FactoryStateManager';
 import { MerkleMap20 } from '../Structs/CustomMerkleMap';

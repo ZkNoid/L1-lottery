@@ -38,7 +38,7 @@ const secondPartyAddress = PublicKey.fromBase58(
   'B62qjGsPY47SMkTykivPBAU3riS9gvMMrGr7ve6ynoHJNBzAhQmtoBn'
 );
 
-export class RandomManagerTwoParties extends SmartContract {
+export class RandomManager extends SmartContract {
   // Do not change order of storage, as it would affect deployment via factory
   @state(UInt32) startSlot = State<UInt32>();
   @state(Field) firstCommit = State<Field>();
@@ -114,4 +114,4 @@ export class RandomManagerTwoParties extends SmartContract {
   }
 }
 
-export default RandomManagerTwoParties;
+export default RandomManager;

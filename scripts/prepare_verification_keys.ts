@@ -1,14 +1,15 @@
 import fs from 'fs';
 import { Cache, Field } from 'o1js';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
-import { RandomManagerTwoParties } from '../src/Random/RandomManagerTwoParties.js';
+import { RandomManager as RandomManagerTwoParties } from '../src/Random/RandomManagerTwoParties.js';
+import { RandomManager } from '../src/Random/RandomManagerTwoParties.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { PLottery } from '../src/PLottery.js';
 
 await ZkonZkProgram.compile({ cache: Cache.FileSystem('cache') });
 await ZkonRequestCoordinator.compile({ cache: Cache.FileSystem('cache') });
-const { verificationKey: randomManagerVK } = await RandomManagerTwoParties.compile();
+const { verificationKey: randomManagerVK } = await RandomManager.compile();
 const { verificationKey: randomManagerTwoPartiesVK } = await RandomManagerTwoParties.compile();
 
 await TicketReduceProgram.compile({ cache: Cache.FileSystem('cache') });

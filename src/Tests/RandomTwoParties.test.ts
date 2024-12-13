@@ -20,7 +20,7 @@ import {
 } from '../constants';
 import { RandomManagerManager } from '../StateManager/RandomManagerManager';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
-import { CommitValue, RandomManagerTwoParties } from '../Random/RandomManagerTwoParties';
+import { CommitValue } from '../Random/RandomManagerTwoParties';
 import { PlotteryFactory } from '../Factory';
 import { FactoryManager } from '../StateManager/FactoryStateManager';
 import { PLottery } from '../PLottery';
