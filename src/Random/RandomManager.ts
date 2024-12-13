@@ -4,7 +4,6 @@ import {
   MerkleMap,
   MerkleMapWitness,
   Poseidon,
-  Provable,
   PublicKey,
   SmartContract,
   State,
@@ -15,8 +14,14 @@ import {
   method,
   state,
 } from 'o1js';
-import { BLOCK_PER_ROUND } from '../constants.js';
-import { ZkonZkProgram } from 'zkon-zkapp';
+import { BLOCK_PER_ROUND, ZkOnCoordinatorAddress } from '../constants.js';
+import {
+  ZkonZkProgram,
+  ZkonRequestCoordinator,
+  ExternalRequestEvent,
+} from 'zkon-zkapp';
+
+const emptyMapRoot = new MerkleMap().getRoot();
 
 export let ZkonProof_ = ZkProgram.Proof(ZkonZkProgram);
 export class ZkonProof extends ZkonProof_ {}
@@ -30,81 +35,132 @@ export class CommitValue extends Struct({
   }
 }
 
-// #TODO change to actual address
-const firstPartyAddress = PublicKey.fromBase58(
-  'B62qjGsPY47SMkTykivPBAU3riS9gvMMrGr7ve6ynoHJNBzAhQmtoBn'
-);
-const secondPartyAddress = PublicKey.fromBase58(
+const coordinatorAddress = ZkOnCoordinatorAddress;
+const owner = PublicKey.fromBase58(
   'B62qjGsPY47SMkTykivPBAU3riS9gvMMrGr7ve6ynoHJNBzAhQmtoBn'
 );
 
 export class RandomManager extends SmartContract {
   // Do not change order of storage, as it would affect deployment via factory
   @state(UInt32) startSlot = State<UInt32>();
-  @state(Field) firstCommit = State<Field>();
-  @state(Field) secondCommit = State<Field>();
-  @state(Field) firstValue = State<Field>();
-  @state(Field) secondValue = State<Field>();
+  @state(Field) commit = State<Field>();
   @state(Field) result = State<Field>();
+  @state(Field) curRandomValue = State<Field>();
+  @state(Field) requestFirstPart = State<Field>();
+  @state(Field) requestSecondPart = State<Field>();
 
-  @method async firstPartyCommit(value: CommitValue) {
-    this.firstCommit.getAndRequireEquals().assertEquals(Field(0));
-    value.value.assertGreaterThan(0, 'Value should be > 0');
-    this.checkPermission(firstPartyAddress);
+  events = {
+    requested: ExternalRequestEvent,
+  };
 
-    this.firstCommit.set(value.hash());
+  /**
+   * @notice Commit hidden value.
+   * @dev Only hash o value and salt is stored. So value is hidden.
+   *
+   * @param commitValue Commit value = value + slot.
+   *
+   */
+  @method async commitValue(commitValue: CommitValue) {
+    this.permissionCheck();
+
+    // this.checkRoundPass();
+
+    const currentCommit = this.commit.getAndRequireEquals();
+    currentCommit.assertEquals(Field(0), 'Already committed');
+
+    this.commit.set(commitValue.hash());
+
+    await this.callZkon();
   }
+  /*
 
-  @method async secondPartyCommit(value: CommitValue) {
-    this.secondCommit.getAndRequireEquals().assertEquals(Field(0));
-    value.value.assertGreaterThan(0, 'Value should be > 0');
-    this.checkPermission(secondPartyAddress);
+  /**
+   * @notice Reveal number committed previously.
+   * @dev This function can be called only after oracle provided its random value
+   *
+   * @param commitValue Commit value = value + slot.
+   *
+   */
+  @method async reveal(commitValue: CommitValue) {
+    this.permissionCheck();
 
-    this.secondCommit.set(value.hash());
-  }
+    const result = this.result.getAndRequireEquals();
+    result.assertEquals(Field(0), 'reveal: Result already computed');
 
-  @method async revealFirstCommit(value: CommitValue) {
+    // Check VRF computed
+    const curRandomValue = this.curRandomValue.getAndRequireEquals();
+    // Check is ommitted for a while
+    curRandomValue.assertGreaterThan(Field(0), 'reveal: No random value');
+
+    // Check commit
+    const commit = this.commit.getAndRequireEquals();
+    commit.assertEquals(commitValue.hash(), 'reveal: wrong commit value');
+
+    // Check round is over
     this.checkRoundPass();
-    const storedCommit = this.firstCommit.getAndRequireEquals();
-    storedCommit.assertEquals(
-      value.hash(),
-      'Reveal failed: Commit does not match stored value.'
+
+    // Compute result
+    const resultValue = Poseidon.hash([commitValue.value, curRandomValue]);
+
+    // Update result
+    this.result.set(resultValue);
+  }
+
+  /**
+   * @notice Sends request to ZKOn oracle.
+   * @dev Request body is stored on IPFS.
+   *
+   */
+  public async callZkon() {
+    const hashPart1 = this.requestFirstPart.getAndRequireEquals();
+    const hashPart2 = this.requestSecondPart.getAndRequireEquals();
+    const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
+
+    const requestId = await coordinator.sendRequest(
+      this.address,
+      hashPart1,
+      hashPart2
     );
 
-    this.firstValue.set(value.value);
-    const secondValue = this.secondValue.getAndRequireEquals();
+    const event = new ExternalRequestEvent({
+      id: requestId,
+      hash1: hashPart1,
+      hash2: hashPart2,
+    });
 
-    this.produceResultIfAllRevealed(value.value, secondValue);
+    this.emitEvent('requested', event);
   }
 
-  @method async revealSecondCommit(value: CommitValue) {
-    this.checkRoundPass();
-    const storedCommit = this.secondCommit.getAndRequireEquals();
-    storedCommit.assertEquals(
-      value.hash(),
-      'Reveal failed: Commit does not match stored value.'
+  /**
+   * @notice Callback function for ZKOn response
+   *
+   */
+  @method
+  async receiveZkonResponse(requestId: Field, proof: ZkonProof) {
+    let curRandomValue = this.curRandomValue.getAndRequireEquals();
+    curRandomValue.assertEquals(
+      Field(0),
+      'receiveZkonResponse: prev random value was not consumed. Call reveal first'
     );
 
-    const firstValue = this.firstValue.getAndRequireEquals();
-    this.secondValue.set(value.value);
-
-    this.produceResultIfAllRevealed(firstValue, value.value);
+    const coordinator = new ZkonRequestCoordinator(coordinatorAddress);
+    await coordinator.recordRequestFullfillment(requestId, proof);
+    this.curRandomValue.set(proof.publicInput.dataField);
   }
 
-  public produceResultIfAllRevealed(firstValue: Field, secondValue: Field) {
-    const allRevealed = firstValue
-      .greaterThan(Field(0))
-      .and(secondValue.greaterThan(Field(0)));
-    const result = Poseidon.hash([firstValue, secondValue]);
-    const resultToStore = Provable.if(allRevealed, result, Field(0));
-
-    this.result.set(resultToStore);
+  /**
+   * @notice Checks that sender is the owner of the contract.
+   *
+   */
+  public permissionCheck() {
+    // this.sender.getAndRequireSignatureV2().assertEquals(owner);
   }
 
-  public checkPermission(targetAddress: PublicKey) {
-    this.sender.getAndRequireSignatureV2().assertEquals(targetAddress);
-  }
-
+  /**
+   * @notice Checks that specified round have already passed.
+   *
+   * @param round Round to check
+   */
   public checkRoundPass() {
     const startSlot = this.startSlot.getAndRequireEquals();
     this.network.globalSlotSinceGenesis.requireBetween(
