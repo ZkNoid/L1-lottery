@@ -35,7 +35,9 @@
     "deploy": "npm run build && node build/scripts/deploy.js",
     "publish_ipfs_request": "npm run build && node build/scripts/publish_request.js",
     "prepare_for_deploy": "npm run build && node rm_build.js && node build/scripts/publish_request.js && node build/scripts/prepare_verification_keys.js ** npm run build",
-    "deploy_factory": "npm run prepare_for_deploy && node build/scripts/deploy_factory.js"
+    "deploy_factory": "npm run prepare_for_deploy && node build/scripts/deploy_factory.js",
+    "prepare_for_deploy_two_parties": "node build/scripts/prepare_verification_keys.js && npm run build && node rm_build.js ** npm run build",
+    "deploy_factory_two_parties": "npm run prepare_for_deploy_two_parties && node build/scripts/deploy_factory.js"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",

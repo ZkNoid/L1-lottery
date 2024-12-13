@@ -25,8 +25,9 @@ import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
 import { PStateManager } from '../StateManager/PStateManager';
 import { TicketReduceProgram } from '../Proofs/TicketReduceProof';
-import { CommitValue, RandomManagerTwoParties } from '../Random/RandomManagerTwoParties';
-import { MockedRandomManager } from './MockedContracts/MockedRandomManagerTwoParties';
+import { CommitValue, RandomManager } from '../Random/RandomManager';
+import { RandomManagerManager } from '../StateManager/RandomManagerManager';
+import { MockedRandomManager } from './MockedContracts/MockedRandomManager';
 import { FactoryManager } from '../StateManager/FactoryStateManager';
 import { MerkleMap20 } from '../Structs/CustomMerkleMap';
 import { MockedPlotteryFactory } from './MockedContracts/MockedFactory';
@@ -55,21 +56,15 @@ export async function mockProof<I, O, P>(
   });
 }
 
-const testCommitValue = {
-  v1: new CommitValue({
-    value: Field(123),
-    salt: Field(456),
-  }),
-  v2: new CommitValue({
-    value: Field(654),
-    salt: Field(117),
-  }),
-};
+const testCommitValue = new CommitValue({
+  value: Field(123),
+  salt: Field(456),
+});
 
 const testVRFValue = Field(789);
 
 const testWinningCombination = generateNumbersSeed(
-  Poseidon.hash([testCommitValue.v1.value, testCommitValue.v2.value])
+  Poseidon.hash([testCommitValue.value, testVRFValue])
 );
 
 const ROUNDS = 10;
@@ -147,32 +142,25 @@ describe('Add', () => {
       let randomManager = randomManagers[round];
       let rmStateManager = factoryManager.randomManagers[round];
       let tx = await Mina.transaction(deployerAccount, async () => {
-        await randomManager.firstPartyCommit(testCommitValue.v1);
+        await randomManager.commitValue(testCommitValue);
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
-
-      let tx2 = await Mina.transaction(deployerAccount, async () => {
-        await randomManager.secondPartyCommit(testCommitValue.v2);
-      });
-      await tx2.prove();
-      await tx2.sign([deployerKey]).send();
-      // rmStateManager.addCommit(testCommitValue);
+      rmStateManager.addCommit(testCommitValue);
     };
     produceResultInRM = async (round: number) => {
       let randomManager = randomManagers[round];
 
+      let tx = await Mina.transaction(deployerAccount, async () => {
+        await randomManager.mockReceiveZkonResponse(testVRFValue);
+      });
+      await tx.prove();
+      await tx.sign([deployerKey]).send();
       let tx2 = await Mina.transaction(deployerAccount, async () => {
-        await randomManager.revealFirstCommit(testCommitValue.v1);
+        await randomManager.reveal(testCommitValue);
       });
       await tx2.prove();
       await tx2.sign([deployerKey]).send();
-
-      let tx3 = await Mina.transaction(deployerAccount, async () => {
-        await randomManager.revealSecondCommit(testCommitValue.v2);
-      });
-      await tx3.prove();
-      await tx3.sign([deployerKey]).send();
     };
 
     deployRound = async (round: number) => {

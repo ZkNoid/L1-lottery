@@ -29,12 +29,9 @@ import { DistributionProgram } from '../Proofs/DistributionProof';
 import { MockedRandomManager } from './MockedContracts/MockedRandomManager';
 import { MockedPlotteryFactory } from './MockedContracts/MockedFactory';
 
-const testCommitValues = [...Array(10)].map((_, i) => {
-  return {
-    v1: new CommitValue({ value: Field(i + 1), salt: Field.random() }),
-    v2: new CommitValue({ value: Field(2 * i + 1), salt: Field.random() }),
-  };
-});
+const testCommitValues = [...Array(10)].map(
+  (_, i) => new CommitValue({ value: Field(i), salt: Field.random() })
+);
 
 const testVRFValues = [...Array(10)].map((_, i) =>
   Field(Poseidon.hash([Field(i)]))
@@ -57,15 +54,11 @@ describe('Add', () => {
     randomManager: MockedRandomManager,
     factoryManager: FactoryManager,
     mineNBlocks: (n: number) => void,
-    commitValue: (
-      round: number,
-      commitValue1: CommitValue,
-      commitValue2: CommitValue
-    ) => Promise<void>,
+    commitValue: (round: number, commitValue: CommitValue) => Promise<void>,
     produceResultInRM: (
       round: number,
-      commitValue1: CommitValue,
-      commitValue2: CommitValue
+      vrfValue: Field,
+      commitValue: CommitValue
     ) => Promise<void>;
   beforeAll(async () => {
     if (proofsEnabled) {
@@ -95,41 +88,29 @@ describe('Add', () => {
       let curAmount = Local.getNetworkState().globalSlotSinceGenesis;
       Local.setGlobalSlot(curAmount.add(n));
     };
-    commitValue = async (
-      round: number,
-      commitValue1: CommitValue,
-      commitValue2: CommitValue
-    ) => {
+    commitValue = async (round: number, commitValue: CommitValue) => {
       let tx = Mina.transaction(deployerAccount, async () => {
-        randomManager.firstPartyCommit(commitValue1);
+        randomManager.commitValue(commitValue);
       });
       await tx.prove();
       await tx.sign([deployerKey]).send();
-
-      let tx2 = Mina.transaction(deployerAccount, async () => {
-        randomManager.secondPartyCommit(commitValue2);
-      });
-      await tx2.prove();
-      await tx2.sign([deployerKey]).send();
-
-      // factoryManager.randomManagers[round].addCommit(commitValue);
+      factoryManager.randomManagers[round].addCommit(commitValue);
     };
     produceResultInRM = async (
       round: number,
-      commitValue1: CommitValue,
-      commitValue2: CommitValue
+      vrfValue: Field,
+      commitValue: CommitValue
     ) => {
+      let tx = Mina.transaction(deployerAccount, async () => {
+        randomManager.mockReceiveZkonResponse(vrfValue);
+      });
+      await tx.prove();
+      await tx.sign([deployerKey]).send();
       let tx2 = Mina.transaction(deployerAccount, async () => {
-        randomManager.revealFirstCommit(commitValue1);
+        randomManager.reveal(commitValue);
       });
       await tx2.prove();
       await tx2.sign([deployerKey]).send();
-
-      let tx3 = Mina.transaction(deployerAccount, async () => {
-        randomManager.revealSecondCommit(commitValue2);
-      });
-      await tx3.prove();
-      await tx3.sign([deployerKey]).send();
     };
   });
   async function localDeploy() {
@@ -167,10 +148,10 @@ describe('Add', () => {
       factoryManager.roundsMap.getRoot()
     );
 
-    // expect(randomManager.startSlot.get()).toEqual(UInt32.from(0));
-    // expect(randomManager.commit.get()).toEqual(Field(0));
-    // expect(randomManager.result.get()).toEqual(Field(0));
-    // expect(randomManager.curRandomValue.get()).toEqual(Field(0));
+    expect(randomManager.startSlot.get()).toEqual(UInt32.from(0));
+    expect(randomManager.commit.get()).toEqual(Field(0));
+    expect(randomManager.result.get()).toEqual(Field(0));
+    expect(randomManager.curRandomValue.get()).toEqual(Field(0));
   });
 
   it('Should produce random value', async () => {
@@ -179,16 +160,13 @@ describe('Add', () => {
     // for (let i = 0; i < 10; i++) {
     let i = 0;
     // console.log(i);
-    await commitValue(i, testCommitValues[i].v1, testCommitValues[i].v2);
+    await commitValue(i, testCommitValues[i]);
 
     mineNBlocks(BLOCK_PER_ROUND + 1);
 
-    await produceResultInRM(i, testCommitValues[i].v1, testCommitValues[i].v2);
+    await produceResultInRM(i, testVRFValues[i], testCommitValues[i]);
 
-    const seed = Poseidon.hash([
-      testCommitValues[i].v1.value,
-      testCommitValues[i].v2.value,
-    ]);
+    const seed = Poseidon.hash([testCommitValues[i].value, testVRFValues[i]]);
     expect(randomManager.result.get()).toEqual(seed);
     // }
   });
