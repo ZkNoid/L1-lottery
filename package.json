@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "1.7.4",
+  "version": "2.7.4",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -14,8 +14,8 @@
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
   "exports": {
-    "import": "./build/src/index.js",
-    "require": "./build/src/index.cjs"
+    "import": "./build/src/index_two_parties.js",
+    "require": "./build/src/index_two_parties.cjs"
   },
   "scripts": {
     "build": "tsc && rollup build/src/index.js --file build/src/index.cjs --format cjs",

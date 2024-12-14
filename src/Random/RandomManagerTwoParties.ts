@@ -32,10 +32,10 @@ export class CommitValue extends Struct({
 
 // #TODO change to actual address
 const firstPartyAddress = PublicKey.fromBase58(
-  'B62qjGsPY47SMkTykivPBAU3riS9gvMMrGr7ve6ynoHJNBzAhQmtoBn'
+  'B62qryLwDWH5TM4N65Cs9S3jWqyDgC9JYXr5kc87ua8NFB5enpiuT1Y'
 );
 const secondPartyAddress = PublicKey.fromBase58(
-  'B62qjGsPY47SMkTykivPBAU3riS9gvMMrGr7ve6ynoHJNBzAhQmtoBn'
+  'B62qnSztu3Gp49AR6AWAEUERBVSnoWDFJTki5taYUY7ig9hR1ut1a6r'
 );
 
 export class RandomManager extends SmartContract {
