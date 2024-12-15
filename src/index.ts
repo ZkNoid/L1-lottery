@@ -1,6 +1,6 @@
 export * from './PLottery.js';
 // export * from './Factory.js';
-// export * from './Random/RandomManager.js';
+export * from './Random/RandomManager.js';
 export * from './Structs/Ticket.js';
 // export * from './Structs/CustomMerkleMap.js';
 export * from './util.js';
