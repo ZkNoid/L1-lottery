@@ -37,8 +37,6 @@ const emptyMerkleMapRoot = new MerkleMap().getRoot();
 //   cache: Cache.FileSystem('cache'),
 // });
 
-const { hashPart1, hashPart2 } = getIPFSCID();
-
 const randomManagerVK = {
   hash: Field(vkJSON.randomManagerTwoParties.hash),
   data: vkJSON.randomManagerTwoParties.data,
@@ -108,16 +106,6 @@ export class PlotteryFactory extends SmartContract {
         value: {
           ...Permissions.default(),
         },
-      };
-
-      rmUpdate.body.update.appState[4] = {
-        isSome: Bool(true),
-        value: hashPart1,
-      };
-
-      rmUpdate.body.update.appState[5] = {
-        isSome: Bool(true),
-        value: hashPart2,
       };
     }
     // Deploy plottery
