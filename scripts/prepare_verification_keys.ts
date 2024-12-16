@@ -2,7 +2,7 @@ import fs from 'fs';
 import { Cache, Field } from 'o1js';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { RandomManager as RandomManagerTwoParties } from '../src/Random/RandomManagerTwoParties.js';
-import { RandomManager } from '../src/Random/RandomManagerTwoParties.js';
+import { RandomManager } from '../src/Random/RandomManager.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { PLottery } from '../src/PLottery.js';
