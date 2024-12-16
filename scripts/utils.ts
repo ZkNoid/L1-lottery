@@ -20,15 +20,19 @@ import { cidBuffer } from '../random_request_cid.js';
 export const configDefaultInstance = (): { transactionFee: number } => {
   const transactionFee = 100_000_000;
   const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
+  const useMainnet = process.env.MAINNET === 'true';
+
   const network = Mina.Network({
-    networkId: 'mainnet',
+    networkId: useMainnet ? 'mainnet' : 'testnet',
     mina: useCustomLocalNetwork
       ? 'http://localhost:8080/graphql'
-      : 'https://api.minascan.io/node/mainnet/v1/graphql',
+      : useMainnet ? 'https://api.minascan.io/node/mainnet/v1/graphql'
+      : 'https://api.minascan.io/node/devnet/v1/graphql',
     lightnetAccountManager: 'http://localhost:8181',
     archive: useCustomLocalNetwork
       ? 'http://localhost:8282'
-      : 'https://api.minascan.io/archive/mainnet/v1/graphql',
+      : useMainnet ? 'https://api.minascan.io/node/mainnet/v1/graphql'
+      : 'https://api.minascan.io/archive/devnet/v1/graphql',
   });
   Mina.setActiveInstance(network);
 
