@@ -362,7 +362,7 @@ export class PLottery extends SmartContract {
    */
   @method async refund(ticket: Ticket, ticketWitness: MerkleMap20Witness) {
     // Check that owner trying to claim
-    ticket.owner.assertEquals(this.sender.getAndRequireSignature());
+    ticket.owner.assertEquals(this.sender.getAndRequireSignatureV2());
 
     const result = this.result.getAndRequireEquals();
     result.assertEquals(Field(0), 'Result for this round is not zero');

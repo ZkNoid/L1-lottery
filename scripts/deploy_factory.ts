@@ -2,6 +2,7 @@ import { AccountUpdate, fetchAccount, Mina, PrivateKey } from 'o1js';
 import { configDefaultInstance } from './utils.js';
 import { PlotteryFactory } from '../src/Factory.js';
 import * as fs from 'fs';
+import { treasury } from '../src/constants.js';
 
 const { transactionFee } = configDefaultInstance();
 const networkId = Mina.activeInstance.getNetworkId().toString();
@@ -21,7 +22,7 @@ if (fs.existsSync(factoryDataPath)) {
 }
 
 await fetchAccount({
-  publicKey: 'B62qnBkcyABfjz2cqJPzNZKjVt9M9kx1vgoiWLbkJUnk16Cz8KX8qC4',
+  publicKey: treasury,
 });
 
 let factoryKey = PrivateKey.random();

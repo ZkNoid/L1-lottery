@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "2.7.7",
+  "version": "2.7.8",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -37,7 +37,7 @@
     "prepare_for_deploy": "npm run build && node rm_build.js && node build/scripts/publish_request.js && node build/scripts/prepare_verification_keys.js ** npm run build",
     "deploy_factory": "npm run prepare_for_deploy && node build/scripts/deploy_factory.js",
     "prepare_for_deploy_two_parties": "node build/scripts/prepare_verification_keys.js && npm run build && node rm_build.js ** npm run build",
-    "deploy_factory_two_parties": "npm run prepare_for_deploy_two_parties && node build/scripts/deploy_factory.js"
+    "deploy_factory_two_parties": "npm run prepare_for_deploy_two_parties && node build/scripts/deploy_factory_two_parties.js"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",

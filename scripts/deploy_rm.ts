@@ -4,6 +4,7 @@ import { PlotteryFactory } from '../src/Factory.js';
 import * as fs from 'fs';
 import { RandomManager } from '../src/Random/RandomManager.js';
 import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
+import { treasury } from '../src/constants.js'
 
 const { transactionFee } = configDefaultInstance();
 const networkId = Mina.activeInstance.getNetworkId().toString();
@@ -22,7 +23,7 @@ await RandomManager.compile({
 });
 
 await fetchAccount({
-  publicKey: 'B62qnBkcyABfjz2cqJPzNZKjVt9M9kx1vgoiWLbkJUnk16Cz8KX8qC4',
+  publicKey: treasury,
 });
 
 let rmKey = PrivateKey.random();
