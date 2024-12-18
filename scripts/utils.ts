@@ -16,27 +16,22 @@ import { RandomManagerManager } from '../src/StateManager/RandomManagerManager.j
 import { FactoryManager } from '../src/StateManager/FactoryStateManager.js';
 import { PlotteryFactory } from '../src/Factory.js';
 import { cidBuffer } from '../random_request_cid.js';
+import { Network, NETWORKS } from '../src/constants/networks.js';
 
-export const configDefaultInstance = (): { transactionFee: number } => {
+export const configDefaultInstance = (): { transactionFee: number, network: Network } => {
   const transactionFee = 100_000_000;
-  const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
-  const useMainnet = process.env.MAINNET === 'true';
+  const network_ = NETWORKS[process.env.NETWORK_ID!];
 
   const network = Mina.Network({
-    networkId: useMainnet ? 'mainnet' : 'testnet',
-    mina: useCustomLocalNetwork
-      ? 'http://localhost:8080/graphql'
-      : useMainnet ? 'https://api.minascan.io/node/mainnet/v1/graphql'
-      : 'https://api.minascan.io/node/devnet/v1/graphql',
-    lightnetAccountManager: 'http://localhost:8181',
-    archive: useCustomLocalNetwork
-      ? 'http://localhost:8282'
-      : useMainnet ? 'https://api.minascan.io/node/mainnet/v1/graphql'
-      : 'https://api.minascan.io/archive/devnet/v1/graphql',
+    networkId: network_.isMainnet ? 'mainnet' : 'testnet',
+    mina: network_.graphql,
+    lightnetAccountManager: network_.lightnetAccountManager,
+    archive: network_.archive,
   });
+  
   Mina.setActiveInstance(network);
 
-  return { transactionFee };
+  return { transactionFee, network: network_ };
 };
 /*
 export const findPlottery = (epoch: string = 'current') => {

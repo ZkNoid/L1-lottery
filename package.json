@@ -1,6 +1,6 @@
 {
   "name": "l1-lottery-contracts",
-  "version": "2.8.5",
+  "version": "2.8.11",
   "description": "",
   "author": "",
   "license": "Apache-2.0",
@@ -31,7 +31,7 @@
     "trees": "npm run build && node build/scripts/build_trees.js",
     "produce_result": "npm run build && node build/scripts/produce_result.js",
     "bug_poc": "npm run build && node build/scripts/bug_poc.js",
-    "token_prepare": "cd 'node_modules/.pnpm/zkonmina@https+++codeload.github.com+ZKON-Network+zkTLS-Mina-zkApp+tar.gz+fa772df63e10f29155e_4nozn4uvq4o3xinbcnrx336unq/node_modules/mina-fungible-token' && pnpm build || true",
+    "token_prepare": "cd 'node_modules/.pnpm/zkonmina@https+++codeload.github.com+ZKON-Network+zkTLS-Mina-zkApp+tar.gz+fa772df63e10f29155e_u4tcdylka4cclgvzpkxgmxoglm/node_modules/mina-fungible-token' && pnpm build || true",
     "deploy": "npm run build && node build/scripts/deploy.js",
     "publish_ipfs_request": "npm run build && node build/scripts/publish_request.js",
     "prepare_for_deploy": "npm run build && node rm_build.js && node build/scripts/publish_request.js && node build/scripts/prepare_verification_keys.js ** npm run build",

@@ -25,6 +25,13 @@ import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { TicketReduceProgram } from './Proofs/TicketReduceProof.js';
 import { DistributionProgram } from './Proofs/DistributionProof.js';
 import { getIPFSCID } from './util.js';
+import { NetworkIds } from './constants/networks.js';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const networkId = process.env.NETWORK_ID || NetworkIds.MINA_DEVNET;
+
+const vk = (vkJSON as any)[networkId];
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 
@@ -40,13 +47,13 @@ const emptyMerkleMapRoot = new MerkleMap().getRoot();
 const { hashPart1, hashPart2 } = getIPFSCID();
 
 const randomManagerVK = {
-  hash: Field(vkJSON.randomManagerVK.hash),
-  data: vkJSON.randomManagerVK.data,
+  hash: Field(vk.randomManagerVK.hash),
+  data: vk.randomManagerVK.data,
 };
 
 const PLotteryVK = {
-  hash: Field(vkJSON.PLotteryVK.hash),
-  data: vkJSON.PLotteryVK.data,
+  hash: Field(vk.PLotteryVK.hash),
+  data: vk.PLotteryVK.data,
 };
 
 class RoundInfo extends Struct({

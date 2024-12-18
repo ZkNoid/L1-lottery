@@ -15,6 +15,7 @@ import {
   method,
   Cache,
   UInt32,
+  NetworkId,
 } from 'o1js';
 import { vkJSON } from '../vk.js';
 import { BLOCK_PER_ROUND } from './constants.js';
@@ -25,6 +26,7 @@ import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { TicketReduceProgram } from './Proofs/TicketReduceProof.js';
 import { DistributionProgram } from './Proofs/DistributionProof.js';
 import { getIPFSCID } from './util.js';
+import { NetworkIds, NETWORKS } from './constants/networks.js';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 
@@ -37,14 +39,18 @@ const emptyMerkleMapRoot = new MerkleMap().getRoot();
 //   cache: Cache.FileSystem('cache'),
 // });
 
+const networkId = process.env.NETWORK_ID || NetworkIds.MINA_DEVNET;
+
+const vk = (vkJSON as any)[networkId];
+
 const randomManagerVK = {
-  hash: Field(vkJSON.randomManagerTwoParties.hash),
-  data: vkJSON.randomManagerTwoParties.data,
+  hash: Field(vk.randomManagerTwoParties.hash),
+  data: vk.randomManagerTwoParties.data,
 };
 
 const PLotteryVK = {
-  hash: Field(vkJSON.PLotteryVK.hash),
-  data: vkJSON.PLotteryVK.data,
+  hash: Field(vk.PLotteryVK.hash),
+  data: vk.PLotteryVK.data,
 };
 
 class RoundInfo extends Struct({
