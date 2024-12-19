@@ -1,4 +1,4 @@
-export * from './PLottery.js';
+export * from './PLotteryTwoParties.js';
 // export * from './Factory.js';
 export * from './Random/RandomManagerTwoParties.js';
 export * from './Structs/Ticket.js';

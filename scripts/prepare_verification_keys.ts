@@ -9,6 +9,8 @@ import { RandomManager } from '../src/Random/RandomManager.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { PLottery } from '../src/PLottery.js';
+import { PLottery as PLotteryTwoParties } from '../src/PLotteryTwoParties.js';
+
 import { FactoryTwoParties } from '../src/index.js';
 import { PlotteryFactory } from '../src/index_two_parties.js';
 import { NETWORKS } from '../src/constants/networks.js';
@@ -44,6 +46,11 @@ const { verificationKey: PLotteryVK } = await PLottery.compile({
   cache: Cache.FileSystem('cache'),
 });
 
+const { verificationKey: PLotteryVKTwoParties } =
+  await PLotteryTwoParties.compile({
+    cache: Cache.FileSystem('cache'),
+  });
+
 const result = {
   factoryTwoPartiesVK: {
     hash: factoryTwoPartiesVK.hash.toString(),
@@ -60,6 +67,10 @@ const result = {
   PLotteryVK: {
     hash: PLotteryVK.hash.toString(),
     data: PLotteryVK.data,
+  },
+  PLotteryVKTwoParties: {
+    hash: PLotteryVKTwoParties.hash.toString(),
+    data: PLotteryVKTwoParties.data,
   },
 };
 
@@ -89,7 +100,7 @@ console.log(`lm verification key`);
 console.log(lotteryCompileInfo.verificationKey.hash.toString());
 
 let savedVks = {
-  ...vkJSON
+  ...vkJSON,
 } as any;
 
 savedVks[network_.networkID] = result;

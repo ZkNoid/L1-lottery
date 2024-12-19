@@ -49,8 +49,8 @@ const randomManagerVK = {
 };
 
 const PLotteryVK = {
-  hash: Field(vk.PLotteryVK.hash),
-  data: vk.PLotteryVK.data,
+  hash: Field(vk.PLotteryVKTwoParties.hash),
+  data: vk.PLotteryVKTwoParties.data,
 };
 
 class RoundInfo extends Struct({
