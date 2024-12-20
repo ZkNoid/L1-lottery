@@ -15,11 +15,9 @@ import { NumberPacked, convertToUInt64 } from '../util';
 import {
   BLOCK_PER_ROUND,
   TICKET_PRICE,
-  ZkOnCoordinatorAddress,
   treasury,
 } from '../constants';
 import { RandomManagerManager } from '../StateManager/RandomManagerManager';
-import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { CommitValue } from '../Random/RandomManager';
 import { PlotteryFactory } from '../Factory';
 import { FactoryManager } from '../StateManager/FactoryStateManager';
@@ -68,10 +66,6 @@ describe('Add', () => {
       commitValue2: CommitValue
     ) => Promise<void>;
   beforeAll(async () => {
-    if (proofsEnabled) {
-      await ZkonZkProgram.compile({});
-      await ZkonRequestCoordinator.compile({});
-    }
   });
   beforeEach(async () => {
     const Local = await Mina.LocalBlockchain({ proofsEnabled });

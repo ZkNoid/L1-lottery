@@ -20,25 +20,9 @@ import {
 import { vkJSON } from '../vk.js';
 import { BLOCK_PER_ROUND } from './constants.js';
 import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
-import { RandomManager } from './Random/RandomManager.js';
-import { PLottery } from './PLottery.js';
-import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
-import { TicketReduceProgram } from './Proofs/TicketReduceProof.js';
-import { DistributionProgram } from './Proofs/DistributionProof.js';
-import { getIPFSCID } from './util.js';
-import { NetworkIds, NETWORKS } from './constants/networks.js';
+import { NetworkIds } from './constants/networks.js';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
-
-// await ZkonZkProgram.compile({ cache: Cache.FileSystem('cache') });
-// await ZkonRequestCoordinator.compile({ cache: Cache.FileSystem('cache') });
-// const { verificationKey: randomManagerVK } = await RandomManager.compile();
-// await TicketReduceProgram.compile({ cache: Cache.FileSystem('cache') });
-// await DistributionProgram.compile({ cache: Cache.FileSystem('cache') });
-// const { verificationKey: PLotteryVK } = await PLottery.compile({
-//   cache: Cache.FileSystem('cache'),
-// });
-
 const networkId = process.env.NETWORK_ID || NetworkIds.MINA_DEVNET;
 
 const vk = (vkJSON as any)[networkId];

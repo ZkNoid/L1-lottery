@@ -7,7 +7,6 @@ import {
   UInt32,
   MerkleMapWitness,
   AccountUpdate,
-  Gadgets,
   PublicKey,
   MerkleMap,
   Struct,
@@ -15,7 +14,6 @@ import {
   Provable,
   UInt64,
   Permissions,
-  TransactionVersion,
   VerificationKey,
   Bool,
 } from 'o1js';
@@ -23,15 +21,12 @@ import { Ticket } from './Structs/Ticket.js';
 import {
   BLOCK_PER_ROUND,
   COMMISSION,
-  NUMBERS_IN_TICKET,
   PRECISION,
   TICKET_PRICE,
-  ZkOnCoordinatorAddress,
   mockWinningCombination,
   treasury,
 } from './constants.js';
-import { DistributionProof } from './Proofs/DistributionProof.js';
-import { NumberPacked, convertToUInt32, convertToUInt64 } from './util.js';
+import { NumberPacked, convertToUInt64 } from './util.js';
 import { MerkleMap20, MerkleMap20Witness } from './Structs/CustomMerkleMap.js';
 import {
   ActionList,

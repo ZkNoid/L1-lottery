@@ -31,9 +31,7 @@
     "trees": "npm run build && node build/scripts/build_trees.js",
     "produce_result": "npm run build && node build/scripts/produce_result.js",
     "bug_poc": "npm run build && node build/scripts/bug_poc.js",
-    "token_prepare": "cd 'node_modules/.pnpm/zkonmina@https+++codeload.github.com+ZKON-Network+zkTLS-Mina-zkApp+tar.gz+fa772df63e10f29155e_u4tcdylka4cclgvzpkxgmxoglm/node_modules/mina-fungible-token' && pnpm build || true",
     "deploy": "npm run build && node build/scripts/deploy.js",
-    "publish_ipfs_request": "npm run build && node build/scripts/publish_request.js",
     "prepare_for_deploy": "npm run build && node rm_build.js && node build/scripts/publish_request.js && node build/scripts/prepare_verification_keys.js ** npm run build",
     "deploy_factory": "npm run prepare_for_deploy && node build/scripts/deploy_factory.js"
   },
@@ -63,9 +61,7 @@
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",
     "minimist": "^1.2.8",
-    "pinata": "^0.3.3",
-    "zkapp-cli": "^0.21.5",
-    "zkon-zkapp": "git://github.com/ZKON-Network/zkTLS-Mina-zkApp.git#fa772df63e10f29155ef1ea60fe6fae23485c80f"
+    "zkapp-cli": "^0.21.5"
   },
   "pnpm": {
     "patchedDependencies": {

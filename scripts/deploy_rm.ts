@@ -3,7 +3,6 @@ import { configDefaultInstance } from './utils.js';
 import { PlotteryFactory } from '../src/Factory.js';
 import * as fs from 'fs';
 import { RandomManager } from '../src/Random/RandomManager.js';
-import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { treasury } from '../src/constants.js'
 
 const { transactionFee } = configDefaultInstance();
@@ -15,8 +14,6 @@ let deployer = deployerKey.toPublicKey();
 console.log(`Deploying with ${deployer.toBase58()}`);
 
 console.log(`Compiling Random manager`);
-await ZkonZkProgram.compile({ cache: Cache.FileSystem('cache') });
-await ZkonRequestCoordinator.compile({ cache: Cache.FileSystem('cache') });
 
 await RandomManager.compile({
   cache: Cache.FileSystem(`cache`),

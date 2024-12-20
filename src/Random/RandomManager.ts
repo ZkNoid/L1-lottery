@@ -10,16 +10,10 @@ import {
   State,
   Struct,
   UInt32,
-  ZkProgram,
-  assert,
   method,
   state,
 } from 'o1js';
 import { BLOCK_PER_ROUND } from '../constants.js';
-import { ZkonZkProgram } from 'zkon-zkapp';
-
-export let ZkonProof_ = ZkProgram.Proof(ZkonZkProgram);
-export class ZkonProof extends ZkonProof_ {}
 
 export class CommitValue extends Struct({
   value: Field,

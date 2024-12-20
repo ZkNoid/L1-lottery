@@ -20,15 +20,12 @@ import { BLOCK_PER_ROUND } from '../../constants';
 import { MerkleMap20 } from '../../Structs/CustomMerkleMap';
 import { RandomManager } from '../../Random/RandomManager';
 import { PLottery } from '../../PLottery';
-import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { TicketReduceProgram } from '../../Proofs/TicketReduceProof';
 import { DistributionProgram } from '../../Proofs/DistributionProof';
 import { MockedRandomManager } from './MockedRandomManager';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 
-await ZkonZkProgram.compile({ cache: Cache.FileSystem('cache') });
-await ZkonRequestCoordinator.compile({ cache: Cache.FileSystem('cache') });
 const { verificationKey: mockedRandomManagerVK } =
   await MockedRandomManager.compile();
 await TicketReduceProgram.compile({ cache: Cache.FileSystem('cache') });

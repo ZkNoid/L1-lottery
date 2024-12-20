@@ -17,7 +17,6 @@ import { NumberPacked, convertToUInt64 } from '../util';
 import {
   BLOCK_PER_ROUND,
   TICKET_PRICE,
-  ZkOnCoordinatorAddress,
   treasury,
 } from '../constants';
 // import { DistributionProgram } from '../Proofs/DistributionProof';
