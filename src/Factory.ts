@@ -28,8 +28,8 @@ const networkId = process.env.NETWORK_ID || NetworkIds.MINA_DEVNET;
 const vk = (vkJSON as any)[networkId];
 
 const randomManagerVK = {
-  hash: Field(vk.randomManager.hash),
-  data: vk.randomManager.data,
+  hash: Field(vk.randomManagerVK.hash),
+  data: vk.randomManagerVK.data,
 };
 
 const PLotteryVK = {
