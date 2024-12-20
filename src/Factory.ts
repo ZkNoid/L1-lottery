@@ -15,6 +15,7 @@ import {
   method,
   Cache,
   UInt32,
+  NetworkId,
 } from 'o1js';
 import { vkJSON } from '../vk.js';
 import { BLOCK_PER_ROUND } from './constants.js';
@@ -25,13 +26,7 @@ import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
 import { TicketReduceProgram } from './Proofs/TicketReduceProof.js';
 import { DistributionProgram } from './Proofs/DistributionProof.js';
 import { getIPFSCID } from './util.js';
-import { NetworkIds } from './constants/networks.js';
-import dotenv from 'dotenv';
-dotenv.config();
-
-const networkId = process.env.NETWORK_ID || NetworkIds.MINA_DEVNET;
-
-const vk = (vkJSON as any)[networkId];
+import { NetworkIds, NETWORKS } from './constants/networks.js';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 
@@ -44,11 +39,13 @@ const emptyMerkleMapRoot = new MerkleMap().getRoot();
 //   cache: Cache.FileSystem('cache'),
 // });
 
-const { hashPart1, hashPart2 } = getIPFSCID();
+const networkId = process.env.NETWORK_ID || NetworkIds.MINA_DEVNET;
+
+const vk = (vkJSON as any)[networkId];
 
 const randomManagerVK = {
-  hash: Field(vk.randomManagerVK.hash),
-  data: vk.randomManagerVK.data,
+  hash: Field(vk.randomManager.hash),
+  data: vk.randomManager.data,
 };
 
 const PLotteryVK = {
@@ -115,16 +112,6 @@ export class PlotteryFactory extends SmartContract {
         value: {
           ...Permissions.default(),
         },
-      };
-
-      rmUpdate.body.update.appState[4] = {
-        isSome: Bool(true),
-        value: hashPart1,
-      };
-
-      rmUpdate.body.update.appState[5] = {
-        isSome: Bool(true),
-        value: hashPart2,
       };
     }
     // Deploy plottery

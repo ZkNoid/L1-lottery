@@ -1,7 +1,8 @@
 /// Best fucking naming
 
 import { Field, MerkleMap, MerkleMapWitness } from 'o1js';
-import { CommitValue, RandomManager } from '../Random/RandomManager.js';
+import { CommitValue } from '../Random/RandomManager.js';
+import RandomManager from '../Random/RandomManager.js';
 
 interface WitnessedValue {
   value: Field;

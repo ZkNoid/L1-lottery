@@ -11,7 +11,7 @@ export * from './StateManager/RandomManagerManager.js';
 export * from './StateManager/FactoryStateManager.js';
 export * from './Factory.js';
 export * as RandomManagerManager from './StateManager/RandomManagerManager.js';
-export * as FactoryTwoParties from './FactoryTwoParties.js';
+export * as Factory from './Factory.js';
 
 import {
   DistributionProofPublicInput,

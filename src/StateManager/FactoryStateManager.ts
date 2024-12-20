@@ -2,7 +2,7 @@ import { Field, MerkleMap, PublicKey } from 'o1js';
 import { PStateManager } from './PStateManager.js';
 import { PLottery } from '../PLottery.js';
 import { RandomManagerManager } from './RandomManagerManager.js';
-import { RandomManager } from '../Random/RandomManager.js';
+import RandomManager from '../Random/RandomManager.js';
 
 interface IDeployInfo {
   round: number;

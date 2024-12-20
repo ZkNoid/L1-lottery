@@ -10,7 +10,11 @@ const stats = await Promise.all(
   files.map((file) => stat(path.join(directory, file)))
 );
 
+console.log('Files', files)
+
 const filesToInclude = files.filter((x, i) => stats[i].size < 100_000_000);
+
+console.log('Files to include', filesToInclude)
 
 for (let fileToInclude of filesToInclude) {
   await copyFile(`cache/${fileToInclude}`, `cache_frontend/${fileToInclude}`);

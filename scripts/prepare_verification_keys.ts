@@ -2,17 +2,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import fs from 'fs';
-import { Cache, Field, Mina } from 'o1js';
-import { ZkonRequestCoordinator, ZkonZkProgram } from 'zkon-zkapp';
-import { RandomManager as RandomManagerTwoParties } from '../src/Random/RandomManagerTwoParties.js';
+import { Cache, Mina } from 'o1js';
 import { RandomManager } from '../src/Random/RandomManager.js';
 import { TicketReduceProgram } from '../src/Proofs/TicketReduceProof.js';
 import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { PLottery } from '../src/PLottery.js';
-import { PLottery as PLotteryTwoParties } from '../src/PLotteryTwoParties.js';
 
-import { FactoryTwoParties } from '../src/index.js';
-import { PlotteryFactory } from '../src/index_two_parties.js';
+import { PlotteryFactory } from '../src/Factory.js';
 import { NETWORKS } from '../src/constants/networks.js';
 import { vkJSON } from '../vk.js';
 
@@ -31,14 +27,10 @@ const Network = Mina.Network({
 
 Mina.setActiveInstance(Network);
 
-await ZkonZkProgram.compile({ cache: Cache.FileSystem('cache') });
-await ZkonRequestCoordinator.compile({ cache: Cache.FileSystem('cache') });
-const { verificationKey: factoryTwoPartiesVK } =
-  await FactoryTwoParties.PlotteryFactory.compile();
+const { verificationKey: factoryVK } =
+  await PlotteryFactory.compile();
 
 const { verificationKey: randomManagerVK } = await RandomManager.compile();
-const { verificationKey: randomManagerTwoPartiesVK } =
-  await RandomManagerTwoParties.compile();
 
 await TicketReduceProgram.compile({ cache: Cache.FileSystem('cache') });
 await DistributionProgram.compile({ cache: Cache.FileSystem('cache') });
@@ -46,31 +38,18 @@ const { verificationKey: PLotteryVK } = await PLottery.compile({
   cache: Cache.FileSystem('cache'),
 });
 
-const { verificationKey: PLotteryVKTwoParties } =
-  await PLotteryTwoParties.compile({
-    cache: Cache.FileSystem('cache'),
-  });
-
 const result = {
-  factoryTwoPartiesVK: {
-    hash: factoryTwoPartiesVK.hash.toString(),
-    data: factoryTwoPartiesVK.data,
+  factoryVK: {
+    hash: factoryVK.hash.toString(),
+    data: factoryVK.data,
   },
   randomManagerVK: {
     hash: randomManagerVK.hash.toString(),
     data: randomManagerVK.data,
   },
-  randomManagerTwoParties: {
-    hash: randomManagerTwoPartiesVK.hash.toString(),
-    data: randomManagerTwoPartiesVK.data,
-  },
   PLotteryVK: {
     hash: PLotteryVK.hash.toString(),
     data: PLotteryVK.data,
-  },
-  PLotteryVKTwoParties: {
-    hash: PLotteryVKTwoParties.hash.toString(),
-    data: PLotteryVKTwoParties.data,
   },
 };
 
