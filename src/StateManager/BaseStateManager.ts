@@ -166,7 +166,26 @@ export class BaseStateManager {
       nullifierWitness,
     };
   }
+  async getRewardByTicketId(
+    ticketId: number
+  ): Promise<{
+    ticketWitness: MerkleMap20Witness;
+    nullifierWitness: MerkleMap20Witness;
+  }> {
+    const ticketWitness = this.ticketMap.getWitness(Field.from(ticketId));
+    const nullifierWitness = this.ticketNullifierMap.getWitness(
+      Field.from(ticketId)
+    );
 
+    if (this.shouldUpdateState) {
+      this.ticketNullifierMap.set(Field.from(ticketId), Field(1));
+    }
+
+    return {
+      ticketWitness,
+      nullifierWitness,
+    };
+  }
   async getRefund(
     round: number,
     ticket: Ticket
