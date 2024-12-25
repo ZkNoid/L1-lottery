@@ -75,6 +75,7 @@ export class ProduceResultEvent extends Struct({
 
 export class GetRewardEvent extends Struct({
   ticket: Ticket,
+  ticketId: Field
 }) {}
 
 export class RefundEvent extends Struct({
@@ -456,6 +457,7 @@ export class PLottery extends SmartContract {
       'get-reward',
       new GetRewardEvent({
         ticket,
+        ticketId
       })
     );
   }
