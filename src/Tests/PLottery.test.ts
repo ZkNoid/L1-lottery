@@ -1,9 +1,7 @@
 import {
   AccountUpdate,
-  Bool,
   Cache,
   Field,
-  MerkleMap,
   Mina,
   Poseidon,
   PrivateKey,
@@ -21,10 +19,8 @@ import {
   TICKET_PRICE,
   treasury,
 } from '../constants';
-// import { DistributionProgram } from '../Proofs/DistributionProof';
 import { dummyBase64Proof } from 'o1js/dist/node/lib/proof-system/zkprogram';
 import { Pickles } from 'o1js/dist/node/snarky';
-import { PStateManager } from '../StateManager/PStateManager';
 import { TicketReduceProgram } from '../Proofs/TicketReduceProof';
 import { CommitValue } from '../Random/RandomManager';
 import { MockedRandomManager } from './MockedContracts/MockedRandomManager';
@@ -66,8 +62,6 @@ const testCommitValue = {
     salt: Field(117),
   }),
 };
-
-const testVRFValue = Field(789);
 
 const testWinningCombination = generateNumbersSeed(
   Poseidon.hash([testCommitValue.v1.value, testCommitValue.v2.value])
@@ -305,13 +299,6 @@ describe('Add', () => {
     // Get reward
     const rp = await state.getReward(curRound, ticket);
 
-    // Try to get reward with wrong account
-    // await expect(
-    //   Mina.transaction(restAccs[0], async () => {
-    //     await lottery.getReward(ticket, rp.ticketWitness, rp.nullifierWitness);
-    //   })
-    // ).rejects.toThrow('Field.assertEquals()');
-
     let faultTicket = Ticket.fromFields(Ticket.toFields(ticket)) as Ticket;
     faultTicket.owner = restAccs[0];
     await expect(
@@ -361,7 +348,6 @@ describe('Add', () => {
     // Commit value for random
     await commitValue(curRound);
     // Reduce tickets
-    // let winningNumbers = getWinningCombinationPacked(curRound);
     let reduceProof = await state.reduceTickets(Field(0));
     let tx2_1 = await Mina.transaction(senderAccount, async () => {
       await lottery.emergencyReduceTickets(reduceProof);
@@ -371,9 +357,6 @@ describe('Add', () => {
 
     checkConsistency();
     // Get refund
-
-    console.log(`Before: ${lottery.ticketRoot.get().toString()}`);
-    console.log(state.ticketMap.getRoot().toString());
 
     let { ticketWitness } = await state.getRefund(0, ticket);
     const balanceBefore2 = Mina.getBalance(senderAccount);
@@ -387,9 +370,6 @@ describe('Add', () => {
     expect(balanceAfter2.sub(balanceBefore2)).toEqual(TICKET_PRICE);
     // Produce random value
     await produceResultInRM(curRound);
-
-    console.log(`After: ${lottery.ticketRoot.get().toString()}`);
-    console.log(state.ticketMap.getRoot().toString());
 
     // Produce result
     state.ticketMap = new MerkleMap20();
@@ -412,8 +392,6 @@ describe('Add', () => {
     await tx5.sign([senderKey]).send();
     checkConsistency();
     const balanceAfter3 = Mina.getBalance(senderAccount);
-    console.log(`Bank: ${lottery.bank.get().toString()}`);
-    console.log();
     expect(balanceAfter3.sub(balanceBefore3)).toEqual(
       TICKET_PRICE.mul(PRECISION - COMMISSION).div(PRECISION)
     );

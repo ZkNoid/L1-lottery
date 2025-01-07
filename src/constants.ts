@@ -15,3 +15,8 @@ export const mockWinningCombination = [1, 1, 1, 1, 1, 1];
 export const treasury = PublicKey.fromBase58(
   'B62qm9d3Ff7DQMpc59wNv9d6R9mSqRKbtHsPs53ZBGr27Y7Cj1poEmc'
 );
+
+export const NetworkIds = {
+  MINA_DEVNET: 'mina:testnet',
+  MINA_MAINNET: 'mina:mainnet',
+};

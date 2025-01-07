@@ -4,23 +4,18 @@ import {
   Field,
   MerkleMap,
   MerkleMapWitness,
-  Poseidon,
   PublicKey,
   SmartContract,
   State,
   state,
   Struct,
-  UInt64,
   Permissions,
   method,
-  Cache,
   UInt32,
-  NetworkId,
 } from 'o1js';
 import { vkJSON } from '../vk.js';
-import { BLOCK_PER_ROUND } from './constants.js';
+import { BLOCK_PER_ROUND, NetworkIds } from './constants.js';
 import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
-import { NetworkIds } from './constants/networks.js';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 const networkId = process.env.NETWORK_ID || NetworkIds.MINA_DEVNET;
@@ -36,11 +31,6 @@ const PLotteryVK = {
   hash: Field(vk.PLotteryVK.hash),
   data: vk.PLotteryVK.data,
 };
-
-class RoundInfo extends Struct({
-  startSlot: Field,
-  randomManagerAddress: PublicKey,
-}) {}
 
 export class DeployEvent extends Struct({
   round: Field,

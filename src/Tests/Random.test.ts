@@ -1,29 +1,14 @@
 import {
   AccountUpdate,
-  Cache,
   Field,
   Mina,
   Poseidon,
   PrivateKey,
   PublicKey,
-  Struct,
-  UInt32,
-  UInt64,
 } from 'o1js';
-import { Ticket } from '../Structs/Ticket';
-import { NumberPacked, convertToUInt64 } from '../util';
-import {
-  BLOCK_PER_ROUND,
-  TICKET_PRICE,
-  treasury,
-} from '../constants';
-import { RandomManagerManager } from '../StateManager/RandomManagerManager';
+import { BLOCK_PER_ROUND, treasury } from '../constants';
 import { CommitValue } from '../Random/RandomManager';
-import { PlotteryFactory } from '../Factory';
 import { FactoryManager } from '../StateManager/FactoryStateManager';
-import { PLottery } from '../PLottery';
-import { TicketReduceProgram } from '../Proofs/TicketReduceProof';
-import { DistributionProgram } from '../Proofs/DistributionProof';
 import { MockedRandomManager } from './MockedContracts/MockedRandomManager';
 import { MockedPlotteryFactory } from './MockedContracts/MockedFactory';
 
@@ -33,10 +18,6 @@ const testCommitValues = [...Array(10)].map((_, i) => {
     v2: new CommitValue({ value: Field(2 * i + 1), salt: Field.random() }),
   };
 });
-
-const testVRFValues = [...Array(10)].map((_, i) =>
-  Field(Poseidon.hash([Field(i)]))
-);
 
 let proofsEnabled = false;
 
@@ -65,8 +46,7 @@ describe('Add', () => {
       commitValue1: CommitValue,
       commitValue2: CommitValue
     ) => Promise<void>;
-  beforeAll(async () => {
-  });
+
   beforeEach(async () => {
     const Local = await Mina.LocalBlockchain({ proofsEnabled });
     Local.addAccount(treasury, '100');
@@ -170,9 +150,7 @@ describe('Add', () => {
   it('Should produce random value', async () => {
     await localDeploy();
 
-    // for (let i = 0; i < 10; i++) {
     let i = 0;
-    // console.log(i);
     await commitValue(i, testCommitValues[i].v1, testCommitValues[i].v2);
 
     mineNBlocks(BLOCK_PER_ROUND + 1);
@@ -184,16 +162,5 @@ describe('Add', () => {
       testCommitValues[i].v2.value,
     ]);
     expect(randomManager.result.get()).toEqual(seed);
-    // }
   });
-
-  // it('JSON works', async () => {
-  //   rmStateManager.addCommit(testCommitValues[0]);
-
-  //   let json = rmStateManager.toJSON();
-
-  //   let copy = RandomManagerManager.fromJSON(json);
-
-  //   expect(rmStateManager.commit).toEqual(copy.commit);
-  // });
 });

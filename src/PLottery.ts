@@ -56,11 +56,6 @@ export const generateNumbersSeed = (seed: Field): UInt32[] => {
   return numbers;
 };
 
-const max = (a: UInt64, b: UInt64): UInt64 => {
-  return Provable.if(a.greaterThan(b), a, b);
-};
-
-const emptyMapRoot = new MerkleMap().getRoot();
 const emptyMap20Root = new MerkleMap20().getRoot();
 
 export class BuyTicketEvent extends Struct({
@@ -75,7 +70,7 @@ export class ProduceResultEvent extends Struct({
 
 export class GetRewardEvent extends Struct({
   ticket: Ticket,
-  ticketId: Field
+  ticketId: Field,
 }) {}
 
 export class RefundEvent extends Struct({
@@ -236,7 +231,6 @@ export class PLottery extends SmartContract {
     this.result.set(winningNumbersPacked);
 
     // Emit event
-    // this.emitEvent('reduce', new ReduceEvent({}));
     this.emitEvent(
       'produce-result',
       new ProduceResultEvent({
@@ -289,55 +283,6 @@ export class PLottery extends SmartContract {
       .getAndRequireEquals()
       .assertEquals(reduceProof.publicOutput.finalState);
   }
-
-  /*
-  1) Common check 
-  2) Check reduce
-  3) Write values
-  */
-
-  /**
-   * @notice Generate winning combination for round
-   * @dev Random number seed is taken from RandomManager contract for this round.
-   *        Then using this seed 6 number is generated and stored
-   *
-   * @require The result must not have been computed yet.
-   * @require The round must have been reduced before the result can be computed.
-   *
-   * @event produce-result Emitted when the result is successfully produced and the result tree is updated.
-   */
-  // @method async produceResult() {
-  //   // Check that result for this round is not computed yet
-  //   const result = this.result.getAndRequireEquals();
-  //   result.assertEquals(Field(0), 'Result for this round is already computed');
-
-  //   const reduced = this.reduced.getAndRequireEquals();
-  //   reduced.assertTrue('Actions was not reduced for this round yet');
-
-  //   const RM = new RandomManager(this.randomManager.getAndRequireEquals());
-  //   const rmValue = RM.result.getAndRequireEquals();
-
-  //   // Generate new winning combination using random number from NumberManager
-  //   let winningNumbers = generateNumbersSeed(rmValue);
-  //   let resultPacked = NumberPacked.pack(winningNumbers);
-
-  //   this.result.set(resultPacked);
-
-  //   const bankValue = this.bank.getAndRequireEquals();
-  //   this.bank.set(bankValue.mul(PRECISION - COMMISSION).div(PRECISION));
-
-  //   this.send({
-  //     to: treasury,
-  //     amount: convertToUInt64(bankValue.mul(COMMISSION).div(PRECISION)),
-  //   });
-
-  //   this.emitEvent(
-  //     'produce-result',
-  //     new ProduceResultEvent({
-  //       result: resultPacked,
-  //     })
-  //   );
-  // }
 
   // Update refund natspec
   /**
@@ -457,7 +402,7 @@ export class PLottery extends SmartContract {
       'get-reward',
       new GetRewardEvent({
         ticket,
-        ticketId
+        ticketId,
       })
     );
   }
