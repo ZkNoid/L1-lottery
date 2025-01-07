@@ -16,6 +16,8 @@ import { Ticket } from '../Structs/Ticket';
 import { NumberPacked, convertToUInt64 } from '../util';
 import {
   BLOCK_PER_ROUND,
+  COMMISSION,
+  PRECISION,
   TICKET_PRICE,
   treasury,
 } from '../constants';
@@ -413,7 +415,7 @@ describe('Add', () => {
     console.log(`Bank: ${lottery.bank.get().toString()}`);
     console.log();
     expect(balanceAfter3.sub(balanceBefore3)).toEqual(
-      TICKET_PRICE.mul(97).div(100)
+      TICKET_PRICE.mul(PRECISION - COMMISSION).div(PRECISION)
     );
   });
 
