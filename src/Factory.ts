@@ -14,8 +14,9 @@ import {
   UInt32,
 } from 'o1js';
 import { vkJSON } from '../vk.js';
-import { BLOCK_PER_ROUND, NetworkIds } from './constants.js';
+import { BLOCK_PER_ROUND } from './constants.js';
 import { MerkleMap20 } from './Structs/CustomMerkleMap.js';
+import { NetworkIds } from './Network.js';
 
 const emptyMerkleMapRoot = new MerkleMap().getRoot();
 const networkId = process.env.NETWORK_ID || NetworkIds.MINA_DEVNET;

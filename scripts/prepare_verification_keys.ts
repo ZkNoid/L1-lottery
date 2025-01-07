@@ -9,7 +9,7 @@ import { DistributionProgram } from '../src/Proofs/DistributionProof.js';
 import { PLottery } from '../src/PLottery.js';
 
 import { PlotteryFactory } from '../src/Factory.js';
-import { NETWORKS } from '../src/constants/networks.js';
+import { NETWORKS } from '../src/Network.js';
 import { vkJSON } from '../vk.js';
 
 const network_ = NETWORKS[process.env.NETWORK_ID!];
@@ -27,8 +27,7 @@ const Network = Mina.Network({
 
 Mina.setActiveInstance(Network);
 
-const { verificationKey: factoryVK } =
-  await PlotteryFactory.compile();
+const { verificationKey: factoryVK } = await PlotteryFactory.compile();
 
 const { verificationKey: randomManagerVK } = await RandomManager.compile();
 
