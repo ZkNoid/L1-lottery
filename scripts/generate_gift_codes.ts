@@ -38,7 +38,7 @@ const GiftCodeSchema: Schema<IGiftCodeDocument> = new Schema({
  * 4. Create a Mongoose model from the schema.
  */
 const GiftCode: Model<IGiftCodeDocument> = mongoose.model<IGiftCodeDocument>(
-  'GiftCode',
+  'gift-codes',
   GiftCodeSchema
 );
 
