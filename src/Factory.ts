@@ -52,7 +52,8 @@ export class PlotteryFactory extends SmartContract {
     super.init();
     this.roundsRoot.set(emptyMerkleMapRoot);
     this.network.globalSlotSinceGenesis.requireNothing();
-    this.startSlot.set(this.network.globalSlotSinceGenesis.get());
+    this.startSlot.set(UInt32.from(671298));
+    // this.startSlot.set(this.network.globalSlotSinceGenesis.get());
   }
 
   @method
