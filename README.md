@@ -282,3 +282,11 @@ It will generate private and public keys for RandomManager and Lottery. Deploy t
 ## License
 
 [Apache-2.0](LICENSE)
+
+## Audits
+
+| Company | Company website | Audit report |
+|---|---| --- |
+| Extropy | [extropy.io](https://extropy.io) | [Report](https://docs.zknoid.io/zkNoidAuditAug2024Final.pdf) |
+
+
