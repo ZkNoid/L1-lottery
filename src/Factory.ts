@@ -52,8 +52,7 @@ export class PlotteryFactory extends SmartContract {
     super.init();
     this.roundsRoot.set(emptyMerkleMapRoot);
     this.network.globalSlotSinceGenesis.requireNothing();
-    // this.startSlot.set(UInt32.from(672239)); // "Wed Jan 15 2025 12:00:00 GMT+0000"
-    this.startSlot.set(this.network.globalSlotSinceGenesis.get());
+    this.startSlot.set(UInt32.from(672239)); // "Wed Jan 15 2025 12:00:00 GMT+0000"
   }
 
   @method
