@@ -12,6 +12,7 @@ dist
 
 # Deploy info. Consist private keys and other sensitive data.
 deployV2
+deployV2_Old
 
 # Never commit keys to Git!
 keys
@@ -27,3 +28,7 @@ cache_frontend
 commits
 
 !./node_modules/mina-fungible-token/*
+
+# Giftcodes
+
+giftcodes

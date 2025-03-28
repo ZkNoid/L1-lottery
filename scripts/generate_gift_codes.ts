@@ -103,15 +103,14 @@ async function main() {
       });
     }
 
+    const headerTitle = ',,ZkNoid lottery gift codes';
+    const csvHeader = 'codes,used';
+    const csvRows = giftCodes.map((codeObj) => `${codeObj.code},`).join('\n');
+
+    const csvContent = `${headerTitle}\n${csvHeader}\n${csvRows}`;
+
     // Write generated codes to the specified file
-    fs.writeFileSync(
-      filename,
-      JSON.stringify(
-        giftCodes.map((info) => info.code),
-        null,
-        2
-      )
-    );
+    fs.writeFileSync(filename, csvContent);
     console.log(`Generated codes written to file: ${filename}`);
 
     // Insert generated gift codes into the database

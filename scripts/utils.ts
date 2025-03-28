@@ -19,6 +19,8 @@ export const configDefaultInstance = (): {
     archive: network_.archive,
   });
 
+  console.log(network_);
+
   Mina.setActiveInstance(network);
 
   return { transactionFee, network: network_ };
