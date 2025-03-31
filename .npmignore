@@ -9,6 +9,7 @@ src
 
 # Deploy info. Consist private keys and other sensitive data.
 deployV2
+deployV2_Old
 
 # Never reveal your keys!
 keys
@@ -23,3 +24,5 @@ cache_frontend
 commits
 
 !./node_modules/mina-fungible-token/*
+
+giftcodes
